@@ -12,11 +12,6 @@ SmartString enables you to write clearer, more concise, secure code.
 Install via Composer: `composer require itools/smartstring` and then require the Composer autoloader:
 
 ```php
-```
-
-Add to your PHP project: 
-
-```php
 require 'vendor/autoload.php'; // load Composer autoloader
 use Itools\SmartString\SmartString;
 
@@ -205,7 +200,8 @@ Itools\SmartString\SmartString Object ( [__DEVELOPERS__] =>
         This 'SmartString' object automatically HTML-encodes output in string contexts for XSS protection.
         It also provides access to the original value, alternative encoding methods, and various utility methods.
         
-        Basic Usage:
+        Basic Usage:[readme.md](..%2F..%2FSmartString%2Freadme.md)
+[readme.md.bak](..%2F..%2FSmartString%2Freadme.md.bak)
         $name                 = Itools\SmartString\SmartString Object // Field object itself
         $name->value()        = O'Reilly &amp; Sons                   // Access original value
         "{$name->noEncode()}" = O'Reilly &amp; Sons                   // Output original value in string context
@@ -255,39 +251,39 @@ Itools\SmartString\SmartString Object ( [__DEVELOPERS__] =>
 
 ## Method Reference
 
- **Basic Usage**                    |                                                                                     |
- ----------------------------------:|------------------------------------------------------------------------------------- 
- SmartString::new(\$value)          | Creates a new SmartString object from a single value (string, int, float, bool, null) or an ArrayObject of SmartStrings from an array 
- value()                            | Returns the original, unencoded value of any type (string, int, float, bool, null)                                                
- **Type Conversion**                |
- int()                              | Returns the value as an integer                                                     
- float()                            | Returns the value as a float                                                        
- bool()                             | Returns the value as a boolean                                                      
- string()                           | Returns the value as a string (original value, not HTML-encoded)                                           
- **Encoding Methods**               |
- htmlEncode()                       | Returns HTML-encoded string                                                         
- urlEncode()                        | Returns URL-encoded string                                                          
- jsonEncode()                       | Returns JSON-encoded string                                                   
- noEncode()                         | Alias for value(), useful for readability in string contexts                        
- **String Manipulation**            |
- stripTags(...)                     | Removes HTML tags from the string with PHP strip_tags() function.<br>Optional arguments: $allowed_tags                                                   
- nl2br()                            | Converts newlines to HTML line breaks with PHP nl2br() function                                              
- trim(...)                    | Trims whitespace or specified characters from the string with PHP trim() function.<br>Optional arguments: $characters                            
- **Formatting**                     |
- dateFormat(\$format)               | Formats the value as a date with PHP date() function.<br>Arguments: $format (e.g., "Y-m-d H:i:s")                              
- numberFormat(...\$args)            | Formats the value as a number with specified decimals and separators                
- **Numerical Operations**           |
- percent(\$decimals)            | Converts the value to a percentage                                                  
- percentOf(\$total, \$decimals) | Calculates the percentage of the value relative to the given total                  
- subtract(\$value)                  | Subtracts the given value from the current value                                    
- divide(\$divisor)                  | Divides the current value by the given divisor                                      
- **Conditional**                    |
- or(\$value)                        | Returns the alternative value if the current value is falsy                         
- ifNull(\$value)                    | Returns the alternative value if the current value is null                          
- ifBlank(\$value)                   | Returns the alternative value if the current value is an empty string               
- **Miscellaneous**                  |
- apply(\$func, ...\$args)           | Applies a custom function to the value                                              
- help()                             | Displays help information about available methods                                   
+|                **Basic Usage** |                                                                                                                                       |
+|-------------------------------:|---------------------------------------------------------------------------------------------------------------------------------------|
+|      SmartString::new(\$value) | Creates a new SmartString object from a single value (string, int, float, bool, null) or an ArrayObject of SmartStrings from an array |
+|                        value() | Returns the original, unencoded value of any type (string, int, float, bool, null)                                                    |
+|            **Type Conversion** |                                                                                                                                       |
+|                          int() | Returns the value as an integer                                                                                                       |
+|                        float() | Returns the value as a float                                                                                                          |
+|                         bool() | Returns the value as a boolean                                                                                                        |
+|                       string() | Returns the value as a string (original value, not HTML-encoded)                                                                      |
+|           **Encoding Methods** |                                                                                                                                       |
+|                   htmlEncode() | Returns HTML-encoded string                                                                                                           |
+|                    urlEncode() | Returns URL-encoded string                                                                                                            |
+|                   jsonEncode() | Returns JSON-encoded string                                                                                                           |
+|                     noEncode() | Alias for value(), useful for readability in string contexts                                                                          |
+|        **String Manipulation** |                                                                                                                                       |
+|                 stripTags(...) | Removes HTML tags from the string with PHP strip_tags() function.<br>Optional arguments: $allowed_tags                                |
+|                        nl2br() | Converts newlines to HTML line breaks with PHP nl2br() function                                                                       |
+|                      trim(...) | Trims whitespace or specified characters from the string with PHP trim() function.<br>Optional arguments: $characters                 |
+|                 **Formatting** |                                                                                                                                       |
+|           dateFormat(\$format) | Formats the value as a date with PHP date() function.<br>Arguments: $format (e.g., "Y-m-d H:i:s")                                     |
+|        numberFormat(...\$args) | Formats the value as a number with specified decimals and separators                                                                  |
+|       **Numerical Operations** |                                                                                                                                       |
+|            percent(\$decimals) | Converts the value to a percentage                                                                                                    |
+| percentOf(\$total, \$decimals) | Calculates the percentage of the value relative to the given total                                                                    |
+|              subtract(\$value) | Subtracts the given value from the current value                                                                                      |
+|              divide(\$divisor) | Divides the current value by the given divisor                                                                                        |
+|                **Conditional** |                                                                                                                                       |
+|                    or(\$value) | Returns the alternative value if the current value is falsy                                                                           |
+|                ifNull(\$value) | Returns the alternative value if the current value is null                                                                            |
+|               ifBlank(\$value) | Returns the alternative value if the current value is an empty string                                                                 |
+|              **Miscellaneous** |                                                                                                                                       |
+|       apply(\$func, ...\$args) | Applies a custom function to the value                                                                                                |
+|                         help() | Displays help information about available methods                                                                                     |
 
 ## Questions?
 
