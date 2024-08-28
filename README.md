@@ -16,16 +16,15 @@ require 'vendor/autoload.php'; // load Composer autoloader
 use Itools\SmartString\SmartString;
 
 // Use new() to convert your array
-$dbRecord = ['id' => 123, 'name' => "John O'Reilly"];  // mock database record for testing
-$request = SmartString::new($_REQUEST);
+$dbRecord = ['id' => 68, 'name' => "John O'Reilly", "lastLogin" => "2024-08-27 11:56:22"];  // mock record for testing
 $user    = SmartString::new($dbRecord); // $user is now an ArrayObject of SmartStrings
 
 // Automatic HTML encoding in string contexts
 echo "Hello, $user->name!\n";                                      // Hello, John O&apos;Reilly
-echo "Last login: {$record->lastLogin->dateFormat('M jS, Y')}}\n"; // Jan 1st, 2024
+echo "Last login: {$user->lastLogin->dateFormat('M jS, Y')}}\n"; // Aug 27th, 2024
 
 // Access values when needed
-echo $name->value(); // John O'Reilly
+echo $user->name->value(); // John O'Reilly
 ```
 
 Read on for more details and examples.
@@ -55,12 +54,12 @@ SmartString objects automatically return HTML-encoded output in any string conte
 
 ```php
 // String contexts
-$name = SmartString::new($_REQUEST['name']);  // e.g., O'Reilly &amp; Sons
-echo $name;                                   // returns "O&amp;apos;Reilly &amp;amp; Sons"
-print $name;                                  // returns "O&amp;apos;Reilly &amp;amp; Sons"
-$encoded = (string) $name;                    // returns "O&amp;apos;Reilly &amp;amp; Sons"
-$greeting = "Hello, $name";                   // returns "Hello, O&amp;apos;Reilly &amp;amp; Sons"
-$greeting = "Hello, " . $name;                // returns "Hello, O&amp;apos;Reilly &amp;amp; Sons"
+$name = SmartString::new($_REQUEST['name']);  // e.g., O'Reilly & Sons
+echo $name;                                   // returns "O&apos;Reilly &amp;amp; Sons"
+print $name;                                  // returns "O&apos;Reilly &amp;amp; Sons"
+$encoded = (string) $name;                    // returns "O&apos;Reilly &amp;amp; Sons"
+$greeting = "Hello, $name";                   // returns "Hello, O&apos;Reilly &amp;amp; Sons"
+$greeting = "Hello, " . $name;                // returns "Hello, O&apos;Reilly &amp;amp; Sons"
 ```
 
 But you can always access the original value with the `value()` method:
@@ -100,10 +99,11 @@ echo "Order total: {$order->total->numberFormat(2)->or("none")}"; //
 
 // Combining multiple operations
 $url = "?startDate={$course->startDate->dateFormat('Y-m-d')->urlEncode()}";
-
+```
+<!-- Future
 // Combining multiple operations to create a text summary
 echo "Summary: {$article->content->stripTags()->maxChars(200, '...')}";
-```
+-->
 
 The fluent interface allows you to build complex transformations step-by-step, making your code more intuitive
 and easier to maintain.
@@ -171,8 +171,8 @@ $uppercase = $name->apply('strtoupper');  // returns "JOHN DOE"
 $paddedValue = $name->apply('str_pad', 15, '.'); // returns "John Doe......."
 
 // Writing your own custom function
-$spacesToUnderscores = function($str) { return str_replace(' ', '_', $str); }); // custom function
-$spacesToUnderscores = fn($str) => str_replace(' ', '_', $str);                 // => version
+$spacesToUnderscores = function($str) { return str_replace(' ', '_', $str); }); // anonymous function
+$spacesToUnderscores = fn($str) => str_replace(' ', '_', $str);                 // arrow function
 $urlSlug = $name->apply($spacesToUnderscores);   // returns "John_Doe"
 
 // Applying inline arrow functions
@@ -200,8 +200,7 @@ Itools\SmartString\SmartString Object ( [__DEVELOPERS__] =>
         This 'SmartString' object automatically HTML-encodes output in string contexts for XSS protection.
         It also provides access to the original value, alternative encoding methods, and various utility methods.
         
-        Basic Usage:[readme.md](..%2F..%2FSmartString%2Freadme.md)
-[readme.md.bak](..%2F..%2FSmartString%2Freadme.md.bak)
+        Basic Usage:
         $name                 = Itools\SmartString\SmartString Object // Field object itself
         $name->value()        = O'Reilly &amp; Sons                   // Access original value
         "{$name->noEncode()}" = O'Reilly &amp; Sons                   // Output original value in string context
