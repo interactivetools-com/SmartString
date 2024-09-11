@@ -1,4 +1,50 @@
 # SmartString Changelog
 
-### [1.0.0] - Aug 27, 2024
+## [Unreleased]
+
+None
+
+## [1.1.0] - 2024-09-11
+
+### Added
+ 
+- SmartString::fromArray(): Convert arrays to ArrayObjects of SmartStrings
+
+New Chainable Methods:
+
+- add(): Add a value to the current value
+- multiply(): Multiply the current value by a given multiplier
+- textOnly(): Remove HTML tags, decode entities, and trim the string
+- maxWords(): Limit the string to a maximum number of words with optional ellipsis
+- maxChars(): Limit the string to a maximum number of characters with optional ellipsis
+- dateTimeFormat(): Format date and time using default or custom format
+- phoneFormat(): Format phone numbers according to default rules
+
+Customizable Defaults:
+
+- Introduce ability to set custom defaults for various operations
+- Can be defined at the top of your script or in an initialization file
+- Example code: 
+```php
+SmartString::$numberFormatDecimal   = '.';             // Default decimal separator
+SmartString::$numberFormatThousands = ',';             // Default thousands separator
+SmartString::$dateFormat            = 'Y-m-d';         // Default dateFormat() format
+SmartString::$dateTimeFormat        = 'Y-m-d H:i:s';   // Default dateTimeFormat() format
+SmartString::$phoneFormat           = [                // Default phoneFormat() formats
+    ['digits' => 10, 'format' => '(###) ###-####'],
+    ['digits' => 11, 'format' => '1-###-###-####'],
+];
+```
+
+### Changed
+- dateTime(): Now defaults to date-only format when no format is specified
+- numberFormat(): Now uses default thousands separator and decimal only
+
+### Deprecated
+- stripTags(): Use textOnly() for improved functionality (removes tags, decodes entities, and trims)
+
+### Removed
+- createArrayObject(): Internal method removed. Use fromArray() method instead (same functionality)
+
+## [1.0.0] - 2024-08-27
 * Initial release
