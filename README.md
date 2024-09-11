@@ -65,7 +65,7 @@ $user    = SmartString::fromArray(['name' => "John O'Reilly", 'id' => 123]);
 $request = SmartString::fromArray($_REQUEST);
 
 // Use in string contexts for automatic HTML encoding
-echo "Hello, $user->name!"; // Output: Hello, John O&&ZeroWidthSpace;apos;Reilly!
+echo "Hello, $user->name!"; // Output: Hello, John O&apos;Reilly!
 
 // Chain methods
 echo $request->message->trim()->maxWords(50, '...');
@@ -114,7 +114,7 @@ foreach (SmartString::fromArray($articles) as $article) {
 }
 
 // Usage
-echo $name;               // John O&&ZeroWidthSpace;apos;Reilly
+echo $name;               // John O&apos;Reilly
 echo $user->age;          // 25
 echo $request->username;  // html-encoded $_REQUEST['username']
 ```
@@ -161,10 +161,10 @@ Whenever you use a SmartString object in a string context, it automatically HTML
 $str = SmartString::new("It's easy!<hr>"); 
 
 // SmartStrings return HTML-encoded output in string contexts 
-echo $str;             // "It&&ZeroWidthSpace;apos;s easy!&&ZeroWidthSpace;lt;hr&&ZeroWidthSpace;gt;"
-print $str;            // "It&&ZeroWidthSpace;apos;s easy!&&ZeroWidthSpace;lt;hr&&ZeroWidthSpace;gt;"
-(string) $str;         // "It&&ZeroWidthSpace;apos;s easy!&&ZeroWidthSpace;lt;hr&&ZeroWidthSpace;gt;"
-$new = $str."\n";      // "It&&ZeroWidthSpace;apos;s easy!&&ZeroWidthSpace;lt;hr&&ZeroWidthSpace;gt;\n"
+echo $str;             // "It&apos;s easy!&lt;hr&gt;"
+print $str;            // "It&apos;s easy!&lt;hr&gt;"
+(string) $str;         // "It&apos;s easy!&lt;hr&gt;"
+$new = $str."\n";      // "It&apos;s easy!&lt;hr&gt;\n"
 ````
 
 ### Accessing Values
@@ -237,7 +237,7 @@ $title = SmartString::new('<10% OFF "SALE"');
 echo $title->value();       // '<10% OFF "SALE"'
 
 // HTML Encode (default) - can be called explicitly for readability
-echo $title->htmlEncode();  // "&&ZeroWidthSpace;lt;10% OFF &&ZeroWidthSpace;quot;SALE&&ZeroWidthSpace;quot;"    
+echo $title->htmlEncode();  // "&lt;10% OFF &quot;SALE&quot;"    
 
 // URL encode
 echo "add.php?title={$title->urlEncode()}"; // add.php?title=%3C10%25+OFF+%22SALE%22
