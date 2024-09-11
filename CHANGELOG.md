@@ -2,7 +2,9 @@
 
 ## [Unreleased]
 
-None
+### Fixed
+
+- SmartString::$phoneFormat - fixed hard coded 1 in default 11-digit format
 
 ## [1.1.0] - 2024-09-11
 
@@ -32,7 +34,7 @@ SmartString::$dateFormat            = 'Y-m-d';         // Default dateFormat() f
 SmartString::$dateTimeFormat        = 'Y-m-d H:i:s';   // Default dateTimeFormat() format
 SmartString::$phoneFormat           = [                // Default phoneFormat() formats
     ['digits' => 10, 'format' => '(###) ###-####'],
-    ['digits' => 11, 'format' => '1-###-###-####'],
+    ['digits' => 11, 'format' => '# (###) ###-####'],
 ];
 ```
 

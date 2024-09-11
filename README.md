@@ -494,7 +494,7 @@ SmartString::$dateFormat            = 'Y-m-d';         // Default dateFormat() f
 SmartString::$dateTimeFormat        = 'Y-m-d H:i:s';   // Default dateTimeFormat() format
 SmartString::$phoneFormat           = [                // Default phoneFormat() formats
     ['digits' => 10, 'format' => '(###) ###-####'],
-    ['digits' => 11, 'format' => '1-###-###-####'],
+    ['digits' => 11, 'format' => '# (###) ###-####'],
 ];  
 ```
 

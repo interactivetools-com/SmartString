@@ -50,7 +50,7 @@ class SmartString
     public static string $dateTimeFormat        = 'Y-m-d H:i:s';     // Default dateTimeFormat() format
     public static array  $phoneFormat           = [                  // Default phoneFormat() formats
         ['digits' => 10, 'format' => '(###) ###-####'],
-        ['digits' => 11, 'format' => '1-###-###-####'],
+        ['digits' => 11, 'format' => '# (###) ###-####'],
     ];
 
     private string|int|float|bool|null $data; // The stored value
