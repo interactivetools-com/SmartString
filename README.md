@@ -3,7 +3,7 @@
 SmartString is a PHP string handling library that lets you write cleaner, simpler, more secure code faster and with less
 effort.
 
-Instead of this:
+Instead of writing code like this:
 
 ```php
 echo "<h1>" . htmlspecialchars($article['title'], ENT_QUOTES|ENT_SUBSTITUTE|ENT_HTML5, 'UTF-8') . "</h1>";
@@ -13,7 +13,7 @@ $summary = substr($summary, 0, 200); // limit to 200 characters
 echo "Summary: " . htmlspecialchars($summary, ENT_QUOTES|ENT_SUBSTITUTE|ENT_HTML5, 'UTF-8') . "...";
 ```
 
-You can write this:
+You can write code like this:
 
 ```php
 echo "<h1>$article->title</h1>";
