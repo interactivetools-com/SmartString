@@ -1,5 +1,4 @@
 <?php
-/** @noinspection UnknownInspectionInspection */
 
 /** @noinspection PhpUnused */
 declare(strict_types=1);
@@ -11,17 +10,23 @@ namespace Itools\SmartString\Methods;
  */
 class Strings
 {
+    /**
+     * @param int|float|string|null $value
+     * @return string|null
+     */
     public static function textOnly(int|float|string|null $value): string|null
     {
         if (is_null($value)) {
             return null;
         }
         $textOnly = html_entity_decode((string)$value, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8');
-        $textOnly = strip_tags($textOnly);
-        $textOnly = trim($textOnly);
-        return $textOnly;
+        return trim(strip_tags($textOnly));
     }
 
+    /**
+     * @param int|float|string|null $value
+     * @return string|null
+     */
     public static function nl2br(int|float|string|null $value): string|null
     {
         if (is_null($value)) {
@@ -30,6 +35,11 @@ class Strings
         return nl2br((string)$value, false);
     }
 
+    /**
+     * @param int|float|string|null $value
+     * @param ...$args
+     * @return string|null
+     */
     public static function trim(int|float|string|null $value, ...$args): string|null
     {
         if (is_null($value)) {
@@ -38,6 +48,12 @@ class Strings
         return trim((string)$value, ...$args);
     }
 
+    /**
+     * @param int|float|string|null $value
+     * @param int $max
+     * @param string $ellipsis
+     * @return string|null
+     */
     public static function maxWords(int|float|string|null $value, int $max, string $ellipsis = "..."): string|null
     {
         if (is_null($value)) {
@@ -54,6 +70,12 @@ class Strings
         return $newValue;
     }
 
+    /**
+     * @param int|float|string|null $value
+     * @param int $max
+     * @param string $ellipsis
+     * @return string|null
+     */
     public static function maxChars(int|float|string|null $value, int $max, string $ellipsis = "..."): string|null
     {
         if (is_null($value)) {

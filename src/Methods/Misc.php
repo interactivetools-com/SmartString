@@ -1,11 +1,9 @@
 <?php
-/** @noinspection UnknownInspectionInspection */
-
-/** @noinspection PhpUnused */
 declare(strict_types=1);
 
 namespace Itools\SmartString\Methods;
 
+use InvalidArgumentException;
 use Itools\SmartString\DebugInfo;
 use Itools\SmartString\SmartString;
 
@@ -26,15 +24,11 @@ class Misc
      */
     public static function apply(int|float|string|null $value, callable|string $func, mixed ...$args): mixed
     {
-        if (is_string($func) && !function_exists($func)) {
-            throw new InvalidArgumentException("Function '$func' does not exist");
+        if (!is_callable($func)) {
+            throw new InvalidArgumentException("Function '$func' is not callable");
         }
 
-        return match (true) {
-            is_callable($func) => $func($value, ...$args),
-            is_string($func)   => $func($value, ...$args),
-            default            => throw new InvalidArgumentException("Invalid function type"),
-        };
+        return $func($value, ...$args);
     }
 
     public static function help(mixed $value = null): mixed
@@ -44,7 +38,7 @@ class Misc
             It also provides access to the original value, alternative encoding methods, and various utility methods.
             
             Creating SmartStrings
-            \$str = SmartString::new("It's easy!<hr>"); 
+            \$str = SmartString::new("It's easy!<hr>");
             \$req = SmartString::fromArray(\$_REQUEST);  // ArrayObject of SmartStrings
 
             Automatic HTML-encoding in string contexts:
@@ -54,7 +48,7 @@ class Misc
             \$new = \$str."\\n";      // "It&apos;s easy!&lt;hr&gt;\\n"
             echo \$str->value();    // "It's easy!<hr>" (original value)
 
-            Value access: 
+            Value access:
             \$str->value()          // Access original value
             \$str->noEncode()       // Alias for ->value() for readability
             "{\$str->value()}"      // Output original value in string context
@@ -81,7 +75,7 @@ class Misc
             ->noEncode()              Alias for ->value() for readability, example: "{\$record->wysiwyg->noEncode()}"
 
             String Manipulation (returns object, chainable):
-            ->textOnly(...)           Remove HTML tags, decode HTML entities, and trims whitespace 
+            ->textOnly(...)           Remove HTML tags, decode HTML entities, and trims whitespace
             ->nl2br()                 Convert newlines to br tags
             ->trim(...)               Trim leading and trailing whitespace, supports same parameters as trim()
             ->maxWords(\$max)          Limit words to \$max, if truncated adds ... (override with second parameter)

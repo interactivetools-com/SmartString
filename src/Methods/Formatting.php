@@ -1,5 +1,5 @@
 <?php
-/** @noinspection UnknownInspectionInspection */
+
 /** @noinspection PhpUnused */
 declare(strict_types=1);
 
@@ -50,8 +50,7 @@ class Formatting
      * Calls the number_format() function on the current value.
      *
      * @param int|float|string|null $value
-     * @param mixed ...$args
-     *
+     * @param int|null $decimals
      * @return string|null
      */
     public static function numberFormat(int|float|string|null $value, ?int $decimals = 0): string|null

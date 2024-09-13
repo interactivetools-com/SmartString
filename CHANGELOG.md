@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [1.2.0] - 2024-09-11
+
+### Added
+
+New Chainable Methods:
+
+- if(\$condition, $valueIfTrue): Return valueIfTrue if condition is true, otherwise return the current value
+- set(\$newValue): Assign a new value or expression result to the current object
+
 ### Fixed
 
 - SmartString::$phoneFormat - fixed hard coded 1 in default 11-digit format

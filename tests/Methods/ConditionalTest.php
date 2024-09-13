@@ -1,6 +1,5 @@
 <?php
 
-/** @noinspection UnknownInspectionInspection */
 declare(strict_types=1);
 
 namespace Tests\Methods;
@@ -64,7 +63,7 @@ class ConditionalTest extends TestCase
         $fallback = 'fallback';
 
         return [
-            'empty string'      => [
+            'empty string'               => [
                 '',
                 $fallback,
                 [
@@ -74,7 +73,7 @@ class ConditionalTest extends TestCase
                     'isZero'  => '',
                 ],
             ],
-            'integer zero'      => [
+            'integer zero'               => [
                 0,
                 $fallback,
                 [
@@ -84,7 +83,7 @@ class ConditionalTest extends TestCase
                     'isZero'  => $fallback,
                 ],
             ],
-            'string zero'       => [
+            'string zero'                => [
                 '0',
                 $fallback,
                 [
@@ -94,7 +93,7 @@ class ConditionalTest extends TestCase
                     'isZero'  => $fallback,
                 ],
             ],
-            'float zero'        => [
+            'float zero'                 => [
                 0.0,
                 $fallback,
                 [
@@ -104,7 +103,7 @@ class ConditionalTest extends TestCase
                     'isZero'  => $fallback,
                 ],
             ],
-            'string float zero' => [
+            'string float zero'          => [
                 '0.0',
                 $fallback,
                 [
@@ -114,7 +113,7 @@ class ConditionalTest extends TestCase
                     'isZero'  => $fallback,
                 ],
             ],
-            'null'              => [
+            'null'                       => [
                 null,
                 $fallback,
                 [
@@ -124,7 +123,7 @@ class ConditionalTest extends TestCase
                     'isZero'  => null,
                 ],
             ],
-            'whitespace'        => [
+            'whitespace'                 => [
                 ' ',
                 $fallback,
                 [
@@ -134,7 +133,7 @@ class ConditionalTest extends TestCase
                     'isZero'  => ' ',
                 ],
             ],
-            'non-empty string'  => [
+            'non-empty string'           => [
                 'Hello',
                 $fallback,
                 [
@@ -145,16 +144,16 @@ class ConditionalTest extends TestCase
                 ],
             ],
             'SmartString fallback Null'  => [
-                NULL,
+                null,
                 SmartString::new($fallback),
                 [
                     'or'      => $fallback,
                     'ifNull'  => $fallback,
-                    'ifBlank' => NULL,
-                    'isZero'  => NULL,
+                    'ifBlank' => null,
+                    'isZero'  => null,
                 ],
             ],
-            'SmartString fallback Blank'  => [
+            'SmartString fallback Blank' => [
                 "",
                 SmartString::new($fallback),
                 [
@@ -176,4 +175,108 @@ class ConditionalTest extends TestCase
             ],
         ];
     }
+
+
+    /**
+     * @dataProvider ifMethodProvider
+     */
+    public function testIfMethod($value, $condition, $valueIfTrue, $expected): void
+    {
+        $result = Conditional::if($value, $condition, $valueIfTrue);
+        $this->assertSame($expected, $result);
+    }
+
+    public function ifMethodProvider(): array
+    {
+        return [
+            'condition true'         => [
+                'value'       => 5,
+                'condition'   => true,
+                'valueIfTrue' => 10,
+                'expected'    => 10,
+            ],
+            'condition false'        => [
+                'value'       => 5,
+                'condition'   => false,
+                'valueIfTrue' => 10,
+                'expected'    => 5,
+            ],
+            'null condition'         => [
+                'value'       => 5,
+                'condition'   => null,
+                'valueIfTrue' => 10,
+                'expected'    => 5,
+            ],
+            'zero condition'         => [
+                'value'       => 5,
+                'condition'   => 0,
+                'valueIfTrue' => 10,
+                'expected'    => 5,
+            ],
+            'string condition true'  => [
+                'value'       => 5,
+                'condition'   => '1',
+                'valueIfTrue' => 10,
+                'expected'    => 10,
+            ],
+            'string condition false' => [
+                'value'       => 5,
+                'condition'   => '0',
+                'valueIfTrue' => 10,
+                'expected'    => 5,
+            ],
+            'object valueIfTrue'     => [
+                'value'       => 5,
+                'condition'   => true,
+                'valueIfTrue' => new class {
+                    public function value(): int
+                    {
+                        return 15;
+                    }
+                },
+                'expected'    => 15,
+            ],
+        ];
+    }
+
+    /**
+     * @dataProvider setMethodProvider
+     */
+    public function testSetMethod($value, $newValue, $expected): void
+    {
+        $result = Conditional::set($value, $newValue);
+        $this->assertSame($expected, $result);
+    }
+
+    public function setMethodProvider(): array
+    {
+        return [
+            'set integer' => [
+                'value'    => 5,
+                'newValue' => 10,
+                'expected' => 10,
+            ],
+            'set string'  => [
+                'value'    => 'old',
+                'newValue' => 'new',
+                'expected' => 'new',
+            ],
+            'set null'    => [
+                'value'    => 5,
+                'newValue' => null,
+                'expected' => null,
+            ],
+            'set object'  => [
+                'value'    => 5,
+                'newValue' => new class {
+                    public function value(): int
+                    {
+                        return 15;
+                    }
+                },
+                'expected' => 15,
+            ],
+        ];
+    }
+
 }

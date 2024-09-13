@@ -406,23 +406,45 @@ Conditional operations provide a simple way to provide a fallback value when the
 or zero.
 
 ```php
-// Handling falsy values (false, null, zero, or empty string)
+// or($newValue): Handling falsy values (false, null, zero, or empty string)
 $value = SmartString::new('');
 echo $value->or('Default'); // "Default"
 
-// Handling blank values (only on empty string "")
+// ifBlank($newValue): Handling blank values (only on empty string "")
 $name1 = SmartString::new('');
 $name2 = SmartString::new('Alice');
 echo $name1->ifBlank('John Doe'); // "John Doe"
 echo $name2->ifBlank('John Doe'); // "Alice"
 
-// Handling null values - SmartString will return nulls on failed operations
+// ifNull($newValue): Handling null values - SmartString will return nulls on failed operations
 $nullable = SmartString::new(null);
 echo $nullable->ifNull('Not Null'); // "Not Null"
 
-// Handling zero values (0, 0.0, "0", or "0.0")
+// ifZero($newValue): Handling zero values (0, 0.0, "0", or "0.0")
 $zero = SmartString::new(0);
 echo $zero->ifZero('No balance'); // "No balance"
+
+// if($condition, $valueIfTrue): Change value if condition is true
+$eggs = SmartString::new(12);
+echo $eggs->if($eggs->int() === 12, "Full Carton"); // "Full Carton"
+
+// set($newValue): Assign a new value or expression result to the current object
+$price = SmartString::new(19.99);
+echo $price->set('24.99'); // 24.99
+echo $price->set($price->value() < 20 ? "Under 20" : "Over 20"); // "Over 20"
+
+// Or more complex operations using PHP match() expressions
+$eggs = SmartString::new(12);
+echo <<<__HTML__
+Eggs: {$eggs->set(match($eggs->int()) { 
+    12      => "Full Carton",
+    6       => "Half Carton",
+    default => "$eggs Eggs"
+})}
+__HTML__; // "Eggs: Full Carton"
+
+// The above code is pretty complex, so it's best to use it sparingly.  Don't be afraid to
+// use regular PHP code when needed.  We always recommend using the best tool for the job.
 ```
 
 ### Custom Functions

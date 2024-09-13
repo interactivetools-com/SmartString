@@ -14,29 +14,31 @@ use BadMethodCallException;
  * String methods:
  * @method SmartString textOnly() Convert HTML entities to text and strip tags from a string
  * @method SmartString nl2br() Convert newlines to <br> HTML tags in a string
- * @method SmartString trim(mixed ...$args) Strip whitespace ( or other characters) from the beginning and end of a string
+ * @method SmartString trim(...$args) Strip whitespace (or other characters) from the beginning and end of a string
  * @method SmartString maxWords(int $max, string $ellipsis = '...') Limit the string to a certain number of words, appending an ellipsis if needed
  * @method SmartString maxChars(int $max, string $ellipsis = '...') Limit the string to a certain number of characters, appending an ellipsis if needed
  *
  * Numeric
- * @method SmartString percent(int $decimals = 0) Convert the number to a percentage with optional decimal precision
- * @method SmartString percentOf(float $total, int $decimals = 0) Calculate the percentage of the current value compared to a total
- * @method SmartString add(float|int|SmartString $addend) Add a value to the current number
- * @method SmartString subtract(float|int|SmartString $subtrahend) Subtract a value from the current number
- * @method SmartString multiply(float|int|SmartString $multiplier) Multiply the current number by a multiplier
- * @method SmartString divide(float|int|SmartString $divisor) Divide the current number by a divisor
+ * @method SmartString percent($decimals = 0) Convert the number to a percentage with optional decimal precision
+ * @method SmartString percentOf($total, $decimals = 0) Calculate the percentage of the current value compared to a total
+ * @method SmartString add($addend) Add a value to the current number
+ * @method SmartString subtract($subtrahend) Subtract a value from the current number
+ * @method SmartString multiply($multiplier) Multiply the current number by a multiplier
+ * @method SmartString divide($divisor) Divide the current number by a divisor
  *
  * Formatting
- * @method SmartString dateFormat(?string $format = null) Format date with class default $dateFormat or specified format
- * @method SmartString dateTimeFormat(?string $format = null) Format date with class default $dateTimeFormat or specified format
- * @method SmartString numberFormat(mixed ...$args) Format the current numeric value using number_format() function
+ * @method SmartString dateFormat($format = null) Format date with class default $dateFormat or specified format
+ * @method SmartString dateTimeFormat($format = null) Format date with class default $dateTimeFormat or specified format
+ * @method SmartString numberFormat($decimals = 0) Format the current numeric value using number_format() function
  * @method SmartString phoneFormat() Format a phone number with default $phoneFormat rules or return null
  *
  * Conditional
- * @method SmartString or(int|float|string|SmartString $fallback) Return fallback value if the current value is falsy
- * @method SmartString ifNull(int|float|string $fallback) Return fallback value if the current value is null
- * @method SmartString ifBlank(int|float|string $fallback) Return fallback value if the current value is an empty string
- * @method SmartString isZero(int|float|string $fallback) Return fallback value if the current value is zero
+ * @method SmartString or($fallback) Return fallback value if the current value is falsy
+ * @method SmartString ifNull($fallback) Return fallback value if the current value is null
+ * @method SmartString ifBlank($fallback) Return fallback value if the current value is an empty string
+ * @method SmartString isZero($fallback) Return fallback value if the current value is zero
+ * @method SmartString if($condition, $valueIfTrue) Return valueIfTrue if condition is true, otherwise return the current value
+ * @method SmartString set($newValue) Assign a new value or expression result to the current object
  *
  * Misc
  * @method SmartString apply(callable|string $func, mixed ...$args) Apply a function to the current value

@@ -1,6 +1,4 @@
 <?php
-/** @noinspection UnknownInspectionInspection */
-
 declare(strict_types=1);
 
 namespace Itools\SmartString;

@@ -1,11 +1,9 @@
 <?php
-/** @noinspection UnknownInspectionInspection */
 declare(strict_types=1);
 
 namespace Tests;
 
 use ArrayObject;
-use Error;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Itools\SmartString\SmartString;
@@ -317,7 +315,7 @@ class SmartStringTest extends TestCase
 
     public function testApplyWithInvalidFunction(): void
     {
-        $this->expectException(Error::class);
+        $this->expectException(InvalidArgumentException::class);
         $smartString = new SmartString('test');
         $smartString->apply('non_existent_function');
     }
@@ -325,7 +323,7 @@ class SmartStringTest extends TestCase
     // endregion
     // region ArrayObject test
 
-    public function testArrayObjectHtmlEncoding()
+    public function testArrayObjectHtmlEncoding(): void
     {
         // Arrange
         $users = [

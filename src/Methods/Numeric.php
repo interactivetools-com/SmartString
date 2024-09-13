@@ -1,7 +1,4 @@
-<?php
-/** @noinspection UnknownInspectionInspection */
-/** @noinspection PhpUnused */
-/** @noinspection PhpDuplicateMatchArmBodyInspection */
+<?php /** @noinspection PhpUnused */
 
 declare(strict_types=1);
 
@@ -77,11 +74,11 @@ class Numeric
     /**
      * Multiplies the current field value by the given value.
      *
-     * @param int|float|SmartString $value The value to multiply by
+     * @param int|float $value The value to multiply by
      * @param int|float|SmartString $multiplier
      * @return int|float|null
      */
-    public static function multiply(int|float|SmartString $value, int|float|SmartString $multiplier): int|float|null
+    public static function multiply(int|float $value, int|float|SmartString $multiplier): int|float|null
     {
         $multiplyValue = $multiplier instanceof SmartString ? $multiplier->value() : $multiplier;
 
