@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [1.2.1] - 2024-09-16
+
+### Added
+
+- Numeric methods now accept null inputs, returning null instead of throwing errors 
+
 ## [1.2.0] - 2024-09-11
 
 ### Added

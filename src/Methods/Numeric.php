@@ -11,11 +11,15 @@ use Itools\SmartString\SmartString;
  */
 class Numeric
 {
-    /*
+    /**
      * Converts a number to a percentage. e.g., 0.1234 => 12.34%
      * Returns the Field object for chaining and null if the value is null.
+     *
+     * @param mixed $value
+     * @param int $decimals
+     * @return string|null
      */
-    public static function percent(int|float $value, int $decimals = 0): string|null
+    public static function percent(mixed $value, int $decimals = 0): string|null
     {
         return match (true) {
             is_numeric($value) => number_format($value * 100, $decimals) . '%',
@@ -23,7 +27,13 @@ class Numeric
         };
     }
 
-    public static function percentOf(int|float $value, int|float|SmartString $total, ?int $decimals = 0): string|null
+    /**
+     * @param mixed $value
+     * @param int|float|SmartString $total
+     * @param int|null $decimals
+     * @return string|null
+     */
+    public static function percentOf(mixed $value, int|float|SmartString $total, ?int $decimals = 0): string|null
     {
         $totalValue = $total instanceof SmartString ? $total->value() : $total;
 
@@ -38,11 +48,11 @@ class Numeric
     /**
      * Adds a value to the current field value.  Returns null if the value is not numeric.
      *
-     * @param int|float $value
+     * @param int|float|null $value
      * @param int|float|SmartString $addend
      * @return int|float|null
      */
-    public static function add(int|float $value, int|float|SmartString $addend): int|float|null
+    public static function add(mixed $value, int|float|SmartString $addend): int|float|null
     {
         $addValue = $addend instanceof SmartString ? $addend->value() : $addend;
 
@@ -56,11 +66,11 @@ class Numeric
     /**
      * Subtracts a value from the current field value.
      *
-     * @param int|float|string $value The value to subtract
+     * @param int|float|string|null $value The value to subtract
      * @param int|float|SmartString $subtrahend
      * @return int|float|null
      */
-    public static function subtract(int|float|string $value, int|float|SmartString $subtrahend): int|float|null
+    public static function subtract(mixed $value, int|float|SmartString $subtrahend): int|float|null
     {
         $subtractValue = $subtrahend instanceof SmartString ? $subtrahend->value() : $subtrahend;
 
@@ -74,11 +84,11 @@ class Numeric
     /**
      * Multiplies the current field value by the given value.
      *
-     * @param int|float $value The value to multiply by
+     * @param int|float|null $value The value to multiply by
      * @param int|float|SmartString $multiplier
      * @return int|float|null
      */
-    public static function multiply(int|float $value, int|float|SmartString $multiplier): int|float|null
+    public static function multiply(mixed $value, int|float|SmartString $multiplier): int|float|null
     {
         $multiplyValue = $multiplier instanceof SmartString ? $multiplier->value() : $multiplier;
 
@@ -92,12 +102,12 @@ class Numeric
     /**
      * Divides the current field value by the given value.
      *
-     * @param int|float $value
+     * @param int|float|null $value
      * @param int|float|SmartString $divisor
      *
      * @return int|float|null
      */
-    public static function divide(int|float $value, int|float|SmartString $divisor): int|float|null
+    public static function divide(mixed $value, int|float|SmartString $divisor): int|float|null
     {
         $divisorValue = $divisor instanceof SmartString ? $divisor->value() : $divisor;
 
