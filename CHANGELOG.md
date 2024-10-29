@@ -1,6 +1,16 @@
 # SmartString Changelog
 
-## [Unreleased]
+## [1.3.0] - 2024-10-29
+
+### Added
+- SmartArray() class for handling arrays of SmartStrings, see: https://github.com/interactivetools-com/SmartArray
+
+### Changed
+- Refactored code and merged some files (multiple files didn't provide a memory or performance benefit)
+
+### Deprecated
+- SmartString::new($array): Use SmartArray::new($array) instead
+- SmartString::fromArray(): Use SmartArray::new($array) instead
 
 ## [1.2.1] - 2024-09-16
 
