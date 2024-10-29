@@ -566,6 +566,10 @@ in an init file:
 |            apply(\$func, ...\$args) | Applies a custom function to the value                                                                                              |
 |                              help() | Displays help information about available methods                                                                                   |
 
+**See Also:** For array operations, check out our companion library `SmartArray`,
+powerful array operations with chainable methods and seamless `SmartString` integration: 
+https://github.com/interactivetools-com/SmartArray?tab=readme-ov-file#method-reference
+
 ## Questions?
 
 This library was developed for CMS Builder, post a message in our "CMS Builder" forum here:
