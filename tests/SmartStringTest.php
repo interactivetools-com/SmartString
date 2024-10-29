@@ -3,10 +3,10 @@ declare(strict_types=1);
 
 namespace Tests;
 
-use ArrayObject;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Itools\SmartString\SmartString;
+use Itools\SmartArray\SmartArray;
 use TypeError;
 
 class SmartStringTest extends TestCase
@@ -24,11 +24,11 @@ class SmartStringTest extends TestCase
 
     /**
      * @dataProvider constructorInvalidProvider
-     * @noinspection PhpExpressionResultUnusedInspection
      */
     public function testConstructorInvalid($input): void
     {
         $this->expectException(TypeError::class);
+        /** @noinspection PhpExpressionResultUnusedInspection */
         new SmartString($input);
     }
 
@@ -58,6 +58,7 @@ class SmartStringTest extends TestCase
 
     // endregion
     // region new() tests
+
     /**
      * @dataProvider newMethodValidProvider
      */
@@ -67,16 +68,8 @@ class SmartStringTest extends TestCase
 
         // arrays
         if (is_array($expected)) {
-            // check we got an ArrayObject
-            $this->assertInstanceOf(ArrayObject::class, $result);
-
-            // Ensure all elements are either ArrayObject or SmartString objects
-            array_walk_recursive($result, function ($value) {
-                $this->assertTrue(
-                    $value instanceof ArrayObject || $value instanceof SmartString,
-                    "Invalid value type: ".get_debug_type($value),
-                );
-            });
+            // check we got an SmartArray
+            $this->assertInstanceOf(SmartArray::class, $result);
 
             // Check that the SmartString objects are converted back to the expected values
             $this->assertSame($expected, self::smartStringsToValues($result));
@@ -87,21 +80,11 @@ class SmartStringTest extends TestCase
         }
     }
 
-    /**
-     * @dataProvider newMethodInvalidProvider
-     * @noinspection UnusedFunctionResultInspection
-     */
-    public function testNewMethodWithInvalid($input): void
-    {
-        $this->expectException(TypeError::class);
-        SmartString::new($input);
-    }
-
     public function newMethodValidProvider(): array
     {
         return [
             // single values
-            "single string"   => ["Hello, World!", "Hello, World!"],
+            "single string"   => ["Hello, World!<hr>", "Hello, World!<hr>"],
             "single integer"  => [123, 123],
             "single float"    => [123.45, 123.45],
             "boolean true"    => [true, true],
@@ -126,6 +109,16 @@ class SmartStringTest extends TestCase
         ];
     }
 
+    /**
+     * @dataProvider newMethodInvalidProvider
+     * @noinspection UnusedFunctionResultInspection
+     */
+    public function testNewMethodWithInvalid($input): void
+    {
+        $this->expectException(TypeError::class);
+        SmartString::new($input);
+    }
+
     public function newMethodInvalidProvider(): array
     {
         return [
@@ -145,7 +138,7 @@ class SmartStringTest extends TestCase
     {
         $debugType = basename(get_debug_type($value)); // Itools\SmartString\SmartString => SmartString
         return match ($debugType) {
-            'ArrayObject' => array_map(static fn($item) => self::smartStringsToValues($item), $value->getArrayCopy()),
+            'SmartArray'  => $value->toArray(),
             'SmartString' => $value->value(),
             default       => throw new InvalidArgumentException("Invalid value type: $debugType"),
         };
@@ -321,9 +314,9 @@ class SmartStringTest extends TestCase
     }
 
     // endregion
-    // region ArrayObject test
+    // region SmartArray test
 
-    public function testArrayObjectHtmlEncoding(): void
+    public function testSmartArrayHtmlEncoding(): void
     {
         // Arrange
         $users = [
@@ -333,7 +326,7 @@ class SmartStringTest extends TestCase
         ];
 
         // Act
-        $encodedUsers = SmartString::fromArray($users);
+        $encodedUsers = new SmartArray($users);
         $result = [];
 
         foreach ($encodedUsers as $user) {

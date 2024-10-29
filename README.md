@@ -31,7 +31,7 @@ This makes your code cleaner, more readable, and inherently more secure.
     - [Fluent Chainable Interface](#fluent-chainable-interface)
     - [Automatic HTML-encoding](#automatic-html-encoding)
     - [Accessing Values](#accessing-values)
-    - [Working with ArrayObjects](#working-with-arrayobjects)
+    - [Working with SmartArrays](#working-with-smartarrays)
     - [Type Conversion](#type-conversion)
     - [Encoding Values](#encoding-values)
     - [String Manipulation](#string-manipulation)
@@ -60,9 +60,9 @@ Start using SmartString:
 require 'vendor/autoload.php';
 use Itools\SmartString\SmartString;
 
-// Create SmartString ArrayObjects (can be referenced as array or object)
-$user    = SmartString::fromArray(['name' => "John O'Reilly", 'id' => 123]);
-$request = SmartString::fromArray($_REQUEST);
+// Create SmartArray of SmartStrings (can be referenced as array or object)
+$user    = SmartArray::new(['name' => "John O'Reilly", 'id' => 123]);
+$request = SmartArray::new($_REQUEST);
 
 // Use in string contexts for automatic HTML encoding
 echo "Hello, $user->name!"; // Output: Hello, John O&apos;Reilly!
@@ -85,10 +85,10 @@ $user->help();
 
 ### Creating SmartStrings
 
-SmartString offers simple ways to create objects from various data types.  It can be especially
-useful to convert `$_REQUEST`, or database record arrays to SmartString objects.  
+SmartString offers simple ways to create objects from various data types. It can be especially
+useful to convert `$_REQUEST`, or database record arrays to SmartString objects.
 
-The automatic HTML-encoding feature means you don't need to call `htmlspecialchars()` 
+The automatic HTML-encoding feature means you don't need to call `htmlspecialchars()`
 over and over again, and you get access to a variety of utility methods for common tasks.
 
 ```php
@@ -99,13 +99,13 @@ $price     = SmartString::new(19.99);
 $isActive  = SmartString::new(true);
 $nullValue = SmartString::new(null);
 
-// Easier way, use fromArray() to convert an existing array to an ArrayObject of SmartStrings
+// Easier way, SmartString::new() to convert an existing array to a SmartArray of SmartStrings
 $record  = ['name' => "Jane Doe", 'age' => 25, 'isStudent' => true ];
-$user    = SmartString::fromArray($record);
-$request = SmartString::fromArray($_REQUEST); // or convert $_REQUEST to SmartString
+$user    = SmartString::new($record);
+$request = SmartString::new($_REQUEST); // or convert $_REQUEST to SmartString
 
 // Looping over a two-level array
-foreach (SmartString::fromArray($articles) as $article) {
+foreach (SmartString::new($articles) as $article) {
     echo <<<__HTML__
         <h1>$article->title</h1>
         <p>{$article->content->textOnly()->maxChars(200, '')}</p>
@@ -188,12 +188,12 @@ echo <<<__HTML__
 __HTML__;
 ```
 
-### Working with ArrayObjects
+### Working with SmartArrays
 
-When you convert an array to SmartString, you can use it like both an array and an object.
+When you convert an array to SmartArray, you can use it like both an array and an object.
 
 ```php
-$user = SmartString::fromArray(['name' => 'John', 'age' => 30]);
+$user = SmartArray::new(['name' => 'John', 'age' => 30]);
 
 // Simple, clean object-style access (no extra curly braces needed)
 echo "Name: $user->name, Age: $user->age";
@@ -333,7 +333,6 @@ echo $invalid->dateFormat()->or($invalid);       // "not a date"
 
 You can find a list of available date formats in the PHP documentation:
 https://www.php.net/manual/en/datetime.format.php
-
 
 ### Phone Number Formatting
 
@@ -497,7 +496,7 @@ It also provides access to the original value, alternative encoding methods, and
 
 Creating SmartStrings
 \$str = SmartString::new("It's easy!<hr>"); 
-\$req = SmartString::fromArray(\$_REQUEST);  // ArrayObject of SmartStrings
+\$req = SmartString::new(\$_REQUEST);  // SmartArray of SmartStrings
 
 Automatic HTML-encoding in string contexts:
 echo \$str;             // "It&apos;s easy!&lt;hr&gt;"
@@ -525,47 +524,47 @@ SmartString::$phoneFormat           = [                // Default phoneFormat() 
 In addition to the methods below, you can customize the defaults by adding the following to the top of your script or
 in an init file:
 
-|                      **Basic Usage** |                                                                                                      |
-|-------------------------------------:|------------------------------------------------------------------------------------------------------|
-|            SmartString::new(\$value) | Creates a new SmartString object from a single value or an ArrayObject of SmartStrings from an array |
-|      SmartString::fromArray(\$array) | Creates an ArrayObject of SmartStrings from an array                                                 |
-|                              value() | Returns the original, unencoded value                                                                |
-|                  **Type Conversion** |                                                                                                      |
-|                                int() | Returns the value as an integer                                                                      |
-|                              float() | Returns the value as a float                                                                         |
-|                               bool() | Returns the value as a boolean                                                                       |
-|                             string() | Returns the value as a string (original value, not HTML-encoded)                                     |
-|                 **Encoding Methods** |                                                                                                      |
-|                         htmlEncode() | Returns HTML-encoded string                                                                          |
-|                          urlEncode() | Returns URL-encoded string                                                                           |
-|                         jsonEncode() | Returns JSON-encoded string                                                                          |
-|                           noEncode() | Alias for value(), useful for readability in string contexts                                         |
-|              **String Manipulation** |                                                                                                      |
-|                           textOnly() | Removes HTML tags from the string, decodes entities, and trims whitespace                            |
-|                              nl2br() | Converts newlines to HTML line breaks                                                                |
-|                               trim() | Trims whitespace or specified characters from the string                                             |
-|  maxWords(\$max, \$ellipsis = '...') | Limits the string to a specific number of words                                                      |
-|  maxChars(\$max, \$ellipsis = '...') | Limits the string to a specific number of characters                                                 |
-|                       **Formatting** |                                                                                                      |
-|       dateFormat(\$format = default) | Formats the value as a date, using default or specified date format                                  |
-|   dateTimeFormat(\$format = default) | Formats the value as a date and time, using default or specified date format                         |
-|         numberFormat(\$decimals = 0) | Formats the value as a number                                                                        |
-|                        phoneFormat() | Formats the value as a phone number                                                                  |
-|               **Numeric Operations** |                                                                                                      |
-|              percent(\$decimals = 0) | Converts the value to a percentage                                                                   |
-|   percentOf(\$total, \$decimals = 0) | Calculates the percentage of the value relative to the given total                                   |
-|                         add(\$value) | Adds the given value to the current value                                                            |
-|                    subtract(\$value) | Subtracts the given value from the current value                                                     |
-|                    multiply(\$value) | Multiplies the current value by the given value                                                      |
-|                    divide(\$divisor) | Divides the current value by the given divisor                                                       |
-|           **Conditional Operations** |                                                                                                      |
-|                       or(\$fallback) | Returns the fallback if the current value is falsy                                                   |
-|                   ifNull(\$fallback) | Returns the fallback if the current value is null                                                    |
-|                  ifBlank(\$fallback) | Returns the fallback if the current value is an empty string                                         |
-|                   ifZero(\$fallback) | Returns the fallback if the current value is zero                                                    |                                                                 
-|                    **Miscellaneous** |                                                                                                      |
-|             apply(\$func, ...\$args) | Applies a custom function to the value                                                               |
-|                               help() | Displays help information about available methods                                                    |
+|                     **Basic Usage** |                                                                                                                                     |
+|------------------------------------:|-------------------------------------------------------------------------------------------------------------------------------------|
+|           SmartString::new(\$value) | Creates a new SmartString object from a single value                                                                                |
+|            SmartArray::new(\$array) | Creates a new SmartArray from a regular PHP array. All nested arrays and values are converted to SmartArray and SmartString objects |
+|                             value() | Returns the original, unencoded value                                                                                               |
+|                 **Type Conversion** |                                                                                                                                     |
+|                               int() | Returns the value as an integer                                                                                                     |
+|                             float() | Returns the value as a float                                                                                                        |
+|                              bool() | Returns the value as a boolean                                                                                                      |
+|                            string() | Returns the value as a string (original value, not HTML-encoded)                                                                    |
+|                **Encoding Methods** |                                                                                                                                     |
+|                        htmlEncode() | Returns HTML-encoded string                                                                                                         |
+|                         urlEncode() | Returns URL-encoded string                                                                                                          |
+|                        jsonEncode() | Returns JSON-encoded string                                                                                                         |
+|                          noEncode() | Alias for value(), useful for readability in string contexts                                                                        |
+|             **String Manipulation** |                                                                                                                                     |
+|                          textOnly() | Removes HTML tags from the string, decodes entities, and trims whitespace                                                           |
+|                             nl2br() | Converts newlines to HTML line breaks                                                                                               |
+|                              trim() | Trims whitespace or specified characters from the string                                                                            |
+| maxWords(\$max, \$ellipsis = '...') | Limits the string to a specific number of words                                                                                     |
+| maxChars(\$max, \$ellipsis = '...') | Limits the string to a specific number of characters                                                                                |
+|                      **Formatting** |                                                                                                                                     |
+|      dateFormat(\$format = default) | Formats the value as a date, using default or specified date format                                                                 |
+|  dateTimeFormat(\$format = default) | Formats the value as a date and time, using default or specified date format                                                        |
+|        numberFormat(\$decimals = 0) | Formats the value as a number                                                                                                       |
+|                       phoneFormat() | Formats the value as a phone number                                                                                                 |
+|              **Numeric Operations** |                                                                                                                                     |
+|             percent(\$decimals = 0) | Converts the value to a percentage                                                                                                  |
+|  percentOf(\$total, \$decimals = 0) | Calculates the percentage of the value relative to the given total                                                                  |
+|                        add(\$value) | Adds the given value to the current value                                                                                           |
+|                   subtract(\$value) | Subtracts the given value from the current value                                                                                    |
+|                   multiply(\$value) | Multiplies the current value by the given value                                                                                     |
+|                   divide(\$divisor) | Divides the current value by the given divisor                                                                                      |
+|          **Conditional Operations** |                                                                                                                                     |
+|                      or(\$fallback) | Returns the fallback if the current value is falsy                                                                                  |
+|                  ifNull(\$fallback) | Returns the fallback if the current value is null                                                                                   |
+|                 ifBlank(\$fallback) | Returns the fallback if the current value is an empty string                                                                        |
+|                  ifZero(\$fallback) | Returns the fallback if the current value is zero                                                                                   |                                                                 
+|                   **Miscellaneous** |                                                                                                                                     |
+|            apply(\$func, ...\$args) | Applies a custom function to the value                                                                                              |
+|                              help() | Displays help information about available methods                                                                                   |
 
 ## Questions?
 
