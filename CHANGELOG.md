@@ -1,5 +1,11 @@
 # SmartString Changelog
 
+## [1.3.1] - 2024-11-07
+
+- Fixed dateTimeFormat() bug
+- Improved error reporting messages
+- Misc code and other minor improvements
+
 ## [1.3.0] - 2024-10-29
 
 ### Added

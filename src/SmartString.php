@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Itools\SmartString;
 
-use InvalidArgumentException;
+use Error, InvalidArgumentException;
 use Itools\SmartArray\SmartArray;
 use JsonSerializable;
 
@@ -17,13 +17,14 @@ class SmartString implements JsonSerializable
 {
     private string|int|float|bool|null $data; // The stored value and type (not html-encoded)
 
+    // default formats
     public static string $numberFormatDecimal   = '.';               // Default decimal separator
     public static string $numberFormatThousands = ',';               // Default thousands separator
     public static string $dateFormat            = 'Y-m-d';           // Default dateFormat() format
     public static string $dateTimeFormat        = 'Y-m-d H:i:s';     // Default dateTimeFormat() format
-    public static array  $phoneFormat           = [                  // Default phoneFormat() formats
-                                                                     ['digits' => 10, 'format' => '(###) ###-####'],
-                                                                     ['digits' => 11, 'format' => '# (###) ###-####'],
+    public static array  $phoneFormat           = [
+        ['digits' => 10, 'format' => '(###) ###-####'],
+        ['digits' => 11, 'format' => '# (###) ###-####'],
     ];
 
     #region Basic Usage
@@ -243,20 +244,6 @@ class SmartString implements JsonSerializable
             }
         }
 
-        return $this->cloneWithValue($newValue);
-    }
-
-    /**
-     * @param ...$args
-     * @return SmartString
-     * @deprecated Use textOnly() instead, this method will be removed in the future.
-     */
-    public function stripTags(...$args): SmartString
-    {
-        $newValue = match (true) {
-            is_null($this->data) => null,
-            default              => strip_tags((string)$this->data, ...$args),
-        };
         return $this->cloneWithValue($newValue);
     }
 
@@ -659,49 +646,104 @@ class SmartString implements JsonSerializable
     }
 
     /**
-     * @param string $property
+     * Magic getter that provides helpful error messages for common mistakes with dynamic properties/methods.
      *
-     * @return SmartString The value of the property, possibly encoded.
+     * Handles two main error cases:
+     * 1. Attempting to call methods without proper syntax:
+     *    - Missing () brackets: $str->htmlEncode instead of $str->htmlEncode()
+     *    - Missing {} in strings: "$str->htmlEncode()" instead of "{$str->htmlEncode()}"
+     * 2. Accessing undefined properties
+     *
+     * @param string $property Name of the property/method being accessed
+     * @return SmartString Always returns a new instance with null value to prevent fatal errors
+     * @throws E_USER_WARNING When property access is invalid, with detailed usage instructions
      */
     public function __get(string $property): SmartString
     {
-        // This is typically called when a user tries to access a method without brackets or curly braces
-        // e.g., echo "Hello, $name->htmlEncode()" instead of "Hello, {$name->htmlEncode()}"
-        // In this case, we show a warning message and suggest the user use brackets and curly braces
+        $baseClass = basename(self::class);
 
-        // Define warning message
-        // Default Warning: Undefined property: Itools\SmartString\SmartString::$property in C:\path\file.php on line 9
-        $warning = sprintf("%s property \$var->$property is undefined", basename(__CLASS__));
+        // throw unknown property warning
+        // PHP Default Error: Warning: Undefined property: stdClass::$property in C:\dev\projects\SmartString\test.php on line 28
+        if (method_exists($this, $property)) {
+            $error = "Method ->$property needs brackets() everywhere and {curly braces} in strings:\n";
+            $error .= "    ✗ Missing brackets:        \$str->$property\n";
+            $error .= "    ✗ Missing { } in string:   \"Hello \$str->$property()\"\n";
+            $error .= "    ✓ Outside strings:         \$str->$property()\n";
+            $error .= "    ✓ Inside strings:          \"Hello {\$str->$property()}\"\n";
+        } else {
+            $error = "Undefined property $baseClass->$property, call ->help() for available methods.\n";
+        }
 
-        // Show helpful message if user trying to access method without brackets or curly braces
-        // e.g., echo "Hello, $name->htmlEncode()" instead of "Hello, {$name->htmlEncode()}"
-        $warning .= ", ensure you use brackets and curly braces when in strings.\n";
-        $warning .= sprintf('Examples: $var->%s() or "{$var->%s()}"', $property, $property);
+        // Add caller info
+        $caller    = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[0];
+        $error     .= "Occurred in {$caller['file']}:{$caller['line']}\n";
+        $error     .= "Reported";           // PHP will append " in file:line" to the error
+        user_error($error, E_USER_WARNING); // Emulate PHP warning
 
-        // Otherwise suggest help() method
-        $warning .= ", use the ->help() method to see available methods and properties\n";
-
-        // Return null and show warning message
-        trigger_error($warning, E_USER_WARNING);
-        return new self(null);
+        //
+        return $this->cloneWithValue(null);
     }
 
-    #endregion
-    #region Deprecated
+    /**
+     * For deprecated methods, log a deprecation notice and return the new method.
+     * For unknown methods, throw an exception.
+     */
+    public function __call($method, $args): string|int|bool|null|float|SmartString { // NOSONAR - False-positive for unused $args parameter
+        $methodLc = strtolower($method);
+
+        // deprecated methods, log and return new method (these may be removed in the future)
+        if ($methodLc === strtolower('raw')) {
+            self::logDeprecation("Replace ->$method() with ->value() or ->noEncode()");
+            return $this->value();
+        }
+
+        if ($methodLc === strtolower('toString')) {
+            self::logDeprecation("Replace ->$method() with ->htmlEncode()");
+            return $this->htmlEncode();
+        }
+
+        if ($methodLc === strtolower('jsEncode')) {
+            self::logDeprecation("Replace ->$method() with ->jsonEncode() (not identical functionality, code refactoring required)");
+            $value = addcslashes((string)$this->data, "\0..\37\\\'\"`\n\r<>");
+            return $this->cloneWithValue($value);
+        }
+
+        if ($methodLc === strtolower('stripTags')) {
+            self::logDeprecation("Replace ->$method() with ->textOnly()");
+            $value = is_null($this->data) ? null : strip_tags((string)$this->data, ...$args);
+            return $this->cloneWithValue($value);
+        }
+
+        // throw unknown method exception
+        // PHP Default Error: Fatal error: Uncaught Error: Call to undefined method SmartString::method() in C:\dev\projects\SmartString\test.php:17
+        $baseClass = basename(self::class);
+        $caller    = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[0];
+        $error     = "Call to undefined method $baseClass->$method(), call ->help() for available methods.\n";
+        $error     .= "Occurred in {$caller['file']}:{$caller['line']}\n";
+        $error     .= "Reported"; // PHP will append " in file:line" to the error
+        throw new Error($error);
+    }
 
     /**
-     * Converts an array to a SmartArray object, supporting nested arrays.
-     *
-     * @param array $array The array to convert.
-     * @return SmartArray The resulting SmartArray object.
-     * @deprecated Use the SmartArray constructor instead: $var = SmartArray::new($array)
-     *
+     * Show a helpful error message when an unknown method is called.
      */
-    public static function fromArray(array $array): SmartArray
-    {
-        // Trigger a silent deprecation notice for logging purposes
-        @user_error('SmartString::fromArray() is deprecated, use "SmartArray::new($array)" instead.', E_USER_DEPRECATED);
-        return new SmartArray($array);
+    public static function __callStatic($method, $args): SmartArray { // NOSONAR - False-positive for unused $args parameter
+        $methodLc = strtolower($method);
+
+        // deprecated methods, log and return new method (these may be removed in the future)
+        if ($methodLc === strtolower('fromArray')) {
+            self::logDeprecation("Replace SmartString::$method() with SmartArray::new(\$array)");
+            return new SmartArray(...$args);
+        }
+
+        // throw unknown method exception
+        // PHP Default Error: Fatal error: Uncaught Error: Call to undefined method SmartString::method() in C:\dev\projects\SmartString\test.php:17
+        $baseClass = basename(self::class);
+        $caller    = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[0];
+        $error     = "Call to undefined method $baseClass::$method(), call ->help() for available methods.\n";
+        $error     .= "Occurred in {$caller['file']}:{$caller['line']}\n";
+        $error     .= "Reported"; // PHP will append " in file:line" to the error
+        throw new Error($error);
     }
 
     #endregion
@@ -712,6 +754,10 @@ class SmartString implements JsonSerializable
         $clonedObject       = clone $this;
         $clonedObject->data = $newValue;
         return $clonedObject;
+    }
+
+    public static function logDeprecation($error): void {
+        @user_error($error, E_USER_DEPRECATED);  // Trigger a silent deprecation notice for logging purposes
     }
 
     #endregion

@@ -99,13 +99,13 @@ $price     = SmartString::new(19.99);
 $isActive  = SmartString::new(true);
 $nullValue = SmartString::new(null);
 
-// Easier way, SmartString::new() to convert an existing array to a SmartArray of SmartStrings
+// Or use SmartArray::new() to convert an existing array to a SmartArray of SmartStrings
 $record  = ['name' => "Jane Doe", 'age' => 25, 'isStudent' => true ];
-$user    = SmartString::new($record);
-$request = SmartString::new($_REQUEST); // or convert $_REQUEST to SmartString
+$user    = SmartArray::new($record);
+$request = SmartArray::new($_REQUEST); // or convert $_REQUEST to SmartString
 
 // Looping over a two-level array
-foreach (SmartString::new($articles) as $article) {
+foreach (SmartArray::new($articles) as $article) {
     echo <<<__HTML__
         <h1>$article->title</h1>
         <p>{$article->content->textOnly()->maxChars(200, '')}</p>
