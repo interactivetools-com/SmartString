@@ -1,5 +1,9 @@
 # SmartString Changelog
 
+## [1.3.2] - 2024-11-07
+
+- Fixed jsEscape() double escaping issue
+
 ## [1.3.1] - 2024-11-07
 
 - Fixed dateTimeFormat() bug

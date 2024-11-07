@@ -704,8 +704,7 @@ class SmartString implements JsonSerializable
 
         if ($methodLc === strtolower('jsEncode')) {
             self::logDeprecation("Replace ->$method() with ->jsonEncode() (not identical functionality, code refactoring required)");
-            $value = addcslashes((string)$this->data, "\0..\37\\\'\"`\n\r<>");
-            return $this->cloneWithValue($value);
+            return addcslashes((string)$this->data, "\0..\37\\\'\"`\n\r<>");
         }
 
         if ($methodLc === strtolower('stripTags')) {
