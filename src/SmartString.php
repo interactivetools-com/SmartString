@@ -293,7 +293,7 @@ class SmartString implements JsonSerializable
     public function dateTimeFormat(?string $format = null): SmartString
     {
         $format   ??= self::$dateTimeFormat;
-        $newValue = $this->dateFormat($format);
+        $newValue = $this->dateFormat($format)->value();
         return $this->cloneWithValue($newValue);
     }
 
