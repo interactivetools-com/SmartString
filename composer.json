@@ -28,7 +28,7 @@
   "require": {
     "php": "^8.0",
     "ext-mbstring": "*",
-    "itools/smartarray": "^1.0"
+    "itools/smartarray": "*@dev"
   },
   "require-dev": {
     "phpunit/phpunit": "^9.6"
