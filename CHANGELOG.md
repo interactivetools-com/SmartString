@@ -1,5 +1,8 @@
 # SmartString Changelog
 
+TODO
+- Update other code like percentOf and get testplan working again
+
 ## [Unreleased] - 2024-11-13
 
 - Added ::newArray() method to create a SmartArray of SmartStrings

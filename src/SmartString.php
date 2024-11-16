@@ -6,6 +6,7 @@ namespace Itools\SmartString;
 
 use Error, InvalidArgumentException;
 use Itools\SmartArray\SmartArray;
+use Itools\SmartArray\SmartNull;
 use JsonSerializable;
 
 /**
@@ -347,13 +348,17 @@ class SmartString implements JsonSerializable
     }
 
     /**
-     * @param int|float|SmartString $total
+     * @param int|float|SmartString|SmartNull $total
      * @param int|null $decimals
      * @return SmartString
      */
-    public function percentOf(int|float|SmartString $total, ?int $decimals = 0): SmartString
+    public function percentOf(int|float|SmartString|SmartNull $total, ?int $decimals = 0): SmartString
     {
-        $totalValue = $total instanceof self ? $total->value() : $total;
+        $totalValue = match(true) {
+            $total instanceof self      => $total->value(),
+            $total instanceof SmartNull => null,
+            default                     => $total,
+        };
 
         $newValue = match (true) {
             !is_numeric($this->rawData) => null,
@@ -385,12 +390,16 @@ class SmartString implements JsonSerializable
     /**
      * Subtracts a value from the current field value.
      *
-     * @param int|float|SmartString $subtrahend
+     * @param int|float|SmartString|SmartNull $subtrahend
      * @return SmartString
      */
-    public function subtract(int|float|SmartString $subtrahend): SmartString
+    public function subtract(int|float|SmartString|SmartNull $subtrahend): SmartString
     {
-        $subtractValue = $subtrahend instanceof self ? $subtrahend->value() : $subtrahend;
+        $subtractValue = match (true) {
+            $subtrahend instanceof self      => $subtrahend->value(),
+            $subtrahend instanceof SmartNull => null,
+            default                       => $subtrahend,
+        };
 
         $newValue = match (true) {
             !is_numeric($this->rawData) => null,
@@ -421,13 +430,17 @@ class SmartString implements JsonSerializable
     /**
      * Divides the current field value by the given value.
      *
-     * @param int|float|SmartString $divisor
+     * @param int|float|SmartString|SmartNull $divisor
      *
      * @return SmartString
      */
-    public function divide(int|float|SmartString $divisor): SmartString
+    public function divide(int|float|SmartString|SmartNull $divisor): SmartString
     {
-        $divisorValue = $divisor instanceof self ? $divisor->value() : $divisor;
+        $divisorValue = match (true) {
+            $divisor instanceof self      => $divisor->value(),
+            $divisor instanceof SmartNull => null,
+            default                       => $divisor,
+        };
 
         $newValue = match (true) {
             !is_numeric($this->rawData)  => null,
