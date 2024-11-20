@@ -157,7 +157,7 @@ class SmartStringTest extends TestCase
         ];
 
         // Act
-        $encodedUsers = new SmartArray($users);
+        $encodedUsers = SmartArray::newSS($users);
         $result       = [];
 
         foreach ($encodedUsers as $user) {

@@ -1,11 +1,10 @@
 # SmartString Changelog
 
 TODO
-- Update other code like percentOf and get testplan working again
+- Update other code (e.g., percentOf) and get testplan working again
 
 ## [Unreleased] - 2024-11-13
 
-- Added ::newArray() method to create a SmartArray of SmartStrings
 - Misc code and other minor improvements
 
 ## [1.3.2] - 2024-11-07

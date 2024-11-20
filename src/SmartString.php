@@ -55,17 +55,12 @@ class SmartString implements JsonSerializable
     public static function new(string|int|float|bool|null|array $value): SmartArray|SmartString
     {
         if (is_array($value)) {
-            return self::newArray($value);
+            self::logDeprecation("Replace ::new() with SmartArray::newSS()");
+            return SmartArray::newSS($value);
         }
 
         // Return SmartString object for other types
         return new self($value);
-    }
-
-    public static function newArray(array $array, array $metadata = []): SmartArray
-    {
-        $metadata['_useSmartStrings'] = true; // Force SmartString objects
-        return new SmartArray($array, $metadata);
     }
 
     /**
