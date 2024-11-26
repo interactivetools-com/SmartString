@@ -1,11 +1,22 @@
 # SmartString Changelog
 
-TODO
-- Update other code (e.g., percentOf) and get testplan working again
+## [2.0.0] - 2024-11-26
 
-## [Unreleased] - 2024-11-13
+### Added
+- New rawValue() static method for consistently extracting values from object or raw types
 
-- Misc code and other minor improvements
+### Changed
+- Updated all numeric operations to use new rawValue() method for consistent value extraction
+- Merged all code into one file for easier inclusion in projects
+- Misc code organization and other minor improvements
+
+### Deprecated
+- SmartString::new($array) - use SmartArray::newSS($array) instead
+- SmartString::fromArray() - use SmartArray::newSS($array) instead
+- stripTags() - use textOnly() instead
+
+### Fixed
+- dateTimeFormat now properly uses the dateFormat value
 
 ## [1.3.2] - 2024-11-07
 
