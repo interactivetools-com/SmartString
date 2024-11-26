@@ -73,6 +73,22 @@ class SmartString implements JsonSerializable
         return $this->rawData;
     }
 
+    /**
+     * Converts Smart* objects to their original values while leaving other types unchanged,
+     * useful if you don't know the type but want the original value.
+     */
+    public static function rawValue(mixed $value): mixed
+    {
+        return match (true) {
+            $value instanceof self             => $value->value(),
+            $value instanceof SmartArray       => $value->toArray(),
+            $value instanceof SmartNull        => null,
+            is_scalar($value), is_null($value) => $value,
+            is_array($value)                   => array_map([self::class, 'rawValue'], $value), // for manually passed in arrays
+            default                            => throw new InvalidArgumentException("Unsupported value type: " . get_debug_type($value)),
+        };
+    }
+
     #endregion
     #region Type Conversion
 
@@ -349,13 +365,8 @@ class SmartString implements JsonSerializable
      */
     public function percentOf(int|float|SmartString|SmartNull $total, ?int $decimals = 0): SmartString
     {
-        $totalValue = match(true) {
-            $total instanceof self      => $total->value(),
-            $total instanceof SmartNull => null,
-            default                     => $total,
-        };
-
-        $newValue = match (true) {
+        $totalValue = self::rawValue($total);
+        $newValue   = match (true) {
             !is_numeric($this->rawData) => null,
             !is_numeric($totalValue)    => null,
             (float)$totalValue === 0.0  => null, // avoid division by zero error
@@ -372,8 +383,7 @@ class SmartString implements JsonSerializable
      */
     public function add(int|float|SmartString $addend): SmartString
     {
-        $addValue = $addend instanceof self ? $addend->value() : $addend;
-
+        $addValue = self::rawValue($addend);
         $newValue = match (true) {
             !is_numeric($this->rawData) => null,
             !is_numeric($addValue)      => null,
@@ -390,13 +400,8 @@ class SmartString implements JsonSerializable
      */
     public function subtract(int|float|SmartString|SmartNull $subtrahend): SmartString
     {
-        $subtractValue = match (true) {
-            $subtrahend instanceof self      => $subtrahend->value(),
-            $subtrahend instanceof SmartNull => null,
-            default                       => $subtrahend,
-        };
-
-        $newValue = match (true) {
+        $subtractValue = self::rawValue($subtrahend);
+        $newValue      = match (true) {
             !is_numeric($this->rawData) => null,
             !is_numeric($subtractValue) => null,
             default                     => $this->rawData - $subtractValue,
@@ -412,9 +417,8 @@ class SmartString implements JsonSerializable
      */
     public function multiply(int|float|SmartString $multiplier): SmartString
     {
-        $multiplyValue = $multiplier instanceof self ? $multiplier->value() : $multiplier;
-
-        $newValue = match (true) {
+        $multiplyValue = self::rawValue($multiplier);
+        $newValue      = match (true) {
             !is_numeric($this->rawData) => null,
             !is_numeric($multiplyValue) => null,
             default                     => $this->rawData * $multiplyValue,
@@ -431,13 +435,8 @@ class SmartString implements JsonSerializable
      */
     public function divide(int|float|SmartString|SmartNull $divisor): SmartString
     {
-        $divisorValue = match (true) {
-            $divisor instanceof self      => $divisor->value(),
-            $divisor instanceof SmartNull => null,
-            default                       => $divisor,
-        };
-
-        $newValue = match (true) {
+        $divisorValue = self::rawValue($divisor);
+        $newValue     = match (true) {
             !is_numeric($this->rawData)  => null,
             !is_numeric($divisorValue)   => null,
             (float)$divisorValue === 0.0 => null, // avoid division by zero error
@@ -457,11 +456,9 @@ class SmartString implements JsonSerializable
      */
     public function or(int|float|string|SmartString $fallback): SmartString
     {
-        $isZero        = is_numeric($this->rawData) && (float)$this->rawData === 0.0;
-        $useFallback   = $isZero || empty($this->rawData);
-        $fallbackValue = $fallback instanceof self ? $fallback->value() : $fallback;
-
-        $newValue = $useFallback ? $fallbackValue : $this->rawData;
+        $isZero      = is_numeric($this->rawData) && (float)$this->rawData === 0.0;
+        $useFallback = $isZero || empty($this->rawData);
+        $newValue    = $useFallback ? self::rawValue($fallback) : $this->rawData;
         return $this->cloneWithValue($newValue);
     }
 
@@ -471,8 +468,7 @@ class SmartString implements JsonSerializable
      */
     public function ifNull(int|float|string|SmartString $fallback): SmartString
     {
-        $fallbackValue = $fallback instanceof self ? $fallback->value() : $fallback;
-        $newValue      = $this->rawData ?? $fallbackValue;
+        $newValue = $this->rawData ?? self::rawValue($fallback);
         return $this->cloneWithValue($newValue);
     }
 
@@ -482,8 +478,7 @@ class SmartString implements JsonSerializable
      */
     public function ifBlank(int|float|string|SmartString $fallback): SmartString
     {
-        $fallbackValue = $fallback instanceof self ? $fallback->value() : $fallback;
-        $newValue      = $this->rawData === "" ? $fallbackValue : $this->rawData;
+        $newValue = $this->rawData === "" ? self::rawValue($fallback) : $this->rawData;
         return $this->cloneWithValue($newValue);
     }
 
@@ -493,9 +488,8 @@ class SmartString implements JsonSerializable
      */
     public function isZero(int|float|string|SmartString $fallback): SmartString
     {
-        $isZero        = is_numeric($this->rawData) && (float)$this->rawData === 0.0;
-        $fallbackValue = $fallback instanceof self ? $fallback->value() : $fallback;
-        $newValue      = $isZero ? $fallbackValue : $this->rawData;
+        $isZero   = is_numeric($this->rawData) && (float)$this->rawData === 0.0;
+        $newValue = $isZero ? self::rawValue($fallback) : $this->rawData;
         return $this->cloneWithValue($newValue);
     }
 
@@ -651,9 +645,25 @@ class SmartString implements JsonSerializable
      *
      * @return array An associative array containing debugging information.
      */
-    public function __debugInfo(): array
+    public function __debugInfo2(): array
     {
+        //     [rawData:SmartString:private] => Lorem ipsum dolor
         return DebugInfo::debugInfo($this);
+
+        // get output
+        $varValue = $fieldObj->value();
+        $output = ['value' => self::getPrettyVarValue($varValue)];
+        if ($varValue === null) {
+            $output['notice'] = "This field has a NULL value, either from a NULL in the database or due to accessing a non-existent column.";
+        }
+        // On subsequent calls, show only the var name and value
+        static $callCounter = 0;
+        if (++$callCounter === 1) {
+            $output['docs'] = "Developers, call \$obj->help() for more information and method examples.";
+        }
+
+        return $output;
+
     }
 
     /**

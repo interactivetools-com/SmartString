@@ -7,28 +7,6 @@ class DebugInfo
 {
     #region __debugInfo Method
 
-    /**
-     * Show useful developer info about object when print_r() is used to examine object.
-     *
-     * @return array An associative array containing debugging information.
-     */
-    public static function debugInfo($fieldObj): array
-    {
-        // get output
-        $varValue = $fieldObj->value();
-        $output = ['value' => self::getPrettyVarValue($varValue)];
-        if ($varValue === null) {
-            $output['notice'] = "This field has a NULL value, either from a NULL in the database or due to accessing a non-existent column.";
-        }
-        // On subsequent calls, show only the var name and value
-        static $callCounter = 0;
-        if (++$callCounter === 1) {
-            $output['docs'] = "Developers, call \$obj->help() for more information and method examples.";
-        }
-
-        return $output;
-    }
-
     #endregion
     #region Utility Methods
 
