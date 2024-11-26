@@ -61,8 +61,8 @@ require 'vendor/autoload.php';
 use Itools\SmartString\SmartString;
 
 // Create SmartArray of SmartStrings (can be referenced as array or object)
-$user    = SmartArray::new(['name' => "John O'Reilly", 'id' => 123]);
-$request = SmartArray::new($_REQUEST);
+$user    = SmartArray::newSS(['name' => "John O'Reilly", 'id' => 123]);
+$request = SmartArray::newSS($_REQUEST);
 
 // Use in string contexts for automatic HTML encoding
 echo "Hello, $user->name!"; // Output: Hello, John O&apos;Reilly!
@@ -99,13 +99,13 @@ $price     = SmartString::new(19.99);
 $isActive  = SmartString::new(true);
 $nullValue = SmartString::new(null);
 
-// Or use SmartArray::new() to convert an existing array to a SmartArray of SmartStrings
+// Or use SmartArray::newSS() to convert an existing array to a SmartArray of SmartStrings
 $record  = ['name' => "Jane Doe", 'age' => 25, 'isStudent' => true ];
-$user    = SmartArray::new($record);
-$request = SmartArray::new($_REQUEST); // or convert $_REQUEST to SmartString
+$user    = SmartArray::newSS($record);
+$request = SmartArray::newSS($_REQUEST); // or convert $_REQUEST to SmartString
 
 // Looping over a two-level array
-foreach (SmartArray::new($articles) as $article) {
+foreach (SmartArray::newSS($articles) as $article) {
     echo <<<__HTML__
         <h1>$article->title</h1>
         <p>{$article->content->textOnly()->maxChars(200, '')}</p>
@@ -193,7 +193,7 @@ __HTML__;
 When you convert an array to SmartArray, you can use it like both an array and an object.
 
 ```php
-$user = SmartArray::new(['name' => 'John', 'age' => 30]);
+$user = SmartArray::newSS(['name' => 'John', 'age' => 30]);
 
 // Simple, clean object-style access (no extra curly braces needed)
 echo "Name: $user->name, Age: $user->age";
@@ -527,7 +527,7 @@ in an init file:
 |                     **Basic Usage** |                                                                                                                                     |
 |------------------------------------:|-------------------------------------------------------------------------------------------------------------------------------------|
 |           SmartString::new(\$value) | Creates a new SmartString object from a single value                                                                                |
-|            SmartArray::new(\$array) | Creates a new SmartArray from a regular PHP array. All nested arrays and values are converted to SmartArray and SmartString objects |
+|          SmartArray::newSS(\$array) | Creates a new SmartArray from a regular PHP array. All nested arrays and values are converted to SmartArray and SmartString objects |
 |                             value() | Returns the original, unencoded value                                                                                               |
 |                 **Type Conversion** |                                                                                                                                     |
 |                               int() | Returns the value as an integer                                                                                                     |
