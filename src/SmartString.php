@@ -45,7 +45,7 @@ class SmartString implements JsonSerializable
     /**
      * Returns a SmartString object for a value.
      *
-     * @example $rows = SmartArray::new($resultSet);       // Nested SmartArray of SmartStrings
+     * @example $rows = SmartArray::newSS($resultSet);       // Nested SmartArray of SmartStrings
      *          $str  = SmartString::new("Hello, World!");  // Single value as SmartString
      *
      * @param mixed $value
@@ -71,6 +71,22 @@ class SmartString implements JsonSerializable
     public function value(): string|int|float|bool|null
     {
         return $this->rawData;
+    }
+
+    /**
+     * Converts Smart* objects to their original values while leaving other types unchanged,
+     * useful if you don't know the type but want the original value.
+     */
+    public static function rawValue(mixed $value): mixed
+    {
+        return match (true) {
+            $value instanceof self             => $value->value(),
+            $value instanceof SmartArray       => $value->toArray(),
+            $value instanceof SmartNull        => null,
+            is_scalar($value), is_null($value) => $value,
+            is_array($value)                   => array_map([self::class, 'rawValue'], $value), // for manually passed in arrays
+            default                            => throw new InvalidArgumentException("Unsupported value type: " . get_debug_type($value)),
+        };
     }
 
     #endregion
@@ -172,7 +188,7 @@ class SmartString implements JsonSerializable
             is_null($this->rawData) => null,
             default                 => trim(strip_tags(html_entity_decode((string)$this->rawData, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8'))),
         };
-        return $this->cloneWithValue($newValue);
+        return new self($newValue);
     }
 
     /**
@@ -184,7 +200,7 @@ class SmartString implements JsonSerializable
             is_null($this->rawData) => null,
             default                 => nl2br((string)$this->rawData, false),
         };
-        return $this->cloneWithValue($newValue);
+        return new self($newValue);
     }
 
     /**
@@ -197,7 +213,7 @@ class SmartString implements JsonSerializable
             is_null($this->rawData) => null,
             default                 => trim((string)$this->rawData, ...$args),
         };
-        return $this->cloneWithValue($newValue);
+        return new self($newValue);
     }
 
     /**
@@ -218,7 +234,7 @@ class SmartString implements JsonSerializable
             }
         }
 
-        return $this->cloneWithValue($newValue);
+        return new self($newValue);
     }
 
     /**
@@ -243,7 +259,7 @@ class SmartString implements JsonSerializable
             }
         }
 
-        return $this->cloneWithValue($newValue);
+        return new self($newValue);
     }
 
 #endregion
@@ -267,7 +283,7 @@ class SmartString implements JsonSerializable
 
         $newValue = $timestamp ? date($format, $timestamp) : null; // return null on null or 0
 
-        return $this->cloneWithValue($newValue);
+        return new self($newValue);
     }
 
     /**
@@ -280,7 +296,7 @@ class SmartString implements JsonSerializable
     {
         $format   ??= self::$dateTimeFormat;
         $newValue = $this->dateFormat($format)->value();
-        return $this->cloneWithValue($newValue);
+        return new self($newValue);
     }
 
     /**
@@ -295,7 +311,7 @@ class SmartString implements JsonSerializable
             !is_numeric($this->rawData) => null,
             default                     => number_format((float)$this->rawData, $decimals, self::$numberFormatDecimal, self::$numberFormatThousands),
         };
-        return $this->cloneWithValue($newValue);
+        return new self($newValue);
     }
 
     /**
@@ -320,7 +336,7 @@ class SmartString implements JsonSerializable
             $newValue = sprintf($format, ...$digits);
         }
 
-        return $this->cloneWithValue($newValue);
+        return new self($newValue);
     }
 
 #endregion
@@ -339,7 +355,7 @@ class SmartString implements JsonSerializable
             is_numeric($this->rawData) => number_format($this->rawData * 100, $decimals) . '%',
             default                    => null,
         };
-        return $this->cloneWithValue($newValue);
+        return new self($newValue);
     }
 
     /**
@@ -349,19 +365,14 @@ class SmartString implements JsonSerializable
      */
     public function percentOf(int|float|SmartString|SmartNull $total, ?int $decimals = 0): SmartString
     {
-        $totalValue = match(true) {
-            $total instanceof self      => $total->value(),
-            $total instanceof SmartNull => null,
-            default                     => $total,
-        };
-
-        $newValue = match (true) {
+        $totalValue = self::rawValue($total);
+        $newValue   = match (true) {
             !is_numeric($this->rawData) => null,
             !is_numeric($totalValue)    => null,
             (float)$totalValue === 0.0  => null, // avoid division by zero error
             default                     => number_format($this->rawData / $totalValue * 100, $decimals) . '%',
         };
-        return $this->cloneWithValue($newValue);
+        return new self($newValue);
     }
 
     /**
@@ -372,14 +383,13 @@ class SmartString implements JsonSerializable
      */
     public function add(int|float|SmartString $addend): SmartString
     {
-        $addValue = $addend instanceof self ? $addend->value() : $addend;
-
+        $addValue = self::rawValue($addend);
         $newValue = match (true) {
             !is_numeric($this->rawData) => null,
             !is_numeric($addValue)      => null,
             default                     => $this->rawData + $addValue,
         };
-        return $this->cloneWithValue($newValue);
+        return new self($newValue);
     }
 
     /**
@@ -390,18 +400,13 @@ class SmartString implements JsonSerializable
      */
     public function subtract(int|float|SmartString|SmartNull $subtrahend): SmartString
     {
-        $subtractValue = match (true) {
-            $subtrahend instanceof self      => $subtrahend->value(),
-            $subtrahend instanceof SmartNull => null,
-            default                       => $subtrahend,
-        };
-
-        $newValue = match (true) {
+        $subtractValue = self::rawValue($subtrahend);
+        $newValue      = match (true) {
             !is_numeric($this->rawData) => null,
             !is_numeric($subtractValue) => null,
             default                     => $this->rawData - $subtractValue,
         };
-        return $this->cloneWithValue($newValue);
+        return new self($newValue);
     }
 
     /**
@@ -412,14 +417,13 @@ class SmartString implements JsonSerializable
      */
     public function multiply(int|float|SmartString $multiplier): SmartString
     {
-        $multiplyValue = $multiplier instanceof self ? $multiplier->value() : $multiplier;
-
-        $newValue = match (true) {
+        $multiplyValue = self::rawValue($multiplier);
+        $newValue      = match (true) {
             !is_numeric($this->rawData) => null,
             !is_numeric($multiplyValue) => null,
             default                     => $this->rawData * $multiplyValue,
         };
-        return $this->cloneWithValue($newValue);
+        return new self($newValue);
     }
 
     /**
@@ -431,19 +435,14 @@ class SmartString implements JsonSerializable
      */
     public function divide(int|float|SmartString|SmartNull $divisor): SmartString
     {
-        $divisorValue = match (true) {
-            $divisor instanceof self      => $divisor->value(),
-            $divisor instanceof SmartNull => null,
-            default                       => $divisor,
-        };
-
-        $newValue = match (true) {
+        $divisorValue = self::rawValue($divisor);
+        $newValue     = match (true) {
             !is_numeric($this->rawData)  => null,
             !is_numeric($divisorValue)   => null,
             (float)$divisorValue === 0.0 => null, // avoid division by zero error
             default                      => $this->rawData / $divisorValue,
         };
-        return $this->cloneWithValue($newValue);
+        return new self($newValue);
     }
 
 #endregion
@@ -457,12 +456,10 @@ class SmartString implements JsonSerializable
      */
     public function or(int|float|string|SmartString $fallback): SmartString
     {
-        $isZero        = is_numeric($this->rawData) && (float)$this->rawData === 0.0;
-        $useFallback   = $isZero || empty($this->rawData);
-        $fallbackValue = $fallback instanceof self ? $fallback->value() : $fallback;
-
-        $newValue = $useFallback ? $fallbackValue : $this->rawData;
-        return $this->cloneWithValue($newValue);
+        $isZero      = is_numeric($this->rawData) && (float)$this->rawData === 0.0;
+        $useFallback = $isZero || empty($this->rawData);
+        $newValue    = $useFallback ? self::rawValue($fallback) : $this->rawData;
+        return new self($newValue);
     }
 
     /**
@@ -471,9 +468,8 @@ class SmartString implements JsonSerializable
      */
     public function ifNull(int|float|string|SmartString $fallback): SmartString
     {
-        $fallbackValue = $fallback instanceof self ? $fallback->value() : $fallback;
-        $newValue      = $this->rawData ?? $fallbackValue;
-        return $this->cloneWithValue($newValue);
+        $newValue = $this->rawData ?? self::rawValue($fallback);
+        return new self($newValue);
     }
 
     /**
@@ -482,9 +478,8 @@ class SmartString implements JsonSerializable
      */
     public function ifBlank(int|float|string|SmartString $fallback): SmartString
     {
-        $fallbackValue = $fallback instanceof self ? $fallback->value() : $fallback;
-        $newValue      = $this->rawData === "" ? $fallbackValue : $this->rawData;
-        return $this->cloneWithValue($newValue);
+        $newValue = $this->rawData === "" ? self::rawValue($fallback) : $this->rawData;
+        return new self($newValue);
     }
 
     /**
@@ -493,10 +488,9 @@ class SmartString implements JsonSerializable
      */
     public function isZero(int|float|string|SmartString $fallback): SmartString
     {
-        $isZero        = is_numeric($this->rawData) && (float)$this->rawData === 0.0;
-        $fallbackValue = $fallback instanceof self ? $fallback->value() : $fallback;
-        $newValue      = $isZero ? $fallbackValue : $this->rawData;
-        return $this->cloneWithValue($newValue);
+        $isZero   = is_numeric($this->rawData) && (float)$this->rawData === 0.0;
+        $newValue = $isZero ? self::rawValue($fallback) : $this->rawData;
+        return new self($newValue);
     }
 
     /**
@@ -511,7 +505,7 @@ class SmartString implements JsonSerializable
             $newValue = is_callable([$valueIfTrue, 'value']) ? $valueIfTrue->value() : $valueIfTrue;
         }
 
-        return $this->cloneWithValue($newValue);
+        return new self($newValue);
     }
 
     /**
@@ -521,7 +515,7 @@ class SmartString implements JsonSerializable
     public function set(string|int|float|bool|null|object $newValue): SmartString // NOSONAR: Unused parameter $value
     {
         $newValue = is_callable([$newValue, 'value']) ? $newValue->value() : $newValue;
-        return $this->cloneWithValue($newValue);
+        return new self($newValue);
     }
 #endregion
 #region Misc
@@ -542,7 +536,7 @@ class SmartString implements JsonSerializable
         }
 
         $newValue = $func($this->rawData, ...$args);
-        return $this->cloneWithValue($newValue);
+        return new self($newValue);
     }
 
 #endregion
@@ -556,91 +550,105 @@ class SmartString implements JsonSerializable
      */
     public function help(mixed $value = null): mixed
     {
-        $docs = <<<__TEXT__
-            This 'SmartString' object automatically HTML-encodes output in string contexts for XSS protection.
-            It also provides access to the original value, alternative encoding methods, and various utility methods.
+        $docs = <<<'__TEXT__'
+            SmartString: Enhanced Strings with Automatic HTML Encoding and Chainable Methods
+            ==========================================================================================
+            SmartString automatically HTML-encodes output in string contexts for XSS protection and 
+            provides powerful chainable methods for encoding, formatting, and text manipulation. 
             
             Creating SmartStrings
-            \$str = SmartString::new("It's easy!<hr>");
-            \$req = SmartArray::new(\$_REQUEST);  // SmartArray of SmartStrings
+            ----------------------
+            $str = SmartString::new("It's easy!<hr>");
+            $req = SmartArray::newSS($_REQUEST);  // SmartArray of SmartStrings
             
-            Automatic HTML-encoding in string contexts:
-            echo \$str;             // "It&apos;s easy!&lt;hr&gt;"
-            print \$str;            // "It&apos;s easy!&lt;hr&gt;"
-            (string) \$str;         // "It&apos;s easy!&lt;hr&gt;"
-            \$new = \$str."\\n";      // "It&apos;s easy!&lt;hr&gt;\\n"
-            echo \$str->value();    // "It's easy!<hr>" (original value)
+            Automatic HTML-encoding in string contexts
+            -------------------------------------------
+            echo $str;              // "It&apos;s easy!&lt;hr&gt;"
+            print $str;             // "It&apos;s easy!&lt;hr&gt;"
+            (string) $str;          // "It&apos;s easy!&lt;hr&gt;"
+            $new = $str."\n";       // "It&apos;s easy!&lt;hr&gt;\n"
+            echo $str->value();     // "It's easy!<hr>" (original value)
             
-            Value access:
-            \$str->value()          // Access original value
-            \$str->noEncode()       // Alias for ->value() for readability
-            "{\$str->value()}"      // Output original value in string context
-            "{\$str->noEncode()}"   // Output original value in string context
-            print_r(\$str)          // show object value in a readable debug format (for developers)
+            Value access
+            -------------
+            $str->value()           // Access original value
+            $str->noEncode()        // Alias for ->value() for readability
+            "{$str->value()}"       // Output original value in string context
+            "{$str->noEncode()}"    // Output original value in string context
+            print_r($str)           // show object value in a readable debug format (for developers)
             
             Working with arrays
-            \$user = ['id' => 42, 'name' => "John O'Reilly", "lastLogin" => "2024-09-10 14:30:00"];
-            \$u    = SmartArray::new(\$user);                      // SmartArray of SmartStrings
-            "Hello, \$u->name"                                    // "Hello, John O&apos;Reilly"
-            "Hello, {\$u->name->noEncode()}"                      // Returns "Hello, John O'Reilly"
-            "Last login: {\$u->lastLogin->dateFormat('F j, Y')}"  // "Last login: Sep 10, 2024"
+            --------------------
+            $user = ['id' => 42, 'name' => "John O'Reilly", "lastLogin" => "2024-09-10 14:30:00"];
+            $u    = SmartArray::newSS($user);                    // SmartArray of SmartStrings
+            "Hello, $u->name"                                    // "Hello, John O&apos;Reilly"
+            "Hello, {$u->name->noEncode()}"                      // Returns "Hello, John O'Reilly"
+            "Last login: {$u->lastLogin->dateFormat('F j, Y')}"  // "Last login: Sep 10, 2024"
             
-            Type conversion (returns value):
+            Type conversion (returns value)
+            --------------------------------
             ->string()                Returns value as string (returns original value, use ->htmlEncode() for HTML-encoded string)
             ->int()                   Returns value as integer
             ->bool()                  Returns value as boolean
             ->float()                 Returns value as float
             
-            Encoding methods (returns value):
-            ->urlEncode()             Returns URL-encoded string, example: "?user={\$user->name->urlEncode()}"
-            ->jsonEncode()            Returns JSON-encoded value, example: "let user='{\$user->name->jsonEncode()}'"
+            Encoding methods (returns value)
+            ---------------------------------
+            ->urlEncode()             Returns URL-encoded string, example: "?user={$user->name->urlEncode()}"
+            ->jsonEncode()            Returns JSON-encoded value, example: "let user='{$user->name->jsonEncode()}'"
             ->htmlEncode()            Returns HTML-encoded string (for readability and non-string contexts)
-            ->noEncode()              Alias for ->value() for readability, example: "{\$record->wysiwyg->noEncode()}"
+            ->noEncode()              Alias for ->value() for readability, example: "{$record->wysiwyg->noEncode()}"
             
-            String Manipulation (returns object, chainable):
+            String Manipulation (returns object, chainable)
+            ------------------------------------------------
             ->textOnly(...)           Remove HTML tags, decode HTML entities, and trims whitespace
             ->nl2br()                 Convert newlines to br tags
             ->trim(...)               Trim leading and trailing whitespace, supports same parameters as trim()
-            ->maxWords(\$max)          Limit words to \$max, if truncated adds ... (override with second parameter)
-            ->maxChars(\$max)          Limit chars to \$max, if truncated adds ... (override with second parameter)
+            ->maxWords($max)          Limit words to $max, if truncated adds ... (override with second parameter)
+            ->maxChars($max)          Limit chars to $max, if truncated adds ... (override with second parameter)
             
-            Formatting (returns object, chainable):
-            ->numberFormat(...)       Format number, args: \$decimals = 0
+            Formatting (returns object, chainable)
+            ---------------------------------------
+            ->numberFormat(...)       Format number, args: $decimals = 0
             ->dateFormat(...)         Format date in default format or date() format (e.g., "Y-m-d")
             ->dateTimeFormat(...)     Format date/time in default format or date() format (e.g., "Y-m-d H:i:s")
             ->phoneFormat()           Format phone number in your default format
             
-            Numeric Operations (returns object, chainable):
+            Numeric Operations (returns object, chainable)
+            -----------------------------------------------
             ->percent()               Returns value as a percentage, e.g. 0.5 becomes 50%
-            ->percentOf(\$total)       Returns value as a percentage of \$total, e.g., 24 of 100 becomes 24%
-            ->add(\$value)             Returns value plus \$value
-            ->subtract(\$value)        Returns value minus \$value
-            ->divide(\$value)          Returns value divided by \$value
-            ->multiply(\$value)        Returns value multiplied by \$value
+            ->percentOf($total)       Returns value as a percentage of $total, e.g., 24 of 100 becomes 24%
+            ->add($value)             Returns value plus $value
+            ->subtract($value)        Returns value minus $value
+            ->divide($value)          Returns value divided by $value
+            ->multiply($value)        Returns value multiplied by $value
             
-            Conditional Operations (returns object, chainable):
+            Conditional Operations (returns object, chainable)
+            ---------------------------------------------------
             ->or('replacement')       Changes value if the Field is falsy (false, null, zero, or "")
             ->ifBlank('replacement')  Changes value if the Field is blank (empty string)
             ->ifNull('replacement')   Changes value if the Field is null or undefined (chainable)
             ->ifZero('replacement')   Changes value if the Field is zero (0, 0.0, "0", or "0.0")
             
-            Miscellaneous:
+            Miscellaneous
+            --------------
             ->apply()                 Apply a callback or function to the value, e.g. ->apply('strtoupper')
+            SmartString::rawValue()   Returns original value from Smart* objects while leaving other types unchanged, useful for working with mixed types
             
-            Setting defaults (at the top of your script or in an init file):
-            
-            SmartString::\$numberFormatDecimal   = '.';             // Default decimal separator
-            SmartString::\$numberFormatThousands = ',';             // Default thousands separator
-            SmartString::\$dateFormat            = 'Y-m-d';         // Default dateFormat() format
-            SmartString::\$dateTimeFormat        = 'Y-m-d H:i:s';   // Default dateTimeFormat() format
-            SmartString::\$phoneFormat           = [                // Default phone number formats
+            Setting defaults (at the top of your script or in an init file)
+            ----------------------------------------------------------------
+            SmartString::$numberFormatDecimal   = '.';             // Default decimal separator
+            SmartString::$numberFormatThousands = ',';             // Default thousands separator
+            SmartString::$dateFormat            = 'Y-m-d';         // Default dateFormat() format
+            SmartString::$dateTimeFormat        = 'Y-m-d H:i:s';   // Default dateTimeFormat() format
+            SmartString::$phoneFormat           = [                // Default phone number formats
                 ['digits' => 10, 'format' => '(###) ###-####'],
                 ['digits' => 11, 'format' => '# (###) ###-####'],
             ];
-            __TEXT__;
+        __TEXT__;
 
         // output docs
-        echo DebugInfo::xmpWrap("\n$docs\n\n");
+        echo self::xmpWrap("\n$docs\n\n");
 
         // return original value
         return $value;
@@ -653,7 +661,25 @@ class SmartString implements JsonSerializable
      */
     public function __debugInfo(): array
     {
-        return DebugInfo::debugInfo($this);
+        // get output
+        $output = [];
+
+        // show help information for first instance
+        static $callCounter = 0;
+        if (++$callCounter === 1) {
+            $output['README:private'] = "Call \$obj->help() for more information and method examples.";
+        }
+
+        // show raw data
+        $value                     = $this->rawData;
+        $output['rawData:private'] = match (true) {
+            is_string($value) => sprintf('"%s"', $value),
+            is_bool($value)   => ($value ? "TRUE" : "FALSE"), // not returned by MySQL but let's use this in general Collections
+            is_null($value)   => "NULL, // Either value is NULL or field doesn't exist",
+            default           => $value, // includes ints and floats
+        };
+
+        return $output;
     }
 
     /**
@@ -692,7 +718,7 @@ class SmartString implements JsonSerializable
         user_error($error, E_USER_WARNING); // Emulate PHP warning
 
         //
-        return $this->cloneWithValue(null);
+        return new self(null);
     }
 
     /**
@@ -721,7 +747,7 @@ class SmartString implements JsonSerializable
         if ($methodLc === strtolower('stripTags')) {
             self::logDeprecation("Replace ->$method() with ->textOnly()");
             $value = is_null($this->rawData) ? null : strip_tags((string)$this->rawData, ...$args);
-            return $this->cloneWithValue($value);
+            return new self($value);
         }
 
         // throw unknown method exception
@@ -742,7 +768,7 @@ class SmartString implements JsonSerializable
 
         // deprecated methods, log and return new method (these may be removed in the future)
         if ($methodLc === strtolower('fromArray')) {
-            self::logDeprecation("Replace SmartString::$method() with SmartArray::new(\$array)");
+            self::logDeprecation("Replace SmartString::$method() with SmartArray::newSS(\$array)");
             return new SmartArray(...$args);
         }
 
@@ -756,15 +782,24 @@ class SmartString implements JsonSerializable
         throw new Error($error);
     }
 
+    /**
+     * Wrap output in <xmp> tag if text/html and not called from a function that already added <xmp>
+     * @noinspection SpellCheckingInspection // ignore all lowercase strtolower function name
+     */
+    private static function xmpWrap($output): string
+    {
+        $output             = trim($output, "\n");
+        $headersList        = implode("\n", headers_list());
+        $hasContentType     = (bool)preg_match('|^\s*Content-Type:\s*|im', $headersList);  // assume no content type will default to html
+        $isTextHtml         = !$hasContentType || preg_match('|^\s*Content-Type:\s*text/html\b|im', $headersList); // match: text/html or ...;charset=utf-8
+        $backtraceFunctions = array_map('strtolower',array_column(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS), 'function'));
+        $wrapInXmp          = $isTextHtml && !in_array('showme', $backtraceFunctions);
+        return $wrapInXmp ? "\n<xmp>\n$output\n</xmp>\n" : "\n$output\n";
+    }
+
+
     #endregion
     #region Internal
-
-    private function cloneWithValue($newValue): self
-    {
-        $clonedObject          = clone $this;
-        $clonedObject->rawData = $newValue;
-        return $clonedObject;
-    }
 
     public static function logDeprecation($error): void {
         @user_error($error, E_USER_DEPRECATED);  // Trigger a silent deprecation notice for logging purposes
