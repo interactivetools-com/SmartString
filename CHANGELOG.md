@@ -1,5 +1,10 @@
 # SmartString Changelog
 
+## [2.0.1] - 2024-12-09
+
+### Changed
+- Switched SmartArray to a suggested dependency
+
 ## [2.0.0] - 2024-11-26
 
 ### Added

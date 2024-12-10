@@ -1,6 +1,6 @@
 {
   "name": "itools/smartstring",
-  "description": "A powerful, web-centric string manipulation library with automatic HTML encoding and fluent interface for PHP",
+  "description": "Enhanced strings with automatic HTML encoding and chainable methods",
   "keywords": ["string", "utility", "manipulation", "html", "encoding", "fluent", "chainable", "methods", "xss", "security", "multibyte", "utf-8", "helpers", "utils", "utf"],
   "type": "library",
   "homepage": "https://github.com/interactivetools-com/SmartString",
@@ -27,10 +27,12 @@
   },
   "require": {
     "php": "^8.0",
-    "ext-mbstring": "*",
-    "itools/smartarray": "v2.0.0"
+    "ext-mbstring": "*"
   },
   "require-dev": {
     "phpunit/phpunit": "^9.6"
+  },
+  "suggest": {
+    "itools/smartarray": "Optional integration with SmartArray for more extensive array operations"
   }
 }
