@@ -405,9 +405,14 @@ Conditional operations provide a simple way to provide a fallback value when the
 or zero.
 
 ```php
-// or($newValue): Handling falsy values (false, null, zero, or empty string)
+// or($newValue): Show default if value is empty (empty string, null, or false).  Zero is considered non-empty.
 $value = SmartString::new('');
 echo $value->or('Default'); // "Default"
+
+// and($value): Append a value if the current value is not empty (empty string, null, or false). Zero is considered non-empty.
+echo $record->address1->and(",<br>\n");
+echo $record->address2->and(",<br>\n");
+echo $record->address3->and(",<br>\n");
 
 // ifBlank($newValue): Handling blank values (only on empty string "")
 $name1 = SmartString::new('');
@@ -438,12 +443,26 @@ echo <<<__HTML__
 Eggs: {$eggs->set(match($eggs->int()) { 
     12      => "Full Carton",
     6       => "Half Carton",
-    default => "$eggs Eggs"
+    default => "{$eggs->int()} Eggs"
 })}
 __HTML__; // "Eggs: Full Carton"
 
 // The above code is pretty complex, so it's best to use it sparingly.  Don't be afraid to
 // use regular PHP code when needed.  We always recommend using the best tool for the job.
+```
+
+### Error Checking
+
+Show an error message or 404 for values that are empty (empty string "", null or false). Zero is considered non-empty.
+
+```php
+// Terminate with 404 if record not found
+$article = DB::get('articles', 123);        // Assume SmartArray returned
+$article->id->or404("Article not found");   // Sends 404 header and terminate script
+
+// Terminate with custom message if value missing
+$article = DB::get('articles', 123);        // Assume SmartArray returned
+$article->id->orDie("Article not found");   // Output message and terminate script
 ```
 
 ### Custom Functions
@@ -464,7 +483,7 @@ $uppercase = $name->apply('strtoupper');  // returns "JOHN DOE"
 $paddedValue = $name->apply('str_pad', 15, '.'); // returns "John Doe......."
 
 // Writing your own custom function
-$spacesToUnderscores = function($str) { return str_replace(' ', '_', $str); }); // anonymous function
+$spacesToUnderscores = function($str) { return str_replace(' ', '_', $str); }; // anonymous function
 $spacesToUnderscores = fn($str) => str_replace(' ', '_', $str);                 // arrow function (PHP 7.4+)
 $urlSlug = $name->apply($spacesToUnderscores);   // returns "John_Doe"
 
@@ -559,10 +578,14 @@ in an init file:
 |                   multiply(\$value) | Multiplies the current value by the given value                                                                                         |
 |                   divide(\$divisor) | Divides the current value by the given divisor                                                                                          |
 |          **Conditional Operations** |                                                                                                                                         |
-|                      or(\$fallback) | Returns the fallback if the current value is falsy                                                                                      |
+|                      or(\$fallback) | Returns the fallback if the current value is empty string, null or false                                                                |
+|                     and(\$fallback) | Appends the fallback if the current value is NOT empty string, null or false                                                            |
 |                  ifNull(\$fallback) | Returns the fallback if the current value is null                                                                                       |
 |                 ifBlank(\$fallback) | Returns the fallback if the current value is an empty string                                                                            |
 |                  ifZero(\$fallback) | Returns the fallback if the current value is zero                                                                                       |                                                                 
+|                  **Error Checking** |                                                                                                                                         |
+|                    orDie(\$message) | Outputs message and exits if the current value is empty string, null or false                                                           |                                                                 
+|                    or404(\$message) | Outputs 404 header, message and exits if the current value is empty string, null or false                                               |
 |                   **Miscellaneous** |                                                                                                                                         |
 |            apply(\$func, ...\$args) | Applies a custom function to the value                                                                                                  |
 |                              help() | Displays help information about available methods                                                                                       |

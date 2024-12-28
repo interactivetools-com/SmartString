@@ -1,5 +1,23 @@
 # SmartString Changelog
 
+## [2.0.2] - 2024-12-27
+
+### Added
+- `and()`: New method for conditionally appending values to non-blank strings 
+  - Example: `$r->address1->and("<br>\n")` - only adds line break if address exists
+- `orDie()`: Terminates execution with message if value is null or empty string
+- `or404()`: Terminates execution with message if value is null or empty string
+
+### Changed
+- `or()`: Now only uses fallback when current value is "", null, or false. Zero values now return original value
+- `percent()`:
+  - Added optional 2nd `$zeroFallback` parameter to provide alternative output for zero values
+  - When decimal precision isn't specified, now auto-determines decimal places (up to 4), previously excluded decimals
+
+### Fixed
+- Renamed `isZero()` to `ifZero()` to fix typo
+- Internal code organization and optimization improvements
+
 ## [2.0.1] - 2024-12-09
 
 ### Changed
