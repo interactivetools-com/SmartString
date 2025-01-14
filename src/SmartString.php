@@ -51,7 +51,6 @@ class SmartString implements JsonSerializable
     public static function new(string|int|float|bool|null|array $value): SmartArray|SmartString
     {
         if (is_array($value)) {
-            self::logDeprecation("Replace ::new() with SmartArray::newSS()");
             return SmartArray::newSS($value);
         }
 
@@ -558,6 +557,21 @@ class SmartString implements JsonSerializable
         return $this;
     }
 
+    /**
+     * Throws Exception if the value is "", null or false (zero is not considered false)
+     *
+     * @param string $message Error message to show
+     * @return self Returns $this for method chaining if not empty
+     * @throws Exception If array is empty
+     */
+    public function orThrow(string $message): self {
+        if ($this->rawData === "" || is_null($this->rawData) || $this->rawData === false) {
+            $message = htmlspecialchars($message, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8');
+            throw new Exception($message);
+        }
+        return $this;
+    }
+
     #endregion
     #region Debugging and Help
 
@@ -709,7 +723,7 @@ class SmartString implements JsonSerializable
      *
      * @param string $property Name of the property/method being accessed
      * @return SmartString Always returns a new instance with null value to prevent fatal errors
-     * @throws E_USER_WARNING When property access is invalid, with detailed usage instructions
+     * @throws Error When property access is invalid, with detailed usage instructions
      */
     public function __get(string $property): SmartString
     {

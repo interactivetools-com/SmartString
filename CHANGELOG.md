@@ -1,9 +1,18 @@
 # SmartString Changelog
 
+## [2.0.3] - 2025-01-13
+
+### Added
+- Added `orThrow()` method for throwing exceptions on empty/null/false values
+
+### Changed
+- Updated `SmartString::new($array)` to support SmartArray creation
+- Minor code organization improvements
+
 ## [2.0.2] - 2024-12-27
 
 ### Added
-- `and()`: New method for conditionally appending values to non-blank strings 
+- `and()`: New method for conditionally appending values to non-blank strings
   - Example: `$r->address1->and("<br>\n")` - only adds line break if address exists
 - `orDie()`: Terminates execution with message if value is null or empty string
 - `or404()`: Terminates execution with message if value is null or empty string
