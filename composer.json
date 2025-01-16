@@ -30,6 +30,7 @@
     "ext-mbstring": "*"
   },
   "require-dev": {
+    "itools/smartarray": "^2.0.0",
     "phpunit/phpunit": "^9.6"
   },
   "suggest": {

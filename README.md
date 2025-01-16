@@ -178,13 +178,13 @@ $str = SmartString::new("It's easy!<hr>");
 echo $str->value();    // "It's easy!<hr>"
 ```
 
-Or you can also use the `noEncode()` alias method for readability. This is useful when you have WYSIWYG content
-that you don't want to double-encode, and you want to make it clear that the value is not encoded:
+Or you can also use the `rawHtml()` alias method for readability when outputting trusted HTML. 
+This is useful when you have WYSIWYG content that you don't want to double-encode:
 
 ```php
 echo <<<__HTML__
     <h1>{$article->title}</h1>
-    {$article->wysiwygContent->noEncode()}
+    {$article->wysiwygContent->rawHtml()}
 __HTML__;
 ```
 
@@ -245,8 +245,8 @@ echo "add.php?title={$title->urlEncode()}"; // add.php?title=%3C10%25+OFF+%22SAL
 // JSON encode
 echo "let title={$title->jsonEncode()}";    // let title="\u003C10% OFF \u0022SALE\u0022"
 
-// No encode - This is an alias for value() for readability in string contexts
-echo "Title: {$title->noEncode()}";         // 'Title: <10% OFF "SALE"'
+// raw HTML - This is an alias for value() for readability when outputting trusted HTML
+echo "Title: {$title->rawHtml()}";         // 'Title: <10% OFF "SALE"'
 ```
 
 ### String Manipulation
@@ -558,7 +558,7 @@ in an init file:
 |                        htmlEncode() | Returns HTML-encoded string                                                                                                             |
 |                         urlEncode() | Returns URL-encoded string                                                                                                              |
 |                        jsonEncode() | Returns JSON-encoded string                                                                                                             |
-|                          noEncode() | Alias for value(), useful for readability in string contexts                                                                            |
+|                           rawHtml() | Alias for value(), useful for readability when outputting trusted HTML content                                                          |
 |             **String Manipulation** |                                                                                                                                         |
 |                          textOnly() | Removes HTML tags from the string, decodes entities, and trims whitespace                                                               |
 |                             nl2br() | Converts newlines to HTML line breaks                                                                                                   |

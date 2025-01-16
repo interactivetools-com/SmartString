@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Itools\SmartString;
 
-use Error, InvalidArgumentException;
+use Error, Exception, InvalidArgumentException;
 use Itools\SmartArray\SmartArray;
 use Itools\SmartArray\SmartNull;
 use JsonSerializable;
@@ -166,7 +166,13 @@ class SmartString implements JsonSerializable
         return json_encode($this->rawData, $flags);
     }
 
-    public function noEncode(): string|int|float|bool|null
+    /**
+     * Alias for value() - returns the unencoded, raw value.
+     * This can be useful when you want to output trusted HTML content.
+     *
+     * @return string|int|float|bool|null The raw, unencoded value
+     */
+    public function rawHtml(): string|int|float|bool|null
     {
         return $this->value();
     }
@@ -503,6 +509,37 @@ class SmartString implements JsonSerializable
         return new self($newValue);
     }
 #endregion
+#region Boolean Checks
+
+    /**
+     * Checks whether the current value is considered empty by PHP:
+     * - "" (empty string)
+     * - 0 (integer zero)
+     * - "0" (string zero)
+     * - false
+     * - null
+     *
+     * This is useful for conditionally showing blocks of HTML:
+     * if ($value->isEmpty()) { echo "<p>No data available</p>"; }
+     */
+    public function isEmpty(): bool
+    {
+        return empty($this->rawData);
+    }
+
+    /**
+     * The opposite of isEmpty().
+     * Returns true if $this->rawData is *not* empty by PHP’s definition.
+     *
+     *  This is useful for conditionally showing blocks of HTML:
+     *  if ($value->isNotEmpty()) { echo "<p>Value: $value</p>"; }
+     */
+    public function isNotEmpty(): bool
+    {
+        return !empty($this->rawData);
+    }
+
+#endregion
 #region Misc
 
     /**
@@ -602,9 +639,9 @@ class SmartString implements JsonSerializable
             Value access
             -------------
             $str->value()           // Access original value
-            $str->noEncode()        // Alias for ->value() for readability
+            $str->rawHtml()         // Alias for ->value(), useful for outputting trusted HTML content
             "{$str->value()}"       // Output original value in string context
-            "{$str->noEncode()}"    // Output original value in string context
+            "{$str->rawHtml()}"     // Output original value in string context
             print_r($str)           // show object value in a readable debug format (for developers)
             
             Working with arrays
@@ -612,7 +649,7 @@ class SmartString implements JsonSerializable
             $user = ['id' => 42, 'name' => "John O'Reilly", "lastLogin" => "2024-09-10 14:30:00"];
             $u    = SmartArray::newSS($user);                    // SmartArray of SmartStrings
             "Hello, $u->name"                                    // "Hello, John O&apos;Reilly"
-            "Hello, {$u->name->noEncode()}"                      // Returns "Hello, John O'Reilly"
+            "Hello, {$u->name->value()}"                         // Returns "Hello, John O'Reilly"
             "Last login: {$u->lastLogin->dateFormat('F j, Y')}"  // "Last login: Sep 10, 2024"
             
             Type conversion (returns value)
@@ -627,7 +664,7 @@ class SmartString implements JsonSerializable
             ->urlEncode()             Returns URL-encoded string, example: "?user={$user->name->urlEncode()}"
             ->jsonEncode()            Returns JSON-encoded value, example: "let user='{$user->name->jsonEncode()}'"
             ->htmlEncode()            Returns HTML-encoded string (for readability and non-string contexts)
-            ->noEncode()              Alias for ->value() for readability, example: "{$record->wysiwyg->noEncode()}"
+            ->rawHtml()               Alias for ->value(), useful for outputting trusted HTML content
             
             String Manipulation (returns object, chainable)
             ------------------------------------------------
@@ -714,6 +751,7 @@ class SmartString implements JsonSerializable
 
     /**
      * Magic getter that provides helpful error messages for common mistakes with dynamic properties/methods.
+     * Emits E_USER_WARNING when property access is invalid, providing detailed usage instructions.
      *
      * Handles two main error cases:
      * 1. Attempting to call methods without proper syntax:
@@ -723,7 +761,6 @@ class SmartString implements JsonSerializable
      *
      * @param string $property Name of the property/method being accessed
      * @return SmartString Always returns a new instance with null value to prevent fatal errors
-     * @throws Error When property access is invalid, with detailed usage instructions
      */
     public function __get(string $property): SmartString
     {
@@ -745,7 +782,7 @@ class SmartString implements JsonSerializable
         $caller    = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[0];
         $error     .= "Occurred in {$caller['file']}:{$caller['line']}\n";
         $error     .= "Reported";           // PHP will append " in file:line" to the error
-        user_error($error, E_USER_WARNING); // Emulate PHP warning
+        trigger_error($error, E_USER_WARNING); // Emulate PHP warning
 
         //
         return new self(null);
@@ -758,12 +795,12 @@ class SmartString implements JsonSerializable
     public function __call($method, $args): string|int|bool|null|float|SmartString { // NOSONAR - False-positive for unused $args parameter
         $methodLc = strtolower($method);
 
-        // deprecated methods, log and return new method (these may be removed in the future)
-        if ($methodLc === strtolower('raw')) {
-            self::logDeprecation("Replace ->$method() with ->value() or ->noEncode()");
-            return $this->value();
+        // old alias methods, these aren't deprecated but are provided for compatibility
+        if ($methodLc === strtolower('noEncode')) {
+            return $this->rawHtml();
         }
 
+        // deprecated methods, log and return new method (these may be removed in the future)
         if ($methodLc === strtolower('toString')) {
             self::logDeprecation("Replace ->$method() with ->htmlEncode()");
             return $this->htmlEncode();
@@ -827,12 +864,11 @@ class SmartString implements JsonSerializable
         return $wrapInXmp ? "\n<xmp>\n$output\n</xmp>\n" : "\n$output\n";
     }
 
-
     #endregion
     #region Internal
 
     public static function logDeprecation($error): void {
-        @user_error($error, E_USER_DEPRECATED);  // Trigger a silent deprecation notice for logging purposes
+        @trigger_error($error, E_USER_DEPRECATED);  // Trigger a silent deprecation notice for logging purposes
     }
 
     #endregion

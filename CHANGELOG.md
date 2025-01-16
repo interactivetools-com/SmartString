@@ -1,5 +1,16 @@
 # SmartString Changelog
 
+## [2.0.4] - 2025-01-15
+
+### Added
+- New `isEmpty()` method to check if value is "", zero, null, or false (uses PHP's empty() function)
+- New `isNotEmpty()` method to check if value is not empty (uses PHP's empty() function)
+- New `rawHtml()` method as an alias for `value()` - clearer when outputting trusted HTML content
+
+### Changed
+- Deprecated `noEncode()` method - use `rawHtml()` instead (old code still works for compatibility)
+- Misc code and other minor improvements
+
 ## [2.0.3] - 2025-01-13
 
 ### Added
