@@ -1,5 +1,10 @@
 # SmartString Changelog
 
+## [2.0.5] - 2025-01-31
+
+### Changed
+- Renamed: rawValue() → getRawValue().  Previous method name now automatically calls getRawValue().
+
 ## [2.0.4] - 2025-01-15
 
 ### Added
