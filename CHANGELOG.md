@@ -1,5 +1,10 @@
 # SmartString Changelog
 
+## [2.0.7] - 2025-02-26
+
+### Fixed
+- Updated return type on __callStatic to reflect mixed return values
+
 ## [2.0.6] - 2025-02-11
 
 ### Changed

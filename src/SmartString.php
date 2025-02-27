@@ -846,7 +846,7 @@ class SmartString implements JsonSerializable
     /**
      * Show a helpful error message when an unknown method is called.
      */
-    public static function __callStatic($method, $args): SmartArray { // NOSONAR - False-positive for unused $args parameter
+    public static function __callStatic($method, $args): mixed { // NOSONAR - False-positive for unused $args parameter
         $methodLc = strtolower($method);
 
         // deprecated methods, log and return new method (these may be removed in the future)
