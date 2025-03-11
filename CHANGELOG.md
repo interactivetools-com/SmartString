@@ -1,5 +1,10 @@
 # SmartString Changelog
 
+## [2.0.8] - 2025-03-11
+
+### Changed
+- Documentation updates and minor code optimizations
+
 ## [2.0.7] - 2025-02-26
 
 ### Fixed
