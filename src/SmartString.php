@@ -464,6 +464,22 @@ class SmartString implements JsonSerializable
         return new self($newValue);
     }
 
+    /**
+     * aka prefixIfNotBlank() - prefix to the value if it's not blank ("", null, or false)
+     *
+     * Note: Zero values ("0") are considered not blank and will be prefixed
+     *
+     * @param mixed $value The value to prefix.
+     */
+    public function andPrefix(int|float|string|SmartString $value): SmartString
+    {
+        $newValue = $this->rawData;
+        if ($this->rawData !== '' && !is_null($this->rawData) && $this->rawData !== false) {
+            $newValue = self::getRawValue($value) . $newValue;
+        }
+        return new self($newValue);
+    }
+
     public function ifBlank(int|float|string|SmartString $fallback): SmartString
     {
         $newValue = $this->rawData === "" ? self::getRawValue($fallback) : $this->rawData;
@@ -710,8 +726,10 @@ class SmartString implements JsonSerializable
             
             Conditional Operations (returns object, chainable)
             ---------------------------------------------------
-            ->or('replacement')       Changes value if the Field is falsy (false, null, zero, or "")
-            ->ifBlank('replacement')  Changes value if the Field is blank (empty string)
+            ->or('replacement')       Changes value if the Field is not set ("", null, or false) 
+            ->and('append')           Appends to the value if it is set ("", null, or false)
+            ->andPrefix('prefix')     Prepends to the value if it is set ("", null, or false)
+            ->ifBlank('replacement')  Changes value if the Field is blank ("" empty string)
             ->ifNull('replacement')   Changes value if the Field is null or undefined (chainable)
             ->ifZero('replacement')   Changes value if the Field is zero (0, 0.0, "0", or "0.0")
             

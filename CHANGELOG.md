@@ -1,5 +1,10 @@
 # SmartString Changelog
 
+## [2.0.9] - 2025-03-11
+
+### Added
+- `andPrefix()`: New method for conditionally prepending values to non-blank strings (anything but "", null, or false)
+
 ## [2.0.8] - 2025-03-11
 
 ### Changed
@@ -43,7 +48,7 @@
 ## [2.0.2] - 2024-12-27
 
 ### Added
-- `and()`: New method for conditionally appending values to non-blank strings
+- `and()`: New method for conditionally appending values to non-blank strings (anything but "", null, or false)
   - Example: `$r->address1->and("<br>\n")` - only adds line break if address exists
 - `orDie()`: Terminates execution with message if value is null or empty string
 - `or404()`: Terminates execution with message if value is null or empty string
