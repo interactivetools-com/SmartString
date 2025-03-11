@@ -61,8 +61,10 @@ require 'vendor/autoload.php';
 use Itools\SmartString\SmartString;
 
 // Create SmartArray of SmartStrings (can be referenced as array or object)
-$user    = SmartArray::newSS(['name' => "John O'Reilly", 'id' => 123]);
-$request = SmartArray::newSS($_REQUEST);
+// Call ->withSmartStrings() to convert all values to SmartStrings, or use SmartArray::new($array, true)
+$user    = SmartArray::new(['name' => "John O'Reilly", 'id' => 123])->withSmartStrings();   // verbose syntax
+$user    = SmartArray::new(['name' => "John O'Reilly", 'id' => 123], true);                 // shortcut syntax
+$request = SmartArray::new($_REQUEST, true);
 
 // Use in string contexts for automatic HTML encoding
 echo "Hello, $user->name!"; // Output: Hello, John O&apos;Reilly!
@@ -99,13 +101,13 @@ $price     = SmartString::new(19.99);
 $isActive  = SmartString::new(true);
 $nullValue = SmartString::new(null);
 
-// Or use SmartArray::newSS() to convert an existing array to a SmartArray of SmartStrings
+// Or use SmartArray::new()->withSmartStrings() to convert an existing array to a SmartArray of SmartStrings
 $record  = ['name' => "Jane Doe", 'age' => 25, 'isStudent' => true ];
-$user    = SmartArray::newSS($record);
-$request = SmartArray::newSS($_REQUEST); // or convert $_REQUEST to SmartString
+$user    = SmartArray::new($record)->withSmartStrings();
+$request = SmartArray::new($_REQUEST, true);  // shortcut syntax, pass true as second arg, new($array, true)
 
 // Looping over a two-level array
-foreach (SmartArray::newSS($articles) as $article) {
+foreach (SmartArray::new($articles, true) as $article) {
     echo <<<__HTML__
         <h1>$article->title</h1>
         <p>{$article->content->textOnly()->maxChars(200, '')}</p>
@@ -178,7 +180,7 @@ $str = SmartString::new("It's easy!<hr>");
 echo $str->value();    // "It's easy!<hr>"
 ```
 
-Or you can also use the `rawHtml()` alias method for readability when outputting trusted HTML. 
+Or you can also use the `rawHtml()` alias method for readability when outputting trusted HTML.
 This is useful when you have WYSIWYG content that you don't want to double-encode:
 
 ```php
@@ -193,7 +195,7 @@ __HTML__;
 When you convert an array to SmartArray, you can use it like both an array and an object.
 
 ```php
-$user = SmartArray::newSS(['name' => 'John', 'age' => 30]);
+$user = SmartArray::new(['name' => 'John', 'age' => 30])->withSmartStrings();  // shortcut syntax new($array, true)
 
 // Simple, clean object-style access (no extra curly braces needed)
 echo "Name: $user->name, Age: $user->age";
@@ -515,7 +517,7 @@ It also provides access to the original value, alternative encoding methods, and
 
 Creating SmartStrings
 \$str = SmartString::new("It's easy!<hr>"); 
-\$req = SmartArray::newSS(\$_REQUEST);  // SmartArray of SmartStrings
+\$req = SmartArray::new(\$_REQUEST)->withSmartStrings();  // SmartArray of SmartStrings
 
 Automatic HTML-encoding in string contexts:
 echo \$str;             // "It&apos;s easy!&lt;hr&gt;"
@@ -540,55 +542,56 @@ SmartString::$phoneFormat           = [                // Default phoneFormat() 
 
 ## Method Reference
 
-In addition to the methods below, you can customize the defaults by adding the following to the top of your script or
+In addition to the methods below, you can customize the defaults by adding the following to the top of your script or[SmartStringTest.php](tests/SmartStringTest.php)
 in an init file:
 
-|                     **Basic Usage** |                                                                                                                                         |
-|------------------------------------:|-----------------------------------------------------------------------------------------------------------------------------------------|
-|           SmartString::new(\$value) | Creates a new SmartString object from a single value                                                                                    |
-|          SmartArray::newSS(\$array) | Creates a new SmartArray from a regular PHP array. All nested arrays and values are converted to SmartArray and SmartString objects     |
-|                             value() | Returns the original, unencoded value                                                                                                   |
-|                 **Type Conversion** |                                                                                                                                         |
-|                               int() | Returns the value as an integer                                                                                                         |
-|                             float() | Returns the value as a float                                                                                                            |
-|                              bool() | Returns the value as a boolean                                                                                                          |
-|                            string() | Returns the value as a string (original value, not HTML-encoded)                                                                        |
-|             SmartString::rawValue() | Returns original value from Smart* objects while leaving other types unchanged. Useful when working with mixed object/non-object values |
-|                **Encoding Methods** |                                                                                                                                         |
-|                        htmlEncode() | Returns HTML-encoded string                                                                                                             |
-|                         urlEncode() | Returns URL-encoded string                                                                                                              |
-|                        jsonEncode() | Returns JSON-encoded string                                                                                                             |
-|                           rawHtml() | Alias for value(), useful for readability when outputting trusted HTML content                                                          |
-|             **String Manipulation** |                                                                                                                                         |
-|                          textOnly() | Removes HTML tags from the string, decodes entities, and trims whitespace                                                               |
-|                             nl2br() | Converts newlines to HTML line breaks                                                                                                   |
-|                              trim() | Trims whitespace or specified characters from the string                                                                                |
-| maxWords(\$max, \$ellipsis = '...') | Limits the string to a specific number of words                                                                                         |
-| maxChars(\$max, \$ellipsis = '...') | Limits the string to a specific number of characters                                                                                    |
-|                      **Formatting** |                                                                                                                                         |
-|      dateFormat(\$format = default) | Formats the value as a date, using default or specified date format                                                                     |
-|  dateTimeFormat(\$format = default) | Formats the value as a date and time, using default or specified date format                                                            |
-|        numberFormat(\$decimals = 0) | Formats the value as a number                                                                                                           |
-|                       phoneFormat() | Formats the value as a phone number                                                                                                     |
-|              **Numeric Operations** |                                                                                                                                         |
-|             percent(\$decimals = 0) | Converts the value to a percentage                                                                                                      |
-|  percentOf(\$total, \$decimals = 0) | Calculates the percentage of the value relative to the given total                                                                      |
-|                        add(\$value) | Adds the given value to the current value                                                                                               |
-|                   subtract(\$value) | Subtracts the given value from the current value                                                                                        |
-|                   multiply(\$value) | Multiplies the current value by the given value                                                                                         |
-|                   divide(\$divisor) | Divides the current value by the given divisor                                                                                          |
-|          **Conditional Operations** |                                                                                                                                         |
-|                      or(\$fallback) | Returns the fallback if the current value is empty string, null or false                                                                |
-|                     and(\$fallback) | Appends the fallback if the current value is NOT empty string, null or false                                                            |
-|                  ifNull(\$fallback) | Returns the fallback if the current value is null                                                                                       |
-|                 ifBlank(\$fallback) | Returns the fallback if the current value is an empty string                                                                            |
-|                  ifZero(\$fallback) | Returns the fallback if the current value is zero                                                                                       |                                                                 
-|                  **Error Checking** |                                                                                                                                         |
-|                    orDie(\$message) | Outputs message and exits if the current value is empty string, null or false                                                           |                                                                 
-|                    or404(\$message) | Outputs 404 header, message and exits if the current value is empty string, null or false                                               |
-|                   **Miscellaneous** |                                                                                                                                         |
-|            apply(\$func, ...\$args) | Applies a custom function to the value                                                                                                  |
-|                              help() | Displays help information about available methods                                                                                       |
+|                              **Basic Usage** |                                                                                                                                         |
+|---------------------------------------------:|-----------------------------------------------------------------------------------------------------------------------------------------|
+|                    SmartString::new(\$value) | Creates a new SmartString object from a single value                                                                                    |
+| SmartArray::new(\$array)->withSmartStrings() | Creates a new SmartArray from a regular PHP array. All nested arrays and values are converted to SmartArray and SmartString objects     |
+|               SmartArray::new(\$array, true) | Shortcut syntax to create a new SmartArray with SmartStrings from a regular PHP array                                                   |
+|                                      value() | Returns the original, unencoded value                                                                                                   |
+|                          **Type Conversion** |                                                                                                                                         |
+|                                        int() | Returns the value as an integer                                                                                                         |
+|                                      float() | Returns the value as a float                                                                                                            |
+|                                       bool() | Returns the value as a boolean                                                                                                          |
+|                                     string() | Returns the value as a string (original value, not HTML-encoded)                                                                        |
+|                      SmartString::rawValue() | Returns original value from Smart* objects while leaving other types unchanged. Useful when working with mixed object/non-object values |
+|                         **Encoding Methods** |                                                                                                                                         |
+|                                 htmlEncode() | Returns HTML-encoded string                                                                                                             |
+|                                  urlEncode() | Returns URL-encoded string                                                                                                              |
+|                                 jsonEncode() | Returns JSON-encoded string                                                                                                             |
+|                                    rawHtml() | Alias for value(), useful for readability when outputting trusted HTML content                                                          |
+|                      **String Manipulation** |                                                                                                                                         |
+|                                   textOnly() | Removes HTML tags from the string, decodes entities, and trims whitespace                                                               |
+|                                      nl2br() | Converts newlines to HTML line breaks                                                                                                   |
+|                                       trim() | Trims whitespace or specified characters from the string                                                                                |
+|          maxWords(\$max, \$ellipsis = '...') | Limits the string to a specific number of words                                                                                         |
+|          maxChars(\$max, \$ellipsis = '...') | Limits the string to a specific number of characters                                                                                    |
+|                               **Formatting** |                                                                                                                                         |
+|               dateFormat(\$format = default) | Formats the value as a date, using default or specified date format                                                                     |
+|           dateTimeFormat(\$format = default) | Formats the value as a date and time, using default or specified date format                                                            |
+|                 numberFormat(\$decimals = 0) | Formats the value as a number                                                                                                           |
+|                                phoneFormat() | Formats the value as a phone number                                                                                                     |
+|                       **Numeric Operations** |                                                                                                                                         |
+|                      percent(\$decimals = 0) | Converts the value to a percentage                                                                                                      |
+|           percentOf(\$total, \$decimals = 0) | Calculates the percentage of the value relative to the given total                                                                      |
+|                                 add(\$value) | Adds the given value to the current value                                                                                               |
+|                            subtract(\$value) | Subtracts the given value from the current value                                                                                        |
+|                            multiply(\$value) | Multiplies the current value by the given value                                                                                         |
+|                            divide(\$divisor) | Divides the current value by the given divisor                                                                                          |
+|                   **Conditional Operations** |                                                                                                                                         |
+|                               or(\$fallback) | Returns the fallback if the current value is empty string, null or false                                                                |
+|                              and(\$fallback) | Appends the fallback if the current value is NOT empty string, null or false                                                            |
+|                           ifNull(\$fallback) | Returns the fallback if the current value is null                                                                                       |
+|                          ifBlank(\$fallback) | Returns the fallback if the current value is an empty string                                                                            |
+|                           ifZero(\$fallback) | Returns the fallback if the current value is zero                                                                                       |                                                                 
+|                           **Error Checking** |                                                                                                                                         |
+|                             orDie(\$message) | Outputs message and exits if the current value is empty string, null or false                                                           |                                                                 
+|                             or404(\$message) | Outputs 404 header, message and exits if the current value is empty string, null or false                                               |
+|                            **Miscellaneous** |                                                                                                                                         |
+|                     apply(\$func, ...\$args) | Applies a custom function to the value                                                                                                  |
+|                                       help() | Displays help information about available methods                                                                                       |
 
 **See Also:** For array operations, check out our companion library `SmartArray`,
 powerful array operations with chainable methods and seamless `SmartString` integration:

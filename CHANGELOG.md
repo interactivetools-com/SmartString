@@ -69,8 +69,8 @@
 - Misc code organization and other minor improvements
 
 ### Deprecated
-- SmartString::new($array) - use SmartArray::newSS($array) instead
-- SmartString::fromArray() - use SmartArray::newSS($array) instead
+- SmartString::new($array) - use SmartArray::new($array)->withSmartStrings() instead
+- SmartString::fromArray() - use SmartArray::new($array)->withSmartStrings() instead
 - stripTags() - use textOnly() instead
 
 ### Fixed

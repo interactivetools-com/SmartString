@@ -12,7 +12,7 @@ use JsonSerializable;
 /**
  * SmartString class provides a fluent interface for various string and numeric manipulations.
  *
- * For inline help, call $smartStart->help() or print_r() on a SmartString object.
+ * For inline help, call $smartString->help() or print_r() on a SmartString object.
  */
 class SmartString implements JsonSerializable
 {
@@ -43,15 +43,16 @@ class SmartString implements JsonSerializable
     /**
      * Returns a SmartString object for a value.
      *
-     * @example $rows = SmartArray::newSS($resultSet);       // Nested SmartArray of SmartStrings
-     *          $str  = SmartString::new("Hello, World!");  // Single value as SmartString
+     * @example $str  = SmartString::new("Hello, World!");                  // Single value as SmartString
+     *          $rows = SmartArray::new($resultSet)->withSmartStrings();    // SmartArray of SmartStrings (verbose method)
+     *          $rows = SmartArray::new($resultSet, true);                  // SmartArray of SmartStrings (shortcut method)
      *
      * @return SmartArray|SmartString The newly created SmartString object.
      */
     public static function new(string|int|float|bool|null|array $value): SmartArray|SmartString
     {
         if (is_array($value)) {
-            return SmartArray::newSS($value);
+            return SmartArray::new($value)->withSmartStrings();
         }
 
         // Return SmartString object for other types
@@ -642,7 +643,8 @@ class SmartString implements JsonSerializable
             Creating SmartStrings
             ----------------------
             $str = SmartString::new("It's easy!<hr>");
-            $req = SmartArray::newSS($_REQUEST);  // SmartArray of SmartStrings
+            $req = SmartArray::new($_REQUEST)->withSmartStrings();  // SmartArray of SmartStrings
+            $req = SmartArray::new($_REQUEST, true);                // Alternate shortcut syntax
             
             Automatic HTML-encoding in string contexts
             -------------------------------------------
@@ -663,7 +665,7 @@ class SmartString implements JsonSerializable
             Working with arrays
             --------------------
             $user = ['id' => 42, 'name' => "John O'Reilly", "lastLogin" => "2024-09-10 14:30:00"];
-            $u    = SmartArray::newSS($user);                    // SmartArray of SmartStrings
+            $u    = SmartArray::new($user)->withSmartStrings();  // SmartArray of SmartStrings
             "Hello, $u->name"                                    // "Hello, John O&apos;Reilly"
             "Hello, {$u->name->value()}"                         // Returns "Hello, John O'Reilly"
             "Last login: {$u->lastLogin->dateFormat('F j, Y')}"  // "Last login: Sep 10, 2024"
@@ -851,7 +853,7 @@ class SmartString implements JsonSerializable
 
         // deprecated methods, log and return new method (these may be removed in the future)
         if ($methodLc === strtolower('fromArray')) {
-            self::logDeprecation("Replace SmartString::$method() with SmartArray::newSS(\$array)");
+            self::logDeprecation("Replace SmartString::$method() with SmartArray::new(\$array)->withSmartStrings()");
             return new SmartArray(...$args);
         }
 
