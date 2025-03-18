@@ -615,16 +615,77 @@ class SmartStringTest extends TestCase
     }
 
     /**
-     * @dataProvider dateFormatProvider
+     * @dataProvider dateTimeFormatProvider
      */
     public function testDateTimeFormat($input, $format, $expected): void
     {
         date_default_timezone_set('America/Phoenix'); // Timezone with no DST for consistent results
 
-        // dateFormat
-        $result = SmartString::new($input)->dateFormat($format)->value();
+        // dateTimeFormat
+        $result = SmartString::new($input)->dateTimeFormat($format)->value();
         $error  = "Failed for input: " . var_export($input, true) . ", output: " . var_export($result, true);
         $this->assertSame($expected, $result, $error);
+    }
+
+    public function dateTimeFormatProvider(): array
+    {
+        return [
+            'MySQL datetime'            => [
+                '2023-05-15 14:30:00',
+                'Y-m-d H:i:s T',
+                '2023-05-15 14:30:00 MST',
+            ],
+            'MySQL date'                => [
+                '2023-05-15',
+                'Y-m-d H:i:s T',
+                '2023-05-15 00:00:00 MST',
+            ],
+            'MySQL time'                => [
+                '14:30:00',
+                'H:i:s T',
+                '14:30:00 MST',
+            ],
+            'Unix timestamp'            => [
+                1684159800,
+                'Y-m-d H:i:s T',
+                '2023-05-15 07:10:00 MST',
+            ],
+            'Unix timestamp as string'  => [
+                '1684159800',
+                'Y-m-d H:i:s T',
+                '2023-05-15 07:10:00 MST',
+            ],
+            'Custom format output'      => [
+                '2023-05-15 14:30:00',
+                'd/m/Y H:i T',
+                '15/05/2023 14:30 MST',
+            ],
+            'Null input'                => [
+                null,
+                'Y-m-d H:i:s T',
+                null,
+            ],
+            'Zero timestamp'            => [
+                0,
+                'Y-m-d H:i:s T',
+                null,
+            ],
+            'Invalid date string'       => [
+                'not a date',
+                'Y-m-d H:i:s T',
+                null,
+            ],
+            'Empty string'              => [
+                '',
+                'Y-m-d H:i:s T',
+                null,
+            ],
+            'Default format test'       => [
+                '2023-05-15 14:30:00',
+                null,
+                '2023-05-15 14:30:00',
+            ],
+        ];
     }
 
     public function dateFormatProvider(): array
@@ -991,6 +1052,106 @@ class SmartStringTest extends TestCase
     }
 
     /**
+     * @dataProvider andMethodProvider
+     */
+    public function testAndMethod($value, $appendValue, $expected): void
+    {
+        $result = SmartString::new($value)->and($appendValue)->value();
+        $this->assertSame($expected, $result, "and() method failed for input: " . var_export($value, true));
+    }
+
+    public function andMethodProvider(): array
+    {
+        return [
+            'non-empty string' => [
+                'value'       => 'Hello',
+                'appendValue' => ' World',
+                'expected'    => 'Hello World',
+            ],
+            'empty string' => [
+                'value'       => '',
+                'appendValue' => 'World',
+                'expected'    => '',
+            ],
+            'null value' => [
+                'value'       => null,
+                'appendValue' => 'World',
+                'expected'    => null,
+            ],
+            'false value' => [
+                'value'       => false,
+                'appendValue' => 'World',
+                'expected'    => false,
+            ],
+            'zero value' => [
+                'value'       => 0,
+                'appendValue' => ' items',
+                'expected'    => '0 items',
+            ],
+            'SmartString append value' => [
+                'value'       => 'Price: ',
+                'appendValue' => SmartString::new('$10.00'),
+                'expected'    => 'Price: $10.00',
+            ],
+            'numeric values' => [
+                'value'       => 100,
+                'appendValue' => '%',
+                'expected'    => '100%',
+            ],
+        ];
+    }
+
+    /**
+     * @dataProvider andPrefixMethodProvider
+     */
+    public function testAndPrefixMethod($value, $prefixValue, $expected): void
+    {
+        $result = SmartString::new($value)->andPrefix($prefixValue)->value();
+        $this->assertSame($expected, $result, "andPrefix() method failed for input: " . var_export($value, true));
+    }
+
+    public function andPrefixMethodProvider(): array
+    {
+        return [
+            'non-empty string' => [
+                'value'       => 'World',
+                'prefixValue' => 'Hello ',
+                'expected'    => 'Hello World',
+            ],
+            'empty string' => [
+                'value'       => '',
+                'prefixValue' => 'Hello ',
+                'expected'    => '',
+            ],
+            'null value' => [
+                'value'       => null,
+                'prefixValue' => 'Hello ',
+                'expected'    => null,
+            ],
+            'false value' => [
+                'value'       => false,
+                'prefixValue' => 'Hello ',
+                'expected'    => false,
+            ],
+            'zero value' => [
+                'value'       => 0,
+                'prefixValue' => '$',
+                'expected'    => '$0',
+            ],
+            'SmartString prefix value' => [
+                'value'       => 'items',
+                'prefixValue' => SmartString::new('10 '),
+                'expected'    => '10 items',
+            ],
+            'numeric values' => [
+                'value'       => 100,
+                'prefixValue' => '$',
+                'expected'    => '$100',
+            ],
+        ];
+    }
+
+    /**
      * @dataProvider conditionalMethodsProvider
      */
     public function testIfNullMethod($value, $fallback, $expected): void
@@ -1196,16 +1357,11 @@ class SmartStringTest extends TestCase
                 'valueIfTrue' => 10,
                 'expected'    => 5,
             ],
-            'object valueIfTrue'     => [
+            'SmartString as valueIfTrue' => [
                 'value'       => 5,
                 'condition'   => true,
-                'valueIfTrue' => new class {
-                    public function value(): int
-                    {
-                        return 15;
-                    }
-                },
-                'expected'    => 15,
+                'valueIfTrue' => new SmartString('replaced value'),
+                'expected'    => 'replaced value',
             ],
         ];
     }
@@ -1237,15 +1393,10 @@ class SmartStringTest extends TestCase
                 'newValue' => null,
                 'expected' => null,
             ],
-            'set object'  => [
-                'value'    => 5,
-                'newValue' => new class {
-                    public function value(): int
-                    {
-                        return 15;
-                    }
-                },
-                'expected' => 15,
+            'set SmartString' => [
+                'value'    => 'original',
+                'newValue' => new SmartString('from smartstring'),
+                'expected' => 'from smartstring',
             ],
         ];
     }
@@ -1320,7 +1471,233 @@ class SmartStringTest extends TestCase
     }
 
     // endregion
+    // region Boolean Checks
+
+    /**
+     * @dataProvider isEmptyMethodProvider
+     */
+    public function testIsEmptyMethod($value, $expected): void
+    {
+        $result = SmartString::new($value)->isEmpty();
+        $this->assertSame($expected, $result, "isEmpty() method failed for input: " . var_export($value, true));
+    }
+
+    public function isEmptyMethodProvider(): array
+    {
+        return [
+            'empty string' => [
+                'value'    => '',
+                'expected' => true,
+            ],
+            'null' => [
+                'value'    => null,
+                'expected' => true,
+            ],
+            'false' => [
+                'value'    => false,
+                'expected' => true,
+            ],
+            'zero' => [
+                'value'    => 0,
+                'expected' => true,
+            ],
+            'zero string' => [
+                'value'    => '0',
+                'expected' => true,
+            ],
+            'whitespace' => [
+                'value'    => ' ',
+                'expected' => false,
+            ],
+            'non-empty string' => [
+                'value'    => 'Hello',
+                'expected' => false,
+            ],
+            'positive number' => [
+                'value'    => 42,
+                'expected' => false,
+            ],
+            'true' => [
+                'value'    => true,
+                'expected' => false,
+            ],
+        ];
+    }
+
+    /**
+     * @dataProvider isNotEmptyMethodProvider
+     */
+    public function testIsNotEmptyMethod($value, $expected): void
+    {
+        $result = SmartString::new($value)->isNotEmpty();
+        $this->assertSame($expected, $result, "isNotEmpty() method failed for input: " . var_export($value, true));
+    }
+
+    public function isNotEmptyMethodProvider(): array
+    {
+        return [
+            'empty string' => [
+                'value'    => '',
+                'expected' => false,
+            ],
+            'null' => [
+                'value'    => null,
+                'expected' => false,
+            ],
+            'false' => [
+                'value'    => false,
+                'expected' => false,
+            ],
+            'zero' => [
+                'value'    => 0,
+                'expected' => false,
+            ],
+            'zero string' => [
+                'value'    => '0',
+                'expected' => false,
+            ],
+            'whitespace' => [
+                'value'    => ' ',
+                'expected' => true,
+            ],
+            'non-empty string' => [
+                'value'    => 'Hello',
+                'expected' => true,
+            ],
+            'positive number' => [
+                'value'    => 42,
+                'expected' => true,
+            ],
+            'true' => [
+                'value'    => true,
+                'expected' => true,
+            ],
+        ];
+    }
+
+    // endregion
+    // region Error Checking
+
+    public function testOr404Method(): void
+    {
+        // Test with non-empty values (should return $this for chaining)
+        $this->assertSame('Hello', SmartString::new('Hello')->or404()->value(), "or404() changed a non-empty value");
+        $this->assertSame(42, SmartString::new(42)->or404()->value(), "or404() changed a non-zero value");
+        $this->assertSame(0, SmartString::new(0)->or404()->value(), "or404() incorrectly treated zero as empty");
+
+        // We can't actually test the 404 output directly as it would exit the script
+        // So we're only testing the non-empty-value case above
+    }
+
+    public function testOrDieMethod(): void
+    {
+        // Test with non-empty values (should return $this for chaining)
+        $this->assertSame('Hello', SmartString::new('Hello')->orDie('Error message')->value(), "orDie() changed a non-empty value");
+        $this->assertSame(42, SmartString::new(42)->orDie('Error message')->value(), "orDie() changed a non-zero value");
+        $this->assertSame(0, SmartString::new(0)->orDie('Error message')->value(), "orDie() incorrectly treated zero as empty");
+
+        // We can't actually test the die() output directly as it would terminate the script
+        // So we're only testing the non-empty-value case above
+    }
+
+    public function testOrThrowMethod(): void
+    {
+        // Test with non-empty values (should return $this for chaining)
+        $this->assertSame('Hello', SmartString::new('Hello')->orThrow('Error message')->value(), "orThrow() changed a non-empty value");
+        $this->assertSame(42, SmartString::new(42)->orThrow('Error message')->value(), "orThrow() changed a non-zero value");
+        $this->assertSame(0, SmartString::new(0)->orThrow('Error message')->value(), "orThrow() incorrectly treated zero as empty");
+
+        // Test that it throws an exception for empty values
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('Error message');
+        SmartString::new('')->orThrow('Error message');
+    }
+
+    // endregion
     // region Debugging & Help
+
+    public function testHelpMethod(): void
+    {
+        // Capture output buffer to test the help text display
+        ob_start();
+        $result = SmartString::new('test')->help('original value');
+        $output = ob_get_clean();
+
+        // Verify it returns the optional parameter
+        $this->assertSame('original value', $result);
+
+        // Verify the output contains helpful documentation
+        $this->assertStringContainsString('SmartString: Enhanced Strings', $output);
+        $this->assertStringContainsString('Creating SmartStrings', $output);
+        $this->assertStringContainsString('Type conversion', $output);
+        $this->assertStringContainsString('Encoding methods', $output);
+    }
+
+    /**
+     * @dataProvider jsonSerializeProvider
+     */
+    public function testJsonSerialize($input, $expected): void
+    {
+        $smartString = SmartString::new($input);
+        $jsonEncoded = json_encode($smartString);
+        $this->assertSame($expected, $jsonEncoded, "jsonSerialize() method failed for input: " . var_export($input, true));
+    }
+
+    public function jsonSerializeProvider(): array
+    {
+        return [
+            'string value' => [
+                'input'    => 'Hello World',
+                'expected' => '"Hello World"',
+            ],
+            'integer value' => [
+                'input'    => 42,
+                'expected' => '42',
+            ],
+            'float value' => [
+                'input'    => 3.14,
+                'expected' => '3.14',
+            ],
+            'boolean true' => [
+                'input'    => true,
+                'expected' => 'true',
+            ],
+            'boolean false' => [
+                'input'    => false,
+                'expected' => 'false',
+            ],
+            'null value' => [
+                'input'    => null,
+                'expected' => 'null',
+            ],
+        ];
+    }
+
+    public function testDebugInfo(): void
+    {
+        // Test __debugInfo output through print_r
+        $smartString = SmartString::new('test value');
+        $debugOutput = print_r($smartString, true);
+
+        // Verify debug output contains expected information
+        $this->assertStringContainsString('rawData:private', $debugOutput);
+        $this->assertStringContainsString('"test value"', $debugOutput);
+
+        // Test numeric values
+        $smartStringNum = SmartString::new(42);
+        $debugOutputNum = print_r($smartStringNum, true);
+        $this->assertStringContainsString('42', $debugOutputNum);
+
+        // Test null values
+        $smartStringNull = SmartString::new(null);
+        $debugOutputNull = print_r($smartStringNull, true);
+        $this->assertStringContainsString('NULL', $debugOutputNull);
+
+        // Test boolean values
+        $smartStringBool = SmartString::new(true);
+        $debugOutputBool = print_r($smartStringBool, true);
+        $this->assertStringContainsString('TRUE', $debugOutputBool);
+    }
 
     // endregion
 }

@@ -25,28 +25,37 @@ This makes your code cleaner, more readable, and inherently more secure.
 
 ## Table of Contents
 
-- [Quick Start](#quick-start)
-- [Features and Usage Examples](#features-and-usage-examples)
-    - [Creating SmartStrings](#creating-smartstrings)
-    - [Fluent Chainable Interface](#fluent-chainable-interface)
-    - [Automatic HTML-encoding](#automatic-html-encoding)
-    - [Accessing Values](#accessing-values)
-    - [Working with SmartArrays](#working-with-smartarrays)
-    - [Type Conversion](#type-conversion)
-    - [Encoding Values](#encoding-values)
-    - [String Manipulation](#string-manipulation)
-    - [Number Formatting](#number-formatting)
-    - [Date Formatting](#date-formatting)
-    - [Phone Number Formatting](#phone-number-formatting)
-    - [Numeric Operations](#numeric-operations)
-    - [Conditional Operations](#conditional-operations)
-    - [Custom Functions](#custom-functions)
-    - [Developer Debugging & Help](#developer-debugging--help)
-- [Customizing Defaults](#customizing-defaults)
-- [Method Reference](#method-reference)
-- [Questions?](#questions)
+<!-- TOC -->
+* [SmartString: Secure and Simple String Handling for PHP](#smartstring-secure-and-simple-string-handling-for-php)
+  * [Table of Contents](#table-of-contents)
+  * [Quick Start](#quick-start)
+  * [Features and Usage Examples](#features-and-usage-examples)
+    * [Creating SmartStrings](#creating-smartstrings)
+    * [Fluent Chainable Interface](#fluent-chainable-interface)
+    * [Automatic HTML-encoding](#automatic-html-encoding)
+    * [Accessing Values](#accessing-values)
+    * [Working with SmartArrays](#working-with-smartarrays)
+    * [Type Conversion](#type-conversion)
+    * [Encoding Values](#encoding-values)
+    * [String Manipulation](#string-manipulation)
+    * [Number Formatting](#number-formatting)
+    * [Date Formatting](#date-formatting)
+    * [Phone Number Formatting](#phone-number-formatting)
+    * [Numeric Operations](#numeric-operations)
+    * [Conditional Operations](#conditional-operations)
+    * [Boolean Checks](#boolean-checks)
+    * [Error Checking](#error-checking)
+    * [Developer-Friendly Error Messages](#developer-friendly-error-messages)
+    * [Custom Functions](#custom-functions)
+    * [Developer Debugging &amp; Help](#developer-debugging--help)
+  * [Customizing Defaults](#customizing-defaults)
+  * [Method Reference](#method-reference)
+  * [Questions?](#questions)
+<!-- TOC -->
 
 ## Quick Start
+
+> **Requirements:** PHP 8.0 or higher with mbstring extension
 
 Install via Composer:
 
@@ -167,7 +176,7 @@ echo $str;             // "It&apos;s easy!&lt;hr&gt;"
 print $str;            // "It&apos;s easy!&lt;hr&gt;"
 (string) $str;         // "It&apos;s easy!&lt;hr&gt;"
 $new = $str."\n";      // "It&apos;s easy!&lt;hr&gt;\n"
-````
+```
 
 ### Accessing Values
 
@@ -285,7 +294,7 @@ And all of the above methods are chainable:
 ```php
 $str = SmartString::new("  <p>More text and HTML than needed</p>  ");
 echo $str->textOnly()->maxWords(3); // "More text and..."
-````
+```
 
 ### Number Formatting
 
@@ -397,24 +406,28 @@ Order Total: $order->total->add( $order->shipping )->numberFormat(2)
 ```
 
 **Note:** Be aware of decimal precision issues when performing calculations. Results may sometimes differ slightly
-from expected values due to floating-point arithmetic limitations inherit in all programming languages.
+from expected values due to floating-point arithmetic limitations inherent in all programming languages.
 
 For more information, see [PHP Floating Point Numbers](https://www.php.net/manual/en/language.types.float.php).
 
 ### Conditional Operations
 
-Conditional operations provide a simple way to provide a fallback value when the current value is falsy, blank, null,
-or zero.
+Conditional operations provide a simple way to provide a fallback value when the current value is missing ("", null, or
+false)
+or handle specific conditions like null or zero values.
 
 ```php
-// or($newValue): Show default if value is empty (empty string, null, or false).  Zero is considered non-empty.
+// or($newValue): Show default if value is missing ("", null, or false). Zero is not considered missing.
 $value = SmartString::new('');
 echo $value->or('Default'); // "Default"
 
-// and($value): Append a value if the current value is not empty (empty string, null, or false). Zero is considered non-empty.
+// and($value): Append a value if the current value is not missing (anything but "", null, or false). Zero is not considered missing.
 echo $record->address1->and(",<br>\n");
 echo $record->address2->and(",<br>\n");
 echo $record->address3->and(",<br>\n");
+
+// andPrefix($value): Prepend a value if the current value is not missing (anything but "", null, or false). Zero is not considered missing.
+echo $record->phone->andPrefix("Phone: ");
 
 // ifBlank($newValue): Handling blank values (only on empty string "")
 $name1 = SmartString::new('');
@@ -453,9 +466,27 @@ __HTML__; // "Eggs: Full Carton"
 // use regular PHP code when needed.  We always recommend using the best tool for the job.
 ```
 
+### Boolean Checks
+
+Check if a value is empty or not empty according to PHP's empty() function standards (empty string, 0, "0", false,
+null):
+
+```php
+$value = SmartString::new('');
+if ($value->isEmpty()) {
+    echo "Value is empty!";
+}
+
+$value = SmartString::new('Hello');
+if ($value->isNotEmpty()) {
+    echo "Value is not empty!";
+}
+```
+
 ### Error Checking
 
-Show an error message or 404 for values that are empty (empty string "", null or false). Zero is considered non-empty.
+Show an error message, throw an exception, or display a 404 page for values that are missing (empty string "", null or
+false). Zero is not considered missing.
 
 ```php
 // Terminate with 404 if record not found
@@ -465,6 +496,21 @@ $article->id->or404("Article not found");   // Sends 404 header and terminate sc
 // Terminate with custom message if value missing
 $article = DB::get('articles', 123);        // Assume SmartArray returned
 $article->id->orDie("Article not found");   // Output message and terminate script
+$article->id->orThrow("Article not found");  // Throws Exception with error message
+```
+
+### Developer-Friendly Error Messages
+
+SmartString provides detailed error messages when methods are used incorrectly. This makes debugging easier, especially
+when working with strings:
+
+```php
+// Common error: Forgetting to use parentheses on methods
+$name = SmartString::new("John");
+echo $name->trim;  // Will show helpful error: "Method ->trim needs brackets() everywhere and {curly braces} in strings"
+
+// Common error: Forgetting curly braces in strings
+echo "Hello $name->trim()";  // Will show helpful error explaining you need to use: "Hello {$name->trim()}"
 ```
 
 ### Custom Functions
@@ -495,7 +541,7 @@ $boldName = $name->apply(fn($val) => "<b>$name</b>"); // returns "<b>John Doe</b
 
 ### Developer Debugging &amp; Help
 
-When you call print_r() on a SmartString object, it will display the original value:
+When you call print_r() on a SmartString object, it will display the original value with helpful information:
 
 ```php
 $name = SmartString::new("John O'Reilly");
@@ -504,10 +550,13 @@ print_r($name);
 // Output: 
 Itools\SmartString\SmartString Object
 (
-    [value] => "John O'Reilly"
-    [docs] => Developers, call $obj->help() for more information and method examples.
+    [README:private] => "Call $obj->help() for more information and method examples."
+    [rawData:private] => "John O'Reilly"
 )
 ```
+
+This enhanced debugging output makes it easy to see the actual value stored in the object and provides guidance about
+how to get more detailed help.
 
 Calling `SmartString::help()` or `$obj->help()` will display a list of available methods and examples:
 
@@ -543,8 +592,7 @@ SmartString::$phoneFormat           = [                // Default phoneFormat() 
 ## Method Reference
 
 In addition to the methods below, you can customize the defaults by adding the following to the top of your script
-or[SmartStringTest.php](tests/SmartStringTest.php)
-in an init file:
+or in an init file:
 
 |                               **Basic Usage** |                                                                                                                                         |
 |----------------------------------------------:|-----------------------------------------------------------------------------------------------------------------------------------------|
@@ -556,13 +604,13 @@ in an init file:
 |                                     `->int()` | Returns the value as an integer                                                                                                         |
 |                                   `->float()` | Returns the value as a float                                                                                                            |
 |                                    `->bool()` | Returns the value as a boolean                                                                                                          |
-|                                  `->string()` | Returns the value as a string (original value, not HTML-encoded)`                                                                       |
-|                     `SmartString::rawValue()` | Returns original value from Smart* objects while leaving other types unchanged. Useful when working with mixed object/non-object values |
+|                                  `->string()` | Returns the value as a string (original value, not HTML-encoded)                                                                        |
+|                  `SmartString::getRawValue()` | Returns original value from Smart* objects while leaving other types unchanged. Useful when working with mixed object/non-object values |
 |                          **Encoding Methods** |                                                                                                                                         |
 |                              `->htmlEncode()` | Returns HTML-encoded string                                                                                                             |
 |                               `->urlEncode()` | Returns URL-encoded string                                                                                                              |
 |                              `->jsonEncode()` | Returns JSON-encoded string                                                                                                             |
-|                                 `->rawHtml()` | Alias for value()`, useful for readability when outputting trusted HTML content                                                         |
+|                                 `->rawHtml()` | Alias for `value()`, useful for readability when outputting trusted HTML content                                                        |
 |                       **String Manipulation** |                                                                                                                                         |
 |                                `->textOnly()` | Removes HTML tags from the string, decodes entities, and trims whitespace                                                               |
 |                                   `->nl2br()` | Converts newlines to HTML line breaks                                                                                                   |
@@ -582,21 +630,27 @@ in an init file:
 |                          `->multiply($value)` | Multiplies the current value by the given value                                                                                         |
 |                          `->divide($divisor)` | Divides the current value by the given divisor                                                                                          |
 |                    **Conditional Operations** |                                                                                                                                         |
-|                             `->or($fallback)` | Returns the fallback if the current value is empty string, null or false                                                                |
-|                             ``->and($value)`` | Appends $value if the current value is NOT blank ("", null, or false)`. Zero values are considered non-blank.                           |
-|                         `->andPrefix($value)` | Prepends $value if the current value is NOT blank ("", null, or false)`. Zero values are considered non-blank.                          |
+|                             `->or($fallback)` | Returns the fallback if the current value is missing ("", null or false). Zero is not considered missing.                               |
+|                               `->and($value)` | Appends $value if the current value is not missing (anything but "", null, or false). Zero is not considered missing.                   |
+|                         `->andPrefix($value)` | Prepends $value if the current value is not missing (anything but "", null, or false). Zero is not considered missing.                  |
 |                         `->ifNull($fallback)` | Returns the fallback if the current value is null                                                                                       |
 |                        `->ifBlank($fallback)` | Returns the fallback if the current value is an empty string                                                                            |
-|                         `->ifZero($fallback)` | Returns the fallback if the current value is zero                                                                                       |                                                                 
+|                         `->ifZero($fallback)` | Returns the fallback if the current value is zero                                                                                       |
+|                            **Boolean Checks** |                                                                                                                                         |
+|                                 `->isEmpty()` | Returns true if the value is considered empty by PHP's empty() function (empty string, 0, "0", false, null)                             |
+|                              `->isNotEmpty()` | Returns true if the value is NOT considered empty by PHP's empty() function (opposite of isEmpty())                                     |                                                                 
 |                            **Error Checking** |                                                                                                                                         |
-|                           `->orDie($message)` | Outputs message and exits if the current value is empty string, null or false                                                           |                                                                 
-|                           `->or404($message)` | Outputs 404 header, message and exits if the current value is empty string, null or false                                               |
+|                           `->orDie($message)` | Outputs message and exits if the current value is missing ("", null or false). Zero is not considered missing.                          |                                                                 
+|                           `->or404($message)` | Outputs 404 header, message and exits if the current value is missing ("", null or false). Zero is not considered missing.              |
+|                         `->orThrow($message)` | Throws Exception with message if the current value is missing ("", null or false). Zero is not considered missing.                      |
 |                             **Miscellaneous** |                                                                                                                                         |
 |                    `->apply($func, ...$args)` | Applies a custom function to the value                                                                                                  |
 |                                    `->help()` | Displays help information about available methods                                                                                       |
 
 **See Also:** For array operations, check out our companion library `SmartArray`,
-powerful array operations with chainable methods and seamless `SmartString` integration:
+a powerful companion library that provides array operations with chainable methods and seamless `SmartString`
+integration.
+SmartString and SmartArray are designed to work together as a pair for enhanced data handling:
 https://github.com/interactivetools-com/SmartArray?tab=readme-ov-file#method-reference
 
 ## Questions?

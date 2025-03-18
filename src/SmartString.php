@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace Itools\SmartString;
 
-use Error, Exception, InvalidArgumentException;
+use Error, InvalidArgumentException;
 use Itools\SmartArray\SmartArray;
 use Itools\SmartArray\SmartNull;
 use JsonSerializable;
+use RuntimeException;
 
 /**
  * SmartString class provides a fluent interface for various string and numeric manipulations.
@@ -274,10 +275,14 @@ class SmartString implements JsonSerializable
     }
 
     /**
-     * Format date by $dateTimeFormat or specified format.  Returns null on failure.
+     * Format date by $dateTimeFormat or specified format. Returns null on failure.
      *
-     * @param string|null $format Date format (default: SmartString::$dateFormat)
+     * @param string|null $format Date format (default: SmartString::$dateTimeFormat)
      * @return SmartString Formatted date or null on failure
+     *
+     * @example $date = SmartString::new('2023-05-15');
+     *          echo $date->dateTimeFormat();                  // "2023-05-15 00:00:00" (using default format)
+     *          echo $date->dateTimeFormat('Y-m-d H:i:s T');   // "2023-05-15 00:00:00 MST"
      */
     public function dateTimeFormat(?string $format = null): SmartString
     {
@@ -287,7 +292,16 @@ class SmartString implements JsonSerializable
     }
 
     /**
-     * Calls the number_format() function on the current value.
+     * Formats a numeric value using number_format() function with configurable decimal places.
+     * Uses the static properties $numberFormatDecimal and $numberFormatThousands for formatting.
+     * Returns null if the value is not numeric.
+     *
+     * @param int|null $decimals Number of decimal places to display (default: 0)
+     * @return SmartString Formatted number or null if not numeric
+     *
+     * @example $num = SmartString::new(1234.56);
+     *          echo $num->numberFormat();     // "1,235" (rounded to 0 decimals)
+     *          echo $num->numberFormat(2);    // "1,234.56" (2 decimal places)
      */
     public function numberFormat(?int $decimals = 0): SmartString
     {
@@ -299,9 +313,19 @@ class SmartString implements JsonSerializable
     }
 
     /**
-     * Formats a phone number according to the specified format or returns null.
+     * Formats a phone number according to the configuration in SmartString::$phoneFormat.
+     * The format is chosen based on the number of digits in the input.
+     * Non-digit characters in the input are stripped before formatting.
+     * Returns null if the input contains an unsupported number of digits.
      *
      * @return SmartString The formatted phone number or null if input is invalid
+     *
+     * @example $phone = SmartString::new('2345678901');
+     *          echo $phone->phoneFormat();                // "(234) 567-8901" (using default format for 10 digits)
+     *
+     *          // With custom format (after setting SmartString::$phoneFormat)
+     *          // SmartString::$phoneFormat = [['digits' => 10, 'format' => '###.###.####']];
+     *          echo $phone->phoneFormat();                // "234.567.8901"
      */
     public function phoneFormat(): SmartString
     {
@@ -437,9 +461,9 @@ class SmartString implements JsonSerializable
 #region Conditional Operations
 
     /**
-     * aka replaceIfBlank(), replaces the value if the current value is blank ("", null, or false)
+     * aka replaceIfMissing(), replaces the value if the current value is missing ("", null, or false)
      *
-     * Note: Zero values ("0") will not be replaced
+     * Note: Zero values ("0") are not considered missing and will not be replaced
      */
     public function or(int|float|string|SmartString $fallback): SmartString
     {
@@ -449,11 +473,11 @@ class SmartString implements JsonSerializable
     }
 
     /**
-     * aka appendIfNotBlank() - appends to the value if it's not blank ("", null, or false)
+     * aka appendIfNotMissing() - appends to the value if it's not missing (anything but "", null, or false)
      *
-     * Note: Zero values ("0") are considered not blank and will be appended to
+     * Note: Zero values ("0") are not considered missing and will be appended to
      *
-     * @param mixed $value The value to append.
+     * @param int|float|string|SmartString $value The value to append.
      */
     public function and(int|float|string|SmartString $value): SmartString
     {
@@ -465,17 +489,17 @@ class SmartString implements JsonSerializable
     }
 
     /**
-     * aka prefixIfNotBlank() - prefix to the value if it's not blank ("", null, or false)
+     * aka prefixIfNotMissing() - prepends to the value if it's not missing (anything but "", null, or false)
      *
-     * Note: Zero values ("0") are considered not blank and will be prefixed
+     * Note: Zero values ("0") are not considered missing and will be prefixed
      *
-     * @param mixed $value The value to prefix.
+     * @param int|float|string|SmartString $prefix The prefix to add.
      */
-    public function andPrefix(int|float|string|SmartString $value): SmartString
+    public function andPrefix(int|float|string|SmartString $prefix): SmartString
     {
         $newValue = $this->rawData;
         if ($this->rawData !== '' && !is_null($this->rawData) && $this->rawData !== false) {
-            $newValue = self::getRawValue($value) . $newValue;
+            $newValue = self::getRawValue($prefix) . $newValue;
         }
         return new self($newValue);
     }
@@ -506,13 +530,16 @@ class SmartString implements JsonSerializable
         return new self($newValue);
     }
 
-    public function if(string|int|float|bool|null $condition, string|int|float|bool|null|object $valueIfTrue): SmartString
+    /**
+     * Returns a new value if the condition is true, otherwise returns the current value
+     * 
+     * @param string|int|float|bool|null|SmartString $condition The condition to evaluate
+     * @param string|int|float|bool|null|object $valueIfTrue The value to return if condition is true
+     * @return SmartString
+     */
+    public function if(string|int|float|bool|null|SmartString $condition, string|int|float|bool|null|object $valueIfTrue): SmartString
     {
-        $newValue = $this->rawData;
-        if ($condition) {
-            $newValue = is_callable([$valueIfTrue, 'value']) ? $valueIfTrue->value() : $valueIfTrue;
-        }
-
+        $newValue = self::getRawValue($condition) ? self::getRawValue($valueIfTrue) : $this->rawData;
         return new self($newValue);
     }
 
@@ -522,7 +549,7 @@ class SmartString implements JsonSerializable
      */
     public function set(string|int|float|bool|null|object $newValue): SmartString // NOSONAR: Unused parameter $value
     {
-        $newValue = is_callable([$newValue, 'value']) ? $newValue->value() : $newValue;
+        $newValue = self::getRawValue($newValue);
         return new self($newValue);
     }
 #endregion
@@ -628,16 +655,16 @@ class SmartString implements JsonSerializable
     }
 
     /**
-     * Throws Exception if the value is "", null or false (zero is not considered false)
+     * Throws RuntimeException if the value is "", null or false (zero is not considered false)
      *
      * @param string $message Error message to show
      * @return self Returns $this for method chaining if not empty
-     * @throws Exception If array is empty
+     * @throws RuntimeException If array is empty
      */
     public function orThrow(string $message): self {
         if ($this->rawData === "" || is_null($this->rawData) || $this->rawData === false) {
             $message = htmlspecialchars($message, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8');
-            throw new Exception($message);
+            throw new RuntimeException($message);
         }
         return $this;
     }
@@ -646,109 +673,22 @@ class SmartString implements JsonSerializable
     #region Debugging and Help
 
     /**
-     * @noinspection GrazieInspection
+     * Displays helpful documentation about SmartString methods and functionality.
+     * Documentation is loaded from help.txt file in the same directory.
+     *
+     * @param mixed $value Optional value to return (for chaining)
+     * @return mixed Returns the input value unchanged
      */
     public function help(mixed $value = null): mixed
     {
-        $docs = <<<'__TEXT__'
-            SmartString: Enhanced Strings with Automatic HTML Encoding and Chainable Methods
-            ==========================================================================================
-            SmartString automatically HTML-encodes output in string contexts for XSS protection and 
-            provides powerful chainable methods for encoding, formatting, and text manipulation. 
-            
-            Creating SmartStrings
-            ----------------------
-            $str = SmartString::new("It's easy!<hr>");
-            $req = SmartArray::new($_REQUEST)->withSmartStrings();  // SmartArray of SmartStrings
-            $req = SmartArray::new($_REQUEST, true);                // Alternate shortcut syntax
-            
-            Automatic HTML-encoding in string contexts
-            -------------------------------------------
-            echo $str;              // "It&apos;s easy!&lt;hr&gt;"
-            print $str;             // "It&apos;s easy!&lt;hr&gt;"
-            (string) $str;          // "It&apos;s easy!&lt;hr&gt;"
-            $new = $str."\n";       // "It&apos;s easy!&lt;hr&gt;\n"
-            echo $str->value();     // "It's easy!<hr>" (original value)
-            
-            Value access
-            -------------
-            $str->value()           // Access original value
-            $str->rawHtml()         // Alias for ->value(), useful for outputting trusted HTML content
-            "{$str->value()}"       // Output original value in string context
-            "{$str->rawHtml()}"     // Output original value in string context
-            print_r($str)           // show object value in a readable debug format (for developers)
-            
-            Working with arrays
-            --------------------
-            $user = ['id' => 42, 'name' => "John O'Reilly", "lastLogin" => "2024-09-10 14:30:00"];
-            $u    = SmartArray::new($user)->withSmartStrings();  // SmartArray of SmartStrings
-            "Hello, $u->name"                                    // "Hello, John O&apos;Reilly"
-            "Hello, {$u->name->value()}"                         // Returns "Hello, John O'Reilly"
-            "Last login: {$u->lastLogin->dateFormat('F j, Y')}"  // "Last login: Sep 10, 2024"
-            
-            Type conversion (returns value)
-            --------------------------------
-            ->string()                Returns value as string (returns original value, use ->htmlEncode() for HTML-encoded string)
-            ->int()                   Returns value as integer
-            ->bool()                  Returns value as boolean
-            ->float()                 Returns value as float
-            
-            Encoding methods (returns value)
-            ---------------------------------
-            ->urlEncode()             Returns URL-encoded string, example: "?user={$user->name->urlEncode()}"
-            ->jsonEncode()            Returns JSON-encoded value, example: "let user='{$user->name->jsonEncode()}'"
-            ->htmlEncode()            Returns HTML-encoded string (for readability and non-string contexts)
-            ->rawHtml()               Alias for ->value(), useful for outputting trusted HTML content
-            
-            String Manipulation (returns object, chainable)
-            ------------------------------------------------
-            ->textOnly(...)           Remove HTML tags, decode HTML entities, and trims whitespace
-            ->nl2br()                 Convert newlines to br tags
-            ->trim(...)               Trim leading and trailing whitespace, supports same parameters as trim()
-            ->maxWords($max)          Limit words to $max, if truncated adds ... (override with second parameter)
-            ->maxChars($max)          Limit chars to $max, if truncated adds ... (override with second parameter)
-            
-            Formatting (returns object, chainable)
-            ---------------------------------------
-            ->numberFormat(...)       Format number, args: $decimals = 0
-            ->dateFormat(...)         Format date in default format or date() format (e.g., "Y-m-d")
-            ->dateTimeFormat(...)     Format date/time in default format or date() format (e.g., "Y-m-d H:i:s")
-            ->phoneFormat()           Format phone number in your default format
-            
-            Numeric Operations (returns object, chainable)
-            -----------------------------------------------
-            ->percent()               Returns value as a percentage, e.g. 0.5 becomes 50%
-            ->percentOf($total)       Returns value as a percentage of $total, e.g., 24 of 100 becomes 24%
-            ->add($value)             Returns value plus $value
-            ->subtract($value)        Returns value minus $value
-            ->divide($value)          Returns value divided by $value
-            ->multiply($value)        Returns value multiplied by $value
-            
-            Conditional Operations (returns object, chainable)
-            ---------------------------------------------------
-            ->or('replacement')       Changes value if the Field is not set ("", null, or false) 
-            ->and('append')           Appends to the value if it is set ("", null, or false)
-            ->andPrefix('prefix')     Prepends to the value if it is set ("", null, or false)
-            ->ifBlank('replacement')  Changes value if the Field is blank ("" empty string)
-            ->ifNull('replacement')   Changes value if the Field is null or undefined (chainable)
-            ->ifZero('replacement')   Changes value if the Field is zero (0, 0.0, "0", or "0.0")
-            
-            Miscellaneous
-            --------------
-            ->apply()                 Apply a callback or function to the value, e.g. ->apply('strtoupper')
-            SmartString::getRawValue()   Returns original value from Smart* objects while leaving other types unchanged, useful for working with mixed types
-            
-            Setting defaults (at the top of your script or in an init file)
-            ----------------------------------------------------------------
-            SmartString::$numberFormatDecimal   = '.';             // Default decimal separator
-            SmartString::$numberFormatThousands = ',';             // Default thousands separator
-            SmartString::$dateFormat            = 'Y-m-d';         // Default dateFormat() format
-            SmartString::$dateTimeFormat        = 'Y-m-d H:i:s';   // Default dateTimeFormat() format
-            SmartString::$phoneFormat           = [                // Default phone number formats
-                ['digits' => 10, 'format' => '(###) ###-####'],
-                ['digits' => 11, 'format' => '# (###) ###-####'],
-            ];
-        __TEXT__;
+        // Try to load help content from external file
+        $helpPath = __DIR__ . '/help.txt';
+
+        if (is_file($helpPath)) {
+            $docs = file_get_contents($helpPath);
+        } else {
+            $docs = "SmartString help documentation not found.\nExpected location: $helpPath";
+        }
 
         // output docs
         echo self::xmpWrap("\n$docs\n\n");
@@ -826,7 +766,7 @@ class SmartString implements JsonSerializable
 
     /**
      * For deprecated methods, log a deprecation notice and return the new method.
-     * For unknown methods, throw an exception.
+     * For unknown methods, throw a PHP Error.
      */
     public function __call($method, $args): string|int|bool|null|float|SmartString { // NOSONAR - False-positive for unused $args parameter
         $methodLc = strtolower($method);
@@ -853,7 +793,7 @@ class SmartString implements JsonSerializable
             return new self($value);
         }
 
-        // throw unknown method exception
+        // throw unknown method Error
         // PHP Default Error: Fatal error: Uncaught Error: Call to undefined method SmartString::method() in C:\dev\projects\SmartString\test.php:17
         $baseClass = basename(self::class);
         $caller    = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[0];
@@ -879,7 +819,7 @@ class SmartString implements JsonSerializable
             return self::getRawValue(...$args);
         }
 
-        // throw unknown method exception
+        // throw unknown method Error
         // PHP Default Error: Fatal error: Uncaught Error: Call to undefined method SmartString::method() in C:\dev\projects\SmartString\test.php:17
         $baseClass = basename(self::class);
         $caller    = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[0];
@@ -900,7 +840,7 @@ class SmartString implements JsonSerializable
         $hasContentType     = (bool)preg_match('|^\s*Content-Type:\s*|im', $headersList);  // assume no content type will default to html
         $isTextHtml         = !$hasContentType || preg_match('|^\s*Content-Type:\s*text/html\b|im', $headersList); // match: text/html or ...;charset=utf-8
         $backtraceFunctions = array_map('strtolower',array_column(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS), 'function'));
-        $wrapInXmp          = $isTextHtml && !in_array('showme', $backtraceFunctions);
+        $wrapInXmp          = $isTextHtml && !in_array('showme', $backtraceFunctions, true);
         return $wrapInXmp ? "\n<xmp>\n$output\n</xmp>\n" : "\n$output\n";
     }
 

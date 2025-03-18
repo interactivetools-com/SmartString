@@ -1,5 +1,16 @@
 # SmartString Changelog
 
+## [2.0.10] - 2025-03-18
+
+### Added
+- Updated if() to accept SmartString objects as condition parameter
+
+### Changed
+- Updated documentation and examples
+- Moved inline ->help() method documentation text to external /src/help.txt file
+- Added test plans for recently added methods
+- Misc code and other minor improvements
+
 ## [2.0.9] - 2025-03-11
 
 ### Added
