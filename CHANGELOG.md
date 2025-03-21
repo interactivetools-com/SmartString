@@ -1,5 +1,11 @@
 # SmartString Changelog
 
+## [2.0.11] - 2025-03-20
+
+### Added
+- Inline documentation: Mistyped method names now return helpful suggestions (Did you mean...?) in the error message
+- Misc code and other minor improvements
+
 ## [2.0.10] - 2025-03-18
 
 ### Added

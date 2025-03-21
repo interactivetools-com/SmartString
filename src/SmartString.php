@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 namespace Itools\SmartString;
 
-use Error, InvalidArgumentException;
-use Itools\SmartArray\SmartArray;
-use Itools\SmartArray\SmartNull;
+use Error, RuntimeException, InvalidArgumentException;
+use Itools\SmartArray\SmartArray, Itools\SmartArray\SmartNull;
 use JsonSerializable;
-use RuntimeException;
 
 /**
  * SmartString class provides a fluent interface for various string and numeric manipulations.
@@ -532,7 +530,7 @@ class SmartString implements JsonSerializable
 
     /**
      * Returns a new value if the condition is true, otherwise returns the current value
-     * 
+     *
      * @param string|int|float|bool|null|SmartString $condition The condition to evaluate
      * @param string|int|float|bool|null|object $valueIfTrue The value to return if condition is true
      * @return SmartString
@@ -746,10 +744,10 @@ class SmartString implements JsonSerializable
         // PHP Default Error: Warning: Undefined property: stdClass::$property in C:\dev\projects\SmartString\test.php on line 28
         if (method_exists($this, $property)) {
             $error = "Method ->$property needs brackets() everywhere and {curly braces} in strings:\n";
-            $error .= "    ✗ Missing brackets:        \$str->$property\n";
-            $error .= "    ✗ Missing { } in string:   \"Hello \$str->$property()\"\n";
             $error .= "    ✓ Outside strings:         \$str->$property()\n";
+            $error .= "    ✗ Missing brackets:        \$str->$property\n";
             $error .= "    ✓ Inside strings:          \"Hello {\$str->$property()}\"\n";
+            $error .= "    ✗ Missing { } in string:   \"Hello \$str->$property()\"\n";
         } else {
             $error = "Undefined property $baseClass->$property, call ->help() for available methods.\n";
         }
@@ -766,40 +764,65 @@ class SmartString implements JsonSerializable
 
     /**
      * For deprecated methods, log a deprecation notice and return the new method.
-     * For unknown methods, throw a PHP Error.
+     * For unknown methods, throw a PHP Error with suggestion if possible.
+     *
+     * @noinspection SpellCheckingInspection // ignore lowercase method names in match block
      */
     public function __call($method, $args): string|int|bool|null|float|SmartString { // NOSONAR - False-positive for unused $args parameter
         $methodLc = strtolower($method);
 
-        // old alias methods, these aren't deprecated but are provided for compatibility
-        if ($methodLc === strtolower('noEncode')) {
-            return $this->rawHtml();
+        // Deprecated Warnings: log warning and return proper value.  This will be removed in a future version
+        [$return, $deprecationError] = match ($methodLc) {  // use lowercase names below for comparison
+            'noencode'  => [$this->rawHtml(), "Replace ->$method() with ->rawHtml()"],
+            'tostring'  => [$this->htmlEncode(), "Replace ->$method() with ->string(), or ->htmlEncode()"],
+            'jsencode'  => [addcslashes((string)$this->rawData, "\x00-\x1F'\"`\n\r\\<>"), "Replace ->$method() with ->jsonEncode() (not identical functionality, code refactoring required)"],
+            'striptags' => [new self(is_null($this->rawData) ? null : strip_tags((string)$this->rawData, ...$args)), "Replace ->$method() with ->textOnly()"],
+            default     => [null, null],
+        };
+        if ($deprecationError) {
+            self::logDeprecation($deprecationError);
+            return $return;
         }
 
-        // deprecated methods, log and return new method (these may be removed in the future)
-        if ($methodLc === strtolower('toString')) {
-            self::logDeprecation("Replace ->$method() with ->htmlEncode()");
-            return $this->htmlEncode();
-        }
+        // Common aliases: throw error with suggestion.  These are used by other libraries or common LLM suggestions
+        $methodAliases = [
+                                // use lowercase for aliases
+            'and'            => ['append', 'concat'],
+            'andPrefix'      => ['prepend', 'prefix'],
+            'bool'           => ['tobool', 'getbool', 'boolean'],
+            'dateFormat'     => ['formatdate', 'todate', 'date_format', 'date'],
+            'dateTimeFormat' => ['formatdatetime', 'todatetime', 'datetime'],
+            'float'          => ['tofloat', 'getfloat'],
+            'htmlEncode'     => ['escapehtml', 'encodehtml', 'e'],
+            'int'            => ['toint', 'getint', 'integer'],
+            'isEmpty'        => ['isblank', 'empty'],
+            'isNotEmpty'     => ['isnotblank', 'hasValue', 'ispresent', 'notempty'],
+            'jsonEncode'     => ['tojson', 'encodejson', 'jsencode'],
+            'numberFormat'   => ['formatnumber', 'number_format'],
+            'or'             => ['default', 'ifmissing'],
+            'phoneFormat'    => ['formatphone', 'phone'],
+            'set'            => ['setvalue'],
+            'string'         => ['tostring', 'getstring'],
+            'urlEncode'      => ['escapeurl', 'encodeurl'],
+            'value'          => ['raw', 'noescape'],
+        ];
 
-        if ($methodLc === strtolower('jsEncode')) {
-            self::logDeprecation("Replace ->$method() with ->jsonEncode() (not identical functionality, code refactoring required)");
-            return addcslashes((string)$this->rawData, "\0..\37\\\'\"`\n\r<>");
-        }
-
-        if ($methodLc === strtolower('stripTags')) {
-            self::logDeprecation("Replace ->$method() with ->textOnly()");
-            $value = is_null($this->rawData) ? null : strip_tags((string)$this->rawData, ...$args);
-            return new self($value);
+        // Check if the called method is an alias
+        $suggestion = null;
+        foreach ($methodAliases as $correctMethod => $aliases) {
+            if (in_array($methodLc, $aliases, true)) {
+                $suggestion = "did you mean ->$correctMethod()?";
+                break;
+            }
         }
 
         // throw unknown method Error
         // PHP Default Error: Fatal error: Uncaught Error: Call to undefined method SmartString::method() in C:\dev\projects\SmartString\test.php:17
-        $baseClass = basename(self::class);
-        $caller    = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[0];
-        $error     = "Call to undefined method $baseClass->$method(), call ->help() for available methods.\n";
-        $error     .= "Occurred in {$caller['file']}:{$caller['line']}\n";
-        $error     .= "Reported"; // PHP will append " in file:line" to the error
+        $suggestion ??= "call ->help() for available methods.";
+        $error      = sprintf("Call to undefined method %s->$method(), $suggestion\n", basename(self::class));
+        $caller     = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[0];
+        $error      .= "Occurred in {$caller['file']}:{$caller['line']}\n";
+        $error      .= "Reported"; // PHP will append " in file:line" to the error
         throw new Error($error);
     }
 
