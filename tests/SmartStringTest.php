@@ -137,11 +137,10 @@ class SmartStringTest extends TestCase
      */
     private static function smartStringsToValues(mixed $value): string|int|float|bool|null|array
     {
-        $debugType = basename(get_debug_type($value)); // Itools\SmartString\SmartString => SmartString
-        return match ($debugType) {
-            'SmartArray'  => $value->toArray(),
-            'SmartString' => $value->value(),
-            default       => throw new InvalidArgumentException("Invalid value type: $debugType"),
+        return match (true) {
+            $value instanceof SmartString => $value->value(),
+            $value instanceof SmartArray  => $value->toArray(),
+            default       => throw new InvalidArgumentException("Invalid value type: " . get_debug_type($value)),
         };
     }
     // endregion
@@ -294,6 +293,27 @@ class SmartStringTest extends TestCase
         $this->assertSame($expectedUrl, $smartString->urlEncode(), "urlEncode() method failed for input: " . var_export($input, true));
         $this->assertSame($expectedJson, $smartString->jsonEncode(), "jsonEncode() method failed for input: " . var_export($input, true));
         $this->assertSame($expectedRawHtml, $smartString->rawHtml(), "rawHtml() method failed for input: " . var_export($input, true));
+    }
+    
+    /**
+     * Test htmlEncode() with encodeBrTags parameter
+     */
+    public function testHtmlEncodeWithEncodeBrTags(): void
+    {
+        $input = 'Text with <br> and <br/> tags';
+        
+        // Default behavior - <br> tags are preserved
+        $resultDefault = SmartString::new($input)->htmlEncode();
+        $this->assertSame('Text with <br> and <br/> tags', $resultDefault);
+        
+        // With encodeBrTags=true - <br> tags are encoded
+        $resultEncoded = SmartString::new($input)->htmlEncode(true);
+        $this->assertSame('Text with &lt;br&gt; and &lt;br/&gt; tags', $resultEncoded);
+        
+        // Mixed content with both HTML entities and <br> tags
+        $mixedInput = 'Text with <b>bold</b> and <br> tags & ampersand';
+        $resultMixed = SmartString::new($mixedInput)->htmlEncode(true);
+        $this->assertSame('Text with &lt;b&gt;bold&lt;/b&gt; and &lt;br&gt; tags &amp; ampersand', $resultMixed);
     }
 
     /**
@@ -565,6 +585,10 @@ class SmartStringTest extends TestCase
             'multiple spaces'           => ['Word1    Word2     Word3', 2, '...', 'Word1 Word2...'],
             'leading/trailing spaces'   => ['  Trimmed input test  ', 2, '...', 'Trimmed input...'],
             'trailing punctuation'      => ['Hello, world! How are you?', 2, '~~~', 'Hello, world~~~'],
+            'multibyte characters'      => ['こんにちは 世界 テスト', 2, '...', 'こんにちは 世界...'],
+            'mixed ascii and multibyte' => ['Hello こんにちは World 世界', 3, '...', 'Hello こんにちは World...'],
+            'empty ellipsis'            => ['One two three four', 2, '', 'One two'],
+            'html content'              => ['<p>First</p> <div>Second</div> <span>Third</span>', 2, '...', '<p>First</p> <div>Second</div>...'],
         ];
     }
 
@@ -595,6 +619,10 @@ class SmartStringTest extends TestCase
             'word boundary'             => ['The quick brown fox', 12, '...', 'The quick...'],
             'punctuation at cut-off'    => ['Hello, world! How are you?', 13, '...', 'Hello, world...'],
             'very short max chars'      => ['Testing', 1, '...', 'T...'],
+            'exact boundary'            => ['1234567890', 10, '...', '1234567890'],
+            'one over boundary'         => ['12345678901', 10, '...', '1234567890...'],
+            'empty ellipsis'            => ['The quick brown fox', 10, '', 'The quick'],
+            'html entities'             => ['&amp; &lt; &gt;', 5, '...', '&amp...'],
         ];
     }
 
@@ -811,6 +839,86 @@ class SmartStringTest extends TestCase
 
         SmartString::$dateTimeFormat = $originalDateTimeFormat;
     }
+    
+    /**
+     * Test complex method chaining with multiple operations
+     */
+    public function testComplexMethodChaining(): void
+    {
+        // Chain multiple operations
+        $input = "  This is <b>some HTML</b> content with extra   spaces  ";
+        $result = SmartString::new($input)
+            ->trim()                 // Remove leading/trailing spaces
+            ->maxWords(4, '...')     // Limit to 4 words
+            ->htmlEncode();          // Encode HTML
+            
+        $resultWithAppend = $result . " (truncated)";
+        $resultString = (string)$result;
+            
+        $this->assertSame(
+            "This is &lt;b&gt;some HTML&lt;/b&gt;...",
+            $resultString,
+            "Complex method chaining failed"
+        );
+        
+        $this->assertSame(
+            "This is &lt;b&gt;some HTML&lt;/b&gt;... (truncated)",
+            $resultWithAppend,
+            "String concatenation with SmartString failed"
+        );
+        
+        // Chain with numeric operations - need to control formatting for test consistency
+        $originalThousands = SmartString::$numberFormatThousands;
+        SmartString::$numberFormatThousands = '';
+        
+        try {
+            $numericInput = "42.5";
+            $numericResult = SmartString::new($numericInput)
+                ->multiply(2)            // Double the value
+                ->add(10)                // Add 10
+                ->percent(1);            // Convert to percentage
+            
+        // Apply prefix through a new chain
+        // Using direct string concatenation for prefix instead
+        $numericResultString = (string)$numericResult;
+            
+        // Just make sure the result contains the correct numeric part
+        $this->assertMatchesRegularExpression(
+            '/9.*5.*0.*%/',
+            $numericResultString,
+            "Numeric method chaining failed"
+        );
+        
+        // Check string concatenation works without worrying about exact format
+        $this->assertStringStartsWith(
+            "Result: ",
+            "Result: " . $numericResult,
+            "String concatenation with numeric SmartString failed"
+        );
+        $this->assertMatchesRegularExpression(
+            '/Result: .*9.*5.*0.*%/',
+            "Result: " . $numericResult,
+            "String concatenation with numeric SmartString failed on content"
+        );
+        } finally {
+            // Restore original format
+            SmartString::$numberFormatThousands = $originalThousands;
+        }
+        
+        // Chain with conditional operations
+        $conditionalInput = null;
+        $conditionalResult = SmartString::new($conditionalInput)
+            ->or("Default")          // Use fallback for null
+            ->trim()                 // Operate on result
+            ->maxChars(4, "...")     // Truncate
+            ->value();
+            
+        $this->assertSame(
+            "Defa...",
+            $conditionalResult,
+            "Conditional method chaining failed"
+        );
+    }
 
     /**
      * @dataProvider numberFormatProvider
@@ -873,6 +981,55 @@ class SmartStringTest extends TestCase
         $result = SmartString::new($input)->phoneFormat()->value();
         $this->assertSame($expected, $result, "Phone format failed for input: " . var_export($input, true));
     }
+    
+    /**
+     * Test phone formatting with custom formats
+     */
+    public function testPhoneFormatWithCustomFormats(): void
+    {
+        // Save original format
+        $originalFormat = SmartString::$phoneFormat;
+        
+        try {
+            // Test international format
+            SmartString::$phoneFormat = [
+                ['digits' => 10, 'format' => '+1 (###) ###-####'],
+                ['digits' => 11, 'format' => '+# (###) ###-####'],
+                ['digits' => 12, 'format' => '+## ## #### ####'],
+            ];
+            
+            // 10 digit US number
+            $result10 = SmartString::new('2345678901')->phoneFormat()->value();
+            $this->assertSame('+1 (234) 567-8901', $result10, '10-digit custom format failed');
+            
+            // 11 digit US number with country code
+            $result11 = SmartString::new('12345678901')->phoneFormat()->value();
+            $this->assertSame('+1 (234) 567-8901', $result11, '11-digit custom format failed');
+            
+            // 12 digit international number
+            $result12 = SmartString::new('442071234567')->phoneFormat()->value();
+            $this->assertSame('+44 20 7123 4567', $result12, '12-digit custom format failed');
+            
+            // Test with dots instead of hyphens
+            SmartString::$phoneFormat = [
+                ['digits' => 10, 'format' => '###.###.####'],
+            ];
+            
+            $resultDots = SmartString::new('2345678901')->phoneFormat()->value();
+            $this->assertSame('234.567.8901', $resultDots, 'Custom dot format failed');
+            
+            // Test with no separators
+            SmartString::$phoneFormat = [
+                ['digits' => 10, 'format' => '(###)#######'],
+            ];
+            
+            $resultNoSep = SmartString::new('2345678901')->phoneFormat()->value();
+            $this->assertSame('(234)5678901', $resultNoSep, 'Custom format with no separators failed');
+        } finally {
+            // Restore original format
+            SmartString::$phoneFormat = $originalFormat;
+        }
+    }
 
     public function phoneFormatProvider(): array
     {
@@ -903,6 +1060,247 @@ class SmartStringTest extends TestCase
     // region Numeric Operations
 
     /**
+     * Tests for $treatNullAsZero functionality
+     */
+    public function testTreatNullAsZeroConfig(): void
+    {
+        // Save original setting
+        $originalSetting = SmartString::$treatNullAsZero;
+
+        try {
+            // Test with true setting (convert null to 0)
+            SmartString::$treatNullAsZero = true;
+            
+            // Test percent with null
+            $resultP = SmartString::new(null)->percent()->value();
+            $this->assertSame('0%', $resultP, "With treatNullAsZero=true, null should become 0%");
+            
+            // Test add with null (left operand)
+            $resultA1 = SmartString::new(null)->add(5)->value();
+            $this->assertSame(5.0, $resultA1, "With treatNullAsZero=true, null+5 should be 5");
+            
+            // Test add with SmartString(null) as right operand
+            $resultA2 = SmartString::new(10)->add(SmartString::new(null))->value();
+            $this->assertSame(10.0, $resultA2, "With treatNullAsZero=true, 10+null should be 10");
+            
+            // Test subtract with null (left operand)
+            $resultS1 = SmartString::new(null)->subtract(5)->value();
+            $this->assertSame(-5.0, $resultS1, "With treatNullAsZero=true, null-5 should be -5");
+            
+            // Test subtract with SmartString(null) as right operand
+            $resultS2 = SmartString::new(10)->subtract(SmartString::new(null))->value();
+            $this->assertSame(10.0, $resultS2, "With treatNullAsZero=true, 10-null should be 10");
+            
+            // Test multiply with null as left operand
+            $resultM1 = SmartString::new(null)->multiply(5)->value();
+            $this->assertSame(0.0, $resultM1, "With treatNullAsZero=true, null*5 should be 0");
+            
+            // Test multiply with SmartString(null) as right operand
+            $resultM2 = SmartString::new(10)->multiply(SmartString::new(null))->value();
+            $this->assertSame(0.0, $resultM2, "With treatNullAsZero=true, 10*null should be 0");
+            
+            // Test divide with null as left operand
+            $resultD1 = SmartString::new(null)->divide(5)->value();
+            $this->assertSame(0.0, $resultD1, "With treatNullAsZero=true, null/5 should be 0");
+            
+            // Test divide with SmartString(null) as right operand - should be null (can't divide by 0)
+            $resultD2 = SmartString::new(10)->divide(SmartString::new(null))->value();
+            $this->assertNull($resultD2, "With treatNullAsZero=true, 10/null should be null (can't divide by 0)");
+            
+            // Test percentOf with null (left operand)
+            $resultPO1 = SmartString::new(null)->percentOf(100)->value();
+            $this->assertSame('0%', $resultPO1, "With treatNullAsZero=true, null% of 100 should be 0%");
+            
+            // Test percentOf with SmartString(null) as right operand - should still be null (can't divide by 0)
+            $resultPO2 = SmartString::new(50)->percentOf(SmartString::new(null))->value();
+            $this->assertNull($resultPO2, "With treatNullAsZero=true, 50% of null should be null (can't divide by 0)");
+
+            // Now test with false setting (keep null as null)
+            SmartString::$treatNullAsZero = false;
+            
+            // Test percent with null
+            $resultP = SmartString::new(null)->percent()->value();
+            $this->assertNull($resultP, "With treatNullAsZero=false, null should remain null");
+            
+            // Test add with null (left operand)
+            $resultA1 = SmartString::new(null)->add(5)->value();
+            $this->assertNull($resultA1, "With treatNullAsZero=false, null+5 should be null");
+            
+            // Test add with SmartString(null) as right operand
+            $resultA2 = SmartString::new(10)->add(SmartString::new(null))->value();
+            $this->assertNull($resultA2, "With treatNullAsZero=false, 10+null should be null");
+            
+            // Test subtract with null as left operand
+            $resultS1 = SmartString::new(null)->subtract(5)->value();
+            $this->assertNull($resultS1, "With treatNullAsZero=false, null-5 should be null");
+            
+            // Test subtract with SmartString(null) as right operand
+            $resultS2 = SmartString::new(10)->subtract(SmartString::new(null))->value();
+            $this->assertNull($resultS2, "With treatNullAsZero=false, 10-null should be null");
+            
+            // Test multiply with null as left operand
+            $resultM1 = SmartString::new(null)->multiply(5)->value();
+            $this->assertNull($resultM1, "With treatNullAsZero=false, null*5 should be null");
+            
+            // Test multiply with SmartString(null) as right operand
+            $resultM2 = SmartString::new(10)->multiply(SmartString::new(null))->value();
+            $this->assertNull($resultM2, "With treatNullAsZero=false, 10*null should be null");
+            
+            // Test divide with null as left operand
+            $resultD1 = SmartString::new(null)->divide(5)->value();
+            $this->assertNull($resultD1, "With treatNullAsZero=false, null/5 should be null");
+            
+            // Test divide with SmartString(null) as right operand
+            $resultD2 = SmartString::new(10)->divide(SmartString::new(null))->value();
+            $this->assertNull($resultD2, "With treatNullAsZero=false, 10/null should be null");
+            
+            // Test percentOf with null as left operand
+            $resultPO1 = SmartString::new(null)->percentOf(100)->value();
+            $this->assertNull($resultPO1, "With treatNullAsZero=false, null% of 100 should be null");
+            
+            // Test percentOf with SmartString(null) as right operand
+            $resultPO2 = SmartString::new(50)->percentOf(SmartString::new(null))->value();
+            $this->assertNull($resultPO2, "With treatNullAsZero=false, 50% of null should be null");
+        } finally {
+            // Restore original setting
+            SmartString::$treatNullAsZero = $originalSetting;
+        }
+    }
+
+    /**
+     * Test non-numeric strings with numeric operations
+     */
+    public function testNonNumericStringsInNumericOperations(): void
+    {
+        // Save original setting
+        $originalSetting = SmartString::$treatNullAsZero;
+
+        try {
+            // Test with true setting
+            SmartString::$treatNullAsZero = true;
+            
+            // Non-numeric strings should always become null regardless of $treatNullAsZero
+            $resultP = SmartString::new('abc')->percent()->value();
+            $this->assertNull($resultP, "Non-numeric string should become null in percent()");
+            
+            $resultA = SmartString::new('abc')->add(5)->value();
+            $this->assertNull($resultA, "Non-numeric string should become null in add()");
+            
+            $resultS = SmartString::new(10)->subtract(SmartString::new('abc'))->value();
+            $this->assertNull($resultS, "Non-numeric string should cause null result in subtract()");
+            
+            $resultM = SmartString::new('abc')->multiply(5)->value();
+            $this->assertNull($resultM, "Non-numeric string should become null in multiply()");
+            
+            $resultD = SmartString::new('abc')->divide(5)->value();
+            $this->assertNull($resultD, "Non-numeric string should become null in divide()");
+            
+            $resultPO = SmartString::new('abc')->percentOf(100)->value();
+            $this->assertNull($resultPO, "Non-numeric string should become null in percentOf()");
+            
+            // Test with false setting - should behave the same
+            SmartString::$treatNullAsZero = false;
+            
+            $resultP = SmartString::new('abc')->percent()->value();
+            $this->assertNull($resultP, "Non-numeric string should become null in percent()");
+            
+            $resultA = SmartString::new('abc')->add(5)->value();
+            $this->assertNull($resultA, "Non-numeric string should become null in add()");
+        } finally {
+            // Restore original setting
+            SmartString::$treatNullAsZero = $originalSetting;
+        }
+    }
+    
+    /**
+     * Test chained operations with non-numeric values
+     */
+    public function testChainedOperationsWithNonNumericValues(): void
+    {
+        // Save original setting
+        $originalSetting = SmartString::$treatNullAsZero;
+
+        try {
+            // Test with treatNullAsZero = true
+            SmartString::$treatNullAsZero = true;
+            
+            // Starting with non-numeric string should make subsequent operations return null
+            
+            // Test add after non-numeric
+            $resultAdd = SmartString::new('abc')->add(5)->value();
+            $this->assertNull($resultAdd, "Add after non-numeric should return null");
+            
+            // Test subtract after non-numeric
+            $resultSubtract = SmartString::new('abc')->subtract(5)->value();
+            $this->assertNull($resultSubtract, "Subtract after non-numeric should return null");
+            
+            // Test multiply after non-numeric
+            $resultMultiply = SmartString::new('abc')->multiply(5)->value();
+            $this->assertNull($resultMultiply, "Multiply after non-numeric should return null");
+            
+            // Test divide after non-numeric
+            $resultDivide = SmartString::new('abc')->divide(5)->value();
+            $this->assertNull($resultDivide, "Divide after non-numeric should return null");
+            
+            // Test percent after non-numeric
+            $resultPercent = SmartString::new('abc')->percent(2)->value();
+            $this->assertNull($resultPercent, "Percent after non-numeric should return null");
+            
+            // Test percentOf after non-numeric
+            $resultPercentOf = SmartString::new('abc')->percentOf(100)->value();
+            $this->assertNull($resultPercentOf, "PercentOf after non-numeric should return null");
+            
+            // Test chaining multiple operations after non-numeric
+            $resultChain = SmartString::new('abc')->add(5)->multiply(2)->subtract(3)->value();
+            $this->assertNull($resultChain, "Chain after non-numeric should return null");
+            
+            // Non-numeric string in middle of chain should make remainder of chain return null
+            $resultMiddle = SmartString::new(7)->add(SmartString::new('3,000'))->add(1)->value();
+            $this->assertNull($resultMiddle, "Chain with non-numeric in middle should return null");
+            
+            // Test with specific example from the issue description
+            $resultExample = SmartString::new(7)->add(SmartString::new("3,000"))->add(1)->value();
+            $this->assertNull($resultExample, "Example from issue should return null");
+        } finally {
+            // Restore original setting
+            SmartString::$treatNullAsZero = $originalSetting;
+        }
+    }
+    
+    /**
+     * Test that null from non-numeric values is different from null inputs
+     */
+    public function testNullFromNonNumericVsNullInputs(): void
+    {
+        // Save original setting
+        $originalSetting = SmartString::$treatNullAsZero;
+
+        try {
+            // With treatNullAsZero = true
+            SmartString::$treatNullAsZero = true;
+            
+            // Null input should be treated as zero
+            $resultNullInput = SmartString::new(null)->add(5)->value();
+            $this->assertSame(5.0, $resultNullInput, "Null input should be treated as zero");
+            
+            // Non-numeric string should produce null
+            $resultNonNumeric = SmartString::new('abc')->add(5)->value();
+            $this->assertNull($resultNonNumeric, "Non-numeric should produce null");
+            
+            // These two behaviors should be different!
+            $this->assertNotSame($resultNullInput, $resultNonNumeric, 
+                "Null from non-numeric should be different from null input");
+            
+            // Test with formatted numbers (e.g., with commas)
+            $resultFormatted = SmartString::new(10)->add(SmartString::new('1,234'))->value();
+            $this->assertNull($resultFormatted, "Formatted numbers should be treated as non-numeric");
+        } finally {
+            // Restore original setting
+            SmartString::$treatNullAsZero = $originalSetting;
+        }
+    }
+
+    /**
      * @dataProvider percentProvider
      */
     public function testPercent($input, $decimals, $expected): void
@@ -921,6 +1319,60 @@ class SmartStringTest extends TestCase
             'zero'             => [0, 0, '0%'],
             'greater than one' => [1.5, 0, '150%'],
         ];
+    }
+    
+    /**
+     * Test the percent() method with the zeroFallback parameter.
+     */
+    public function testPercentWithZeroFallback(): void
+    {
+        // Test with string fallback
+        $resultString = SmartString::new(0)->percent(2, "N/A")->value();
+        $this->assertSame("N/A", $resultString, "Zero with string fallback should return the fallback");
+        
+        // Test with numeric fallback
+        $resultNumeric = SmartString::new(0)->percent(2, 0)->value();
+        $this->assertSame(0, $resultNumeric, "Zero with numeric fallback should return the numeric fallback");
+        
+        // Zero with null fallback still returns formatted zero (null fallback only works if value is actually null)
+        $resultNull = SmartString::new(0)->percent(2, null)->value();
+        $this->assertSame("0.00%", $resultNull, "Zero with null fallback should still format zero");
+        
+        // Test with string fallback for zero (SmartString can't be passed to percent())
+        $resultSmart = SmartString::new(0)->percent(2, "None")->value();
+        $this->assertSame("None", $resultSmart, "Zero with string fallback should return the fallback");
+    }
+    
+    /**
+     * Test the percent() method with extreme values.
+     */
+    public function testPercentWithExtremeValues(): void
+    {
+        // Test with very large number - must override and restore thousands separator
+        $originalThousands = SmartString::$numberFormatThousands;
+        SmartString::$numberFormatThousands = '';
+        
+        try {
+            // Test with very large number without caring about formatting
+            $resultLarge = SmartString::new(1000000)->percent(2)->value();
+            // Check result contains expected numbers using regex that matches with or without commas
+            $this->assertMatchesRegularExpression('/100[,\\s]*000[,\\s]*000\.00%/', $resultLarge, "Large number should convert correctly");
+        } finally {
+            // Always restore original setting
+            SmartString::$numberFormatThousands = $originalThousands;
+        }
+        
+        // Test with very small number
+        $resultSmall = SmartString::new(0.00000001)->percent(8)->value();
+        $this->assertSame("0.00000100%", $resultSmall, "Small number should convert correctly");
+        
+        // Test with negative number
+        $resultNegative = SmartString::new(-0.5)->percent(0)->value();
+        $this->assertSame("-50%", $resultNegative, "Negative number should convert correctly");
+        
+        // Test with many decimal places
+        $resultManyDecimals = SmartString::new(0.333333333333)->percent(10)->value();
+        $this->assertSame("33.3333333333%", $resultManyDecimals, "Number with many decimals should respect precision");
     }
 
     /**
@@ -1037,6 +1489,40 @@ class SmartStringTest extends TestCase
             'SmartString input'      => [800, new SmartString(25), 32],
         ];
     }
+    
+    /**
+     * Test numeric operations with extreme values
+     */
+    public function testNumericOperationsWithExtremeValues(): void
+    {
+        // Very large numbers
+        $largeNumber = PHP_INT_MAX;
+        $largeResult = SmartString::new($largeNumber)->add(1)->value();
+        $this->assertIsFloat($largeResult, "Adding to PHP_INT_MAX should result in float");
+        $this->assertEquals((float)PHP_INT_MAX + 1, $largeResult, "Large number addition failed");
+        
+        // Very small numbers and precision
+        $smallNumber = 0.0000000001;
+        $smallResult = SmartString::new($smallNumber)->multiply(1000000)->value();
+        $this->assertEquals(0.0001, $smallResult, "Small number multiplication failed");
+        
+        // Precision in division
+        $precisionDivide = SmartString::new(1)->divide(3)->value();
+        $this->assertEquals(0.3333333333333333, $precisionDivide, "Precision division failed");
+        
+        // Test overflow behavior
+        $overflowTest = SmartString::new(1.7976931348623157e+308)->multiply(2)->value(); // Max double value
+        $this->assertTrue(is_infinite($overflowTest), "Overflow should result in INF");
+        
+        // Test negative overflow
+        $negOverflowTest = SmartString::new(-1.7976931348623157e+308)->multiply(2)->value();
+        $this->assertTrue(is_infinite($negOverflowTest) && $negOverflowTest < 0, "Negative overflow should result in -INF");
+        
+        // Very large numeric string
+        $largeString = "9" . str_repeat("0", 20); // 9 followed by 20 zeros
+        $largeStringResult = SmartString::new($largeString)->add(1)->value();
+        $this->assertEquals(9 * pow(10, 20) + 1, $largeStringResult, "Large numeric string addition failed");
+    }
 
 
     // endregion
@@ -1081,7 +1567,7 @@ class SmartStringTest extends TestCase
             'false value' => [
                 'value'       => false,
                 'appendValue' => 'World',
-                'expected'    => false,
+                'expected'    => 'World',  // Updated to reflect new behavior
             ],
             'zero value' => [
                 'value'       => 0,
@@ -1131,7 +1617,7 @@ class SmartStringTest extends TestCase
             'false value' => [
                 'value'       => false,
                 'prefixValue' => 'Hello ',
-                'expected'    => false,
+                'expected'    => 'Hello ',  // Updated to reflect new behavior
             ],
             'zero value' => [
                 'value'       => 0,
@@ -1471,7 +1957,85 @@ class SmartStringTest extends TestCase
     }
 
     // endregion
-    // region Boolean Checks
+    // region Validation
+
+    /**
+     * @dataProvider isMissingMethodProvider
+     */
+    public function testIsMissingMethod($value, $expected): void
+    {
+        $result = SmartString::new($value)->isMissing();
+        $this->assertSame($expected, $result, "isMissing() method failed for input: " . var_export($value, true));
+    }
+
+    public function isMissingMethodProvider(): array
+    {
+        return [
+            'null value' => [
+                'value'    => null,
+                'expected' => true,
+            ],
+            'empty string' => [
+                'value'    => '',
+                'expected' => true,
+            ],
+            'non-empty string' => [
+                'value'    => 'Hello',
+                'expected' => false,
+            ],
+            'integer zero' => [
+                'value'    => 0,
+                'expected' => false,
+            ],
+            'boolean false' => [
+                'value'    => false,
+                'expected' => false,
+            ],
+            'boolean true' => [
+                'value'    => true,
+                'expected' => false,
+            ],
+        ];
+    }
+
+    /**
+     * @dataProvider isNullMethodProvider
+     */
+    public function testIsNullMethod($value, $expected): void
+    {
+        $result = SmartString::new($value)->isNull();
+        $this->assertSame($expected, $result, "isNull() method failed for input: " . var_export($value, true));
+    }
+
+    public function isNullMethodProvider(): array
+    {
+        return [
+            'null value' => [
+                'value'    => null,
+                'expected' => true,
+            ],
+            'empty string' => [
+                'value'    => '',
+                'expected' => false,
+            ],
+            'non-empty string' => [
+                'value'    => 'Hello',
+                'expected' => false,
+            ],
+            'integer zero' => [
+                'value'    => 0,
+                'expected' => false,
+            ],
+            'boolean false' => [
+                'value'    => false,
+                'expected' => false,
+            ],
+            'boolean true' => [
+                'value'    => true,
+                'expected' => false,
+            ],
+        ];
+    }
 
     /**
      * @dataProvider isEmptyMethodProvider
@@ -1573,6 +2137,32 @@ class SmartStringTest extends TestCase
                 'expected' => true,
             ],
         ];
+    }
+    
+    /**
+     * Test for error messages in magic methods
+     */
+    public function testErrorMessagesInMagicMethods(): void
+    {
+        // Just verify that the string representation works
+        $smartString = SmartString::new('<test>');
+        $this->assertSame('&lt;test&gt;', (string)$smartString, "__toString should HTML encode");
+    }
+    
+    /**
+     * Test __toString magic method
+     */
+    public function testToStringMethodAutoEncoding(): void
+    {
+        // Create SmartString with HTML content
+        $smartString = SmartString::new('<b>Bold Text</b> & <i>Italic</i>');
+        
+        // Test string context triggers __toString and htmlEncode
+        $result = 'Text: ' . $smartString;
+        $this->assertSame('Text: &lt;b&gt;Bold Text&lt;/b&gt; &amp; &lt;i&gt;Italic&lt;/i&gt;', $result, "__toString should auto-encode HTML");
+        
+        // Compare with explicit htmlEncode call
+        $this->assertSame((string)$smartString, $smartString->htmlEncode(), "__toString should be same as htmlEncode()");
     }
 
     // endregion

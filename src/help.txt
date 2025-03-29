@@ -58,34 +58,38 @@ Formatting (returns object, chainable)
 
 Numeric Operations (returns object, chainable)
 -----------------------------------------------
-->percent()                Returns value as a percentage, e.g. 0.5 becomes 50%
-->percentOf($total)        Returns value as a percentage of $total, e.g., 24 of 100 becomes 24%
-->add($value)              Returns value plus $value
-->subtract($value)         Returns value minus $value
-->divide($value)           Returns value divided by $value
-->multiply($value)         Returns value multiplied by $value
+->percent($decimals, $zeroFallback)  Returns value as a percentage, e.g. 0.5 becomes 50%, with optional fallback value if result is zero
+->percentOf($total, $decimals)       Returns value as a percentage of $total, e.g., 24 of 100 becomes 24%
+->add($value)                        Returns value plus $value
+->subtract($value)                   Returns value minus $value
+->divide($value)                     Returns value divided by $value
+->multiply($value)                   Returns value multiplied by $value
+
+Note: Null values are treated as zero in numeric operations. Non-numeric strings always become null.
 
 Conditional Operations (returns object, chainable)
 ---------------------------------------------------
-->or('replacement')        Replaces value if missing ("", null, or false), 0 is not considered missing
-->and('append')            Appends value if not missing (anything but "", null, or false)
-->andPrefix('prefix')      Prepends value if not missing (anything but "", null, or false)
-->ifBlank('replacement')   Replaces value only if it's an empty string ("")
+->or('replacement')        Replaces value if missing (null or ""), zero is not considered missing
+->and('append')            Appends value if present (not null or ""), zero is considered present
+->andPrefix('prefix')      Prepends value if present (not null or ""), zero is considered present
+->ifBlank('replacement')   Replaces value only if it's a blank string ("")
 ->ifNull('replacement')    Replaces value only if it's null or undefined
 ->ifZero('replacement')    Replaces value only if it's zero (0, 0.0, "0", or "0.0")
 ->if($condition, $value)   Sets to $value only if $condition is true ($value can be a SmartString)
 ->set($value)              Sets to $value (accepts expression, e.g., match($itemCount->int()) { 0 => "No items", ... })
 
-Boolean Checks (returns bool)
+Validation (returns true/false)
 -----------------------------
 ->isEmpty()                Returns true if the value is empty ("", null, false, 0, "0"), uses PHP empty()
-->isNotEmpty()             Returns true if the value is not empty, uses PHP empty()
+->isNotEmpty()             Returns true if the value is NOT empty ("", null, false, 0, "0"), uses PHP !empty()
+->isMissing()              Returns true if the value is missing (null or ""), zero is not considered missing
+->isNull()                 Returns true if the value is null
 
 Error Checking
 --------------
-->or404('message')         Sends 404 header and exits if the current value is empty string, null or false
-->orDie('message')         Outputs message and exits if the current value is empty string, null or false
-->orThrow('message')       Throws Exception with message if the current value is empty string, null or false
+->or404('message')         Sends 404 header and exits if the value is missing (null or ""), zero is not considered missing
+->orDie('message')         Outputs message and exits if the value is missing (null or ""), zero is not considered missing
+->orThrow('message')       Throws Exception with message if the value is missing (null or ""), zero is not considered missing
 
 Miscellaneous
 --------------
@@ -102,6 +106,7 @@ $u    = SmartArray::new($user)->withSmartStrings();  // SmartArray of SmartStrin
 
 Setting defaults (at the top of your script or in an init file)
 ----------------------------------------------------------------
+SmartString::$treatNullAsZero       = true;            // Treat null as zero in numeric operations (default: true)
 SmartString::$numberFormatDecimal   = '.';             // Default decimal separator
 SmartString::$numberFormatThousands = ',';             // Default thousands separator
 SmartString::$dateFormat            = 'Y-m-d';         // Default dateFormat() format

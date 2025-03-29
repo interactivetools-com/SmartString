@@ -26,31 +26,33 @@ This makes your code cleaner, more readable, and inherently more secure.
 ## Table of Contents
 
 <!-- TOC -->
+
 * [SmartString: Secure and Simple String Handling for PHP](#smartstring-secure-and-simple-string-handling-for-php)
-  * [Table of Contents](#table-of-contents)
-  * [Quick Start](#quick-start)
-  * [Features and Usage Examples](#features-and-usage-examples)
-    * [Creating SmartStrings](#creating-smartstrings)
-    * [Fluent Chainable Interface](#fluent-chainable-interface)
-    * [Automatic HTML-encoding](#automatic-html-encoding)
-    * [Accessing Values](#accessing-values)
-    * [Working with SmartArrays](#working-with-smartarrays)
-    * [Type Conversion](#type-conversion)
-    * [Encoding Values](#encoding-values)
-    * [String Manipulation](#string-manipulation)
-    * [Number Formatting](#number-formatting)
-    * [Date Formatting](#date-formatting)
-    * [Phone Number Formatting](#phone-number-formatting)
-    * [Numeric Operations](#numeric-operations)
-    * [Conditional Operations](#conditional-operations)
-    * [Boolean Checks](#boolean-checks)
-    * [Error Checking](#error-checking)
-    * [Developer-Friendly Error Messages](#developer-friendly-error-messages)
-    * [Custom Functions](#custom-functions)
-    * [Developer Debugging &amp; Help](#developer-debugging--help)
-  * [Customizing Defaults](#customizing-defaults)
-  * [Method Reference](#method-reference)
-  * [Questions?](#questions)
+    * [Table of Contents](#table-of-contents)
+    * [Quick Start](#quick-start)
+    * [Features and Usage Examples](#features-and-usage-examples)
+        * [Creating SmartStrings](#creating-smartstrings)
+        * [Fluent Chainable Interface](#fluent-chainable-interface)
+        * [Automatic HTML-encoding](#automatic-html-encoding)
+        * [Accessing Values](#accessing-values)
+        * [Working with SmartArrays](#working-with-smartarrays)
+        * [Type Conversion](#type-conversion)
+        * [Encoding Values](#encoding-values)
+        * [String Manipulation](#string-manipulation)
+        * [Number Formatting](#number-formatting)
+        * [Date Formatting](#date-formatting)
+        * [Phone Number Formatting](#phone-number-formatting)
+        * [Numeric Operations](#numeric-operations)
+        * [Conditional Operations](#conditional-operations)
+        * [Validation](#validation)
+        * [Error Checking](#error-checking)
+        * [Developer-Friendly Error Messages](#developer-friendly-error-messages)
+        * [Custom Functions](#custom-functions)
+        * [Developer Debugging &amp; Help](#developer-debugging--help)
+    * [Customizing Defaults](#customizing-defaults)
+    * [Method Reference](#method-reference)
+    * [Questions?](#questions)
+
 <!-- TOC -->
 
 ## Quick Start
@@ -374,12 +376,17 @@ echo $phone->phoneFormat()->or($phone);          // or show the original value "
 ### Numeric Operations
 
 SmartString provides a set of methods for performing basic arithmetic and percentage calculations.
-These methods are chainable, allowing for complex calculations to be expressed clearly and concisely:
+These methods are chainable, allowing for complex calculations to be expressed clearly and concisely.
+Null values are treated as zero by default, making calculations more intuitive.
 
 ```php
 // Percentage conversion
 $ratio = SmartString::new(0.75);
 echo $ratio->percent(); // "75%"
+
+// Percentage with 2 decimals, and fallback value for 0
+$value = SmartString::new(0);
+echo $value->percent(2, "N/A"); // "N/A"
 
 // Percentage of a total
 $score = SmartString::new(24);
@@ -388,6 +395,10 @@ echo $score->percentOf(100); // "24%"
 // Addition
 $base = SmartString::new(100);
 echo $base->add(50); // 150
+
+// Handling null values (treated as zero by default)
+$value = SmartString::new(null);
+echo $value->add(50); // 50
 
 // Subtraction
 $start = SmartString::new(100);
@@ -401,6 +412,10 @@ echo $total->divide(4); // 25
 $factor = SmartString::new(25);
 echo $factor->multiply(4); // 100
 
+// Chaining operations
+$price = SmartString::new(100);
+echo $price->multiply(1.1)->divide(2)->percent(); // "55%" (add tax, divide by 2, show as percent)
+
 // Math operations can be useful for simple reporting, calculating totals, discounts, taxes, etc.
 Order Total: $order->total->add( $order->shipping )->numberFormat(2)
 ```
@@ -412,21 +427,20 @@ For more information, see [PHP Floating Point Numbers](https://www.php.net/manua
 
 ### Conditional Operations
 
-Conditional operations provide a simple way to provide a fallback value when the current value is missing ("", null, or
-false)
+Conditional operations provide a simple way to provide a fallback value when the value is missing ("", null)
 or handle specific conditions like null or zero values.
 
 ```php
-// or($newValue): Show default if value is missing ("", null, or false). Zero is not considered missing.
+// or($newValue): Show default if value is missing ("", null). Zero is not considered missing.
 $value = SmartString::new('');
 echo $value->or('Default'); // "Default"
 
-// and($value): Append a value if the current value is not missing (anything but "", null, or false). Zero is not considered missing.
+// and($value): Append a value if the value is present (not "" or null). Zero is considered present.
 echo $record->address1->and(",<br>\n");
 echo $record->address2->and(",<br>\n");
 echo $record->address3->and(",<br>\n");
 
-// andPrefix($value): Prepend a value if the current value is not missing (anything but "", null, or false). Zero is not considered missing.
+// andPrefix($value): Prepend a value if the value is present (not "" or null). Zero is considered present.
 echo $record->phone->andPrefix("Phone: ");
 
 // ifBlank($newValue): Handling blank values (only on empty string "")
@@ -466,10 +480,9 @@ __HTML__; // "Eggs: Full Carton"
 // use regular PHP code when needed.  We always recommend using the best tool for the job.
 ```
 
-### Boolean Checks
+### Validation
 
-Check if a value is empty or not empty according to PHP's empty() function standards (empty string, 0, "0", false,
-null):
+Check if a value meets specific conditions using validation methods:
 
 ```php
 $value = SmartString::new('');
@@ -481,12 +494,22 @@ $value = SmartString::new('Hello');
 if ($value->isNotEmpty()) {
     echo "Value is not empty!";
 }
+
+$value = SmartString::new(null);
+if ($value->isNull()) {
+    echo "Value is specifically NULL!";
+}
+
+$value = SmartString::new('');
+if ($value->isMissing()) {
+    echo "Value is missing (null or empty string)!";
+}
 ```
 
 ### Error Checking
 
-Show an error message, throw an exception, or display a 404 page for values that are missing (empty string "", null or
-false). Zero is not considered missing.
+Show an error message, throw an exception, or display a 404 page for values that are missing (empty string "", null).
+Zero is not considered missing.
 
 ```php
 // Terminate with 404 if record not found
@@ -579,6 +602,7 @@ echo \$str;             // "It&apos;s easy!&lt;hr&gt;"
 You can customize the defaults by adding the following to the top of your script or in an init file:
 
 ```php
+SmartString::$treatNullAsZero       = true;            // Treat null as zero in numeric operations (default: true)
 SmartString::$numberFormatDecimal   = '.';             // Default decimal separator
 SmartString::$numberFormatThousands = ',';             // Default thousands separator
 SmartString::$dateFormat            = 'Y-m-d';         // Default dateFormat() format
@@ -588,6 +612,12 @@ SmartString::$phoneFormat           = [                // Default phoneFormat() 
     ['digits' => 11, 'format' => '# (###) ###-####'],
 ];  
 ```
+
+The `$treatNullAsZero` setting controls how null values are handled in numeric operations:
+
+- When `true` (default): null values are treated as 0, making calculations more intuitive
+- When `false`: operations with null values return null results, useful for detecting uninitialized values or using ->
+  or()
 
 ## Method Reference
 
@@ -623,26 +653,28 @@ or in an init file:
 |               `->numberFormat($decimals = 0)` | Formats the value as a number                                                                                                           |
 |                             `->phoneFormat()` | Formats the value as a phone number                                                                                                     |
 |                        **Numeric Operations** |                                                                                                                                         |
-|                    `->percent($decimals = 0)` | Converts the value to a percentage                                                                                                      |
-|          `->percentOf($total, $decimals = 0)` | Calculates the percentage of the value relative to the given total                                                                      |
-|                               `->add($value)` | Adds the given value to the current value                                                                                               |
-|                          `->subtract($value)` | Subtracts the given value from the current value                                                                                        |
-|                          `->multiply($value)` | Multiplies the current value by the given value                                                                                         |
-|                          `->divide($divisor)` | Divides the current value by the given divisor                                                                                          |
+|                    `->percent($decimals = 0)` | Converts value to percentage                                                                                                            |
+|          `->percentOf($total, $decimals = 0)` | Calculates what percentage this number represents of $total                                                                             |
+|                               `->add($value)` | Adds $value to current number                                                                                                           |
+|                          `->subtract($value)` | Subtracts $value from current number                                                                                                    |
+|                          `->multiply($value)` | Multiplies current number by $value                                                                                                     |
+|                          `->divide($divisor)` | Divides current number by $divisor                                                                                                      |
 |                    **Conditional Operations** |                                                                                                                                         |
-|                             `->or($fallback)` | Returns the fallback if the current value is missing ("", null or false). Zero is not considered missing.                               |
-|                               `->and($value)` | Appends $value if the current value is not missing (anything but "", null, or false). Zero is not considered missing.                   |
-|                         `->andPrefix($value)` | Prepends $value if the current value is not missing (anything but "", null, or false). Zero is not considered missing.                  |
-|                         `->ifNull($fallback)` | Returns the fallback if the current value is null                                                                                       |
-|                        `->ifBlank($fallback)` | Returns the fallback if the current value is an empty string                                                                            |
-|                         `->ifZero($fallback)` | Returns the fallback if the current value is zero                                                                                       |
-|                            **Boolean Checks** |                                                                                                                                         |
-|                                 `->isEmpty()` | Returns true if the value is considered empty by PHP's empty() function (empty string, 0, "0", false, null)                             |
-|                              `->isNotEmpty()` | Returns true if the value is NOT considered empty by PHP's empty() function (opposite of isEmpty())                                     |                                                                 
+|                             `->or($fallback)` | Returns the fallback if the value is missing ("", null), zero is not considered missing                                                 |
+|                               `->and($value)` | Appends $value if the value is present (not "" or null), zero is considered present                                                     |
+|                         `->andPrefix($value)` | Prepends $value if the value is present (not "" or null), zero is considered present                                                    |
+|                         `->ifNull($fallback)` | Returns the fallback if the value is null                                                                                               |
+|                        `->ifBlank($fallback)` | Returns the fallback if the value is an empty string                                                                                    |
+|                         `->ifZero($fallback)` | Returns the fallback if the value is zero                                                                                               |
+|                                **Validation** |                                                                                                                                         |
+|                                 `->isEmpty()` | Returns true if the value is empty ("", null, false, 0, "0"), uses PHP empty()                                                          |
+|                              `->isNotEmpty()` | Returns true if the value is NOT empty ("", null, false, 0, "0"), uses PHP !empty()                                                     |
+|                               `->isMissing()` | Returns true if the value is missing (null or ""), zero is not considered missing                                                       |
+|                                  `->isNull()` | Returns true if the value is null                                                                                                       |
 |                            **Error Checking** |                                                                                                                                         |
-|                           `->orDie($message)` | Outputs message and exits if the current value is missing ("", null or false). Zero is not considered missing.                          |                                                                 
-|                           `->or404($message)` | Outputs 404 header, message and exits if the current value is missing ("", null or false). Zero is not considered missing.              |
-|                         `->orThrow($message)` | Throws Exception with message if the current value is missing ("", null or false). Zero is not considered missing.                      |
+|                           `->orDie($message)` | Outputs message and exits if the value is missing ("", null), zero is not considered missing                                            |                                                                 
+|                           `->or404($message)` | Outputs 404 header, message and exits if the value is missing ("", null), zero is not considered missing                                |
+|                         `->orThrow($message)` | Throws Exception with message if the value is missing ("", null), zero is not considered missing                                        |
 |                             **Miscellaneous** |                                                                                                                                         |
 |                    `->apply($func, ...$args)` | Applies a custom function to the value                                                                                                  |
 |                                    `->help()` | Displays help information about available methods                                                                                       |

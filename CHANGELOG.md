@@ -1,5 +1,45 @@
 # SmartString Changelog
 
+## [2.1.0] - 2025-03-27
+
+### Added
+- New configuration option `SmartString::$treatNullAsZero` to control null handling in numeric operations
+- Added isNull() method to check specifically for null values
+- Added isMissing() method public for checking if value is null or empty string
+
+### Changed
+- Numeric operations now treat `null` values as `0` by default, making calculations more intuitive
+  - Affected methods: `add()`, `subtract()`, `multiply()`, `divide()`, `percent()`, `percentOf()`
+  - Set `SmartString::$treatNullAsZero = false` to restore previous behavior (useful for detecting uninitialized values)
+- Simplified conditional methods to focus on common web development patterns:
+  - Methods like `or()`, `and()`, `andPrefix()`, `orDie()`, `or404()` and `orThrow()` now only treat `null` or empty string `""` as missing
+  - Boolean `false` is **no longer** considered missing, zero (`0`) is also still valid data and **not** missing
+- `percent()` method now defaults to **0** decimal places for cleaner output (previously used variable precision based on the value)
+- Enhanced documentation with more examples and clearer explanations in both inline comments and help files
+
+### Migration Notes for v2.1.0
+
+- **Null values in numeric operations**
+  - **Previous Behavior**: `null` resulted in `null` for arithmetic, short-circuiting the chain
+  - **Now**: `null` behaves as `0` by default
+  - **To detect**: search for numeric operations: `->add(`, `->subtract(`, `->multiply(`, `->divide(`, `->percent(`, `->percentOf(`
+  - **To revert**: set `SmartString::$treatNullAsZero = false;` if you want nulls to remain `null` and break numeric operations as before
+
+- **`percent()` decimals**
+  - **Previous Behavior**: If you called `->percent()` with no arguments, it displayed up 0 to 4 decimals based on the value
+  - **Now**: Defaults to `0` decimals
+  - **To detect**: search for `->percent()` with empty brackets
+  - **To revert**: explicitly call `->percent(2)` or your desired precision if you need decimal places
+- **`or*()`, `and*()`, methods**
+  - **Previous Behavior**: Treated `false` as missing, along with `null` and `""`
+  - **Now**: Only `null` or `""` are considered missing, `false` is handled as a valid (non-missing) value
+  - **To detect**: search for `->or` and `->and` prefixes
+  - **To revert**: If you need the old behavior, manually check for `false` in your code or adjust your logic to handle it as missing
+- **General**
+  - Non-numeric strings (like `"abc"`, `"1,234"`) still produce `null` in arithmetic chains and output
+  - If you want null to be treated as invalid instead of zero, set `SmartString::$treatNullAsZero = false;`
+
+
 ## [2.0.11] - 2025-03-20
 
 ### Added
@@ -15,7 +55,7 @@
 - Updated documentation and examples
 - Moved inline ->help() method documentation text to external /src/help.txt file
 - Added test plans for recently added methods
-- Misc code and other minor improvements
+- Misc [diff.txt](diff.txt)code and other minor improvements
 
 ## [2.0.9] - 2025-03-11
 
