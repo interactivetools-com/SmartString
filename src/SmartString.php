@@ -859,6 +859,7 @@ class SmartString implements JsonSerializable
             return new SmartArray(...$args);
         }
         if ($methodLc === 'rawvalue') {
+            self::logDeprecation("Replace SmartString::$method() with SmartArray::getRawValue()");
             return self::getRawValue(...$args);
         }
 
