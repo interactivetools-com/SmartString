@@ -35,11 +35,11 @@ class SmartString implements JsonSerializable
 
     /**
      * Controls how null values are handled in numeric operations.
-     * When true: null values are treated as 0 in operations like add(), subtract(), multiply(), etc.
      * When false: operations with null values return null results.
+     * When true: null values are treated as 0 in operations like add(), subtract(), multiply(), etc.
      * Note: Non-numeric strings (e.g. "cat", "1,234") always become null regardless of this setting.
      */
-    public static bool $treatNullAsZero = true;
+    public static bool $treatNullAsZero = false;
 
     // default formats
     public static string $numberFormatDecimal   = '.';                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        // numberFormat() default decimal separator

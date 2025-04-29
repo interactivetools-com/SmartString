@@ -1,136 +1,53 @@
 # SmartString Changelog
 
-## [2.1.1] - 2025-04-28
+## [2.1.2] - 2025-04-29
+
+> **Bundled with CMS Builder v3.76**  
+> Roll-up release - every change from **v2.0.2 to v2.1.1** is now part of this version.
 
 ### Added
-- `SmartString::$logDeprecations` to toggle logging deprecation errors for old method names, defaults to false
-- SmartNull type support for arithmetic methods: add(), subtract(), multiply(), divide(), and percentOf()
-- Misc code and other minor improvements
-
-## [2.1.0] - 2025-03-27
-
-### Added
-- New configuration option `SmartString::$treatNullAsZero` to control null handling in numeric operations
-- Added isNull() method to check specifically for null values
-- Added isMissing() method public for checking if value is null or empty string
+- **Methods & aliases**
+  - `and()`, `andPrefix()` – conditional append / prepend.
+  - `orDie()`, `or404()`, `orThrow()` – fail-fast helpers (die, 404 page, exception).
+  - `isEmpty()`, `isNotEmpty()`, `isNull()`, `isMissing()` – value-inspection helpers.
+  - `rawHtml()` – clearer alias for `value()`.
+  - `if()` now accepts a `SmartString` object directly as its condition.
+- **Configuration & logging**
+  - `SmartString::$treatNullAsZero` – lets you decide if `null` should act like `0` in arithmetic.  
+    **Default:** `false` (null stays null; chains short-circuit).
+  - `SmartString::$logDeprecations` – enable/disable deprecation-warning logging (default `false`).
+- Inline “Did you mean…?” hints for mistyped methods.
+- Comprehensive tests and expanded help (verbose docs moved to `/src/help.txt`).
 
 ### Changed
-- Numeric operations now treat `null` values as `0` by default, making calculations more intuitive
-  - Affected methods: `add()`, `subtract()`, `multiply()`, `divide()`, `percent()`, `percentOf()`
-  - Set `SmartString::$treatNullAsZero = false` to restore previous behavior (useful for detecting uninitialized values)
-- Simplified conditional methods to focus on common web development patterns:
-  - Methods like `or()`, `and()`, `andPrefix()`, `orDie()`, `or404()` and `orThrow()` now only treat `null` or empty string `""` as missing
-  - Boolean `false` is **no longer** considered missing, zero (`0`) is also still valid data and **not** missing
-- `percent()` method now defaults to **0** decimal places for cleaner output (previously used variable precision based on the value)
-- Enhanced documentation with more examples and clearer explanations in both inline comments and help files
-
-### Migration Notes for v2.1.0
-
-- **Null values in numeric operations**
-  - **Previous Behavior**: `null` resulted in `null` for arithmetic, short-circuiting the chain
-  - **Now**: `null` behaves as `0` by default
-  - **To detect**: search for numeric operations: `->add(`, `->subtract(`, `->multiply(`, `->divide(`, `->percent(`, `->percentOf(`
-  - **To revert**: set `SmartString::$treatNullAsZero = false;` if you want nulls to remain `null` and break numeric operations as before
-
-- **`percent()` decimals**
-  - **Previous Behavior**: If you called `->percent()` with no arguments, it displayed up 0 to 4 decimals based on the value
-  - **Now**: Defaults to `0` decimals
-  - **To detect**: search for `->percent()` with empty brackets
-  - **To revert**: explicitly call `->percent(2)` or your desired precision if you need decimal places
-- **`or*()`, `and*()`, methods**
-  - **Previous Behavior**: Treated `false` as missing, along with `null` and `""`
-  - **Now**: Only `null` or `""` are considered missing, `false` is handled as a valid (non-missing) value
-  - **To detect**: search for `->or` and `->and` prefixes
-  - **To revert**: If you need the old behavior, manually check for `false` in your code or adjust your logic to handle it as missing
-- **General**
-  - Non-numeric strings (like `"abc"`, `"1,234"`) still produce `null` in arithmetic chains and output
-  - If you want null to be treated as invalid instead of zero, set `SmartString::$treatNullAsZero = false;`
-
-
-## [2.0.11] - 2025-03-20
-
-### Added
-- Inline documentation: Mistyped method names now return helpful suggestions (Did you mean...?) in the error message
-- Misc code and other minor improvements
-
-## [2.0.10] - 2025-03-18
-
-### Added
-- Updated if() to accept SmartString objects as condition parameter
-
-### Changed
-- Updated documentation and examples
-- Moved inline ->help() method documentation text to external /src/help.txt file
-- Added test plans for recently added methods
-- Misc [diff.txt](diff.txt)code and other minor improvements
-
-## [2.0.9] - 2025-03-11
-
-### Added
-- `andPrefix()`: New method for conditionally prepending values to non-blank strings (anything but "", null, or false)
-
-## [2.0.8] - 2025-03-11
-
-### Changed
-- Documentation updates and minor code optimizations
-
-## [2.0.7] - 2025-02-26
+- **Conditional helpers** – `or*()` / `and*()` treat only `null` or empty string `""` as missing;  
+  `false` and `0` count as valid data.
+- `percent()` now defaults to **0** decimal places and accepts an optional `$zeroFallback`.
+- `or404()` now returns a full HTML 404 template (previously was plain text).
+- `rawValue()` renamed → `getRawValue()` (old name still works).
+- Deprecated `noEncode()` in favour of `rawHtml()`.
+- Extensive documentation rewrites, stricter types, and internal refactors.
 
 ### Fixed
-- Updated return type on __callStatic to reflect mixed return values
+- Arithmetic functions now accept SmartNull (treated as null).
+- Fixed Typo: `isZero()` → `ifZero()`
+- Numerous minor bug fixes and optimisations.
 
-## [2.0.6] - 2025-02-11
+### Migration Tips
+1. `percent()` precision** – now 0 decimal points by default; call `->percent(2)` (etc.) for decimals.
+2. **Missing-value helpers** – if you previously treated `false` as “missing”, update your checks or handle `false` explicitly.
 
-### Changed
-- `or404()` now returns a traditional 404 error page instead of a plain text message
-
-## [2.0.5] - 2025-01-31
-
-### Changed
-- Renamed: rawValue() → getRawValue().  Previous method name now automatically calls getRawValue().
-
-## [2.0.4] - 2025-01-15
-
-### Added
-- New `isEmpty()` method to check if value is "", zero, null, or false (uses PHP's empty() function)
-- New `isNotEmpty()` method to check if value is not empty (uses PHP's empty() function)
-- New `rawHtml()` method as an alias for `value()` - clearer when outputting trusted HTML content
-
-### Changed
-- Deprecated `noEncode()` method - use `rawHtml()` instead (old code still works for compatibility)
-- Misc code and other minor improvements
-
-## [2.0.3] - 2025-01-13
-
-### Added
-- Added `orThrow()` method for throwing exceptions on empty/null/false values
-
-### Changed
-- Updated `SmartString::new($array)` to support SmartArray creation
-- Minor code organization improvements
-
-## [2.0.2] - 2024-12-27
-
-### Added
-- `and()`: New method for conditionally appending values to non-blank strings (anything but "", null, or false)
-  - Example: `$r->address1->and("<br>\n")` - only adds line break if address exists
-- `orDie()`: Terminates execution with message if value is null or empty string
-- `or404()`: Terminates execution with message if value is null or empty string
-
-### Changed
-- `or()`: Now only uses fallback when current value is "", null, or false. Zero values now return original value
-- `percent()`:
-  - Added optional 2nd `$zeroFallback` parameter to provide alternative output for zero values
-  - When decimal precision isn't specified, now auto-determines decimal places (up to 4), previously excluded decimals
-
-### Fixed
-- Renamed `isZero()` to `ifZero()` to fix typo
-- Internal code organization and optimization improvements
+---
 
 ## [2.0.1] - 2024-12-09
 
+> **This version is bundled with CMS Builder v3.75
+
 ### Changed
 - Switched SmartArray to a suggested dependency
+
+### Notes
+- Released with CMS Builder v3.75
 
 ## [2.0.0] - 2024-11-26
 
