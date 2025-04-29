@@ -21,18 +21,25 @@ class SmartString implements JsonSerializable
     private string|int|float|bool|null $rawData;
 
     /**
+     * Flag to indicate if a numeric operation resulted in an error (e.g., non-numeric value, division by zero, or null if above flag is true).
+     * This flag is used to prevent further operations on the result.  e.g., one error in a chain of operations will propagate to the end and return null.
+     */
+    private bool $hasNumericError;
+
+    //region Global Settings
+
+    /**
+     * Controls whether deprecation notices are logged
+     */
+    public static bool $logDeprecations = false;
+
+    /**
      * Controls how null values are handled in numeric operations.
      * When true: null values are treated as 0 in operations like add(), subtract(), multiply(), etc.
      * When false: operations with null values return null results.
      * Note: Non-numeric strings (e.g. "cat", "1,234") always become null regardless of this setting.
      */
     public static bool $treatNullAsZero = true;
-
-    /**
-     * Flag to indicate if a numeric operation resulted in an error (e.g., non-numeric value, division by zero, or null if above flag is true).
-     * This flag is used to prevent further operations on the result.  e.g., one error in a chain of operations will propagate to the end and return null.
-     */
-    private bool $hasNumericError;
 
     // default formats
     public static string $numberFormatDecimal   = '.';                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        // numberFormat() default decimal separator
@@ -44,7 +51,8 @@ class SmartString implements JsonSerializable
         ['digits' => 11, 'format' => '# (###) ###-####'],
     ];
 
-    #region Core
+    //endregion
+    //region Core
 
     /**
      * Initializes a new Value object with a name and a value.
@@ -105,8 +113,8 @@ class SmartString implements JsonSerializable
         };
     }
 
-    #endregion
-    #region Type Conversion
+    //endregion
+    //region Type Conversion
 
     /**
      * Returns value as integer
@@ -151,8 +159,8 @@ class SmartString implements JsonSerializable
         return $this->value();
     }
 
-    #endregion
-    #region Encoding
+    //endregion
+    //region Encoding
 
     /**
      * HTML encodes a given input for safe output in an HTML context.
@@ -195,8 +203,8 @@ class SmartString implements JsonSerializable
         return json_encode($this->rawData, $flags);
     }
 
-    #endregion
-    #region String Manipulation
+    //endregion
+    //region String Manipulation
 
     /**
      * Remove HTML tags, decode HTML entities, and trims whitespace
@@ -276,8 +284,8 @@ class SmartString implements JsonSerializable
         return new self($newValue, get_object_vars($this));
     }
 
-    #endregion
-    #region Formatting Operations
+    //endregion
+    //region Formatting Operations
 
     /**
      * Formats a date using default or specified format.  Returns null on failure.
@@ -372,8 +380,8 @@ class SmartString implements JsonSerializable
         return new self($newValue, get_object_vars($this));
     }
 
-    #endregion
-    #region Numeric Operations
+    //endregion
+    //region Numeric Operations
 
     /**
      * Converts a number to a percentage. Support optional decimal places and fallback value for zero
@@ -412,7 +420,7 @@ class SmartString implements JsonSerializable
      *
      * Note: If SmartString::$treatNullAsZero is true, null values are treated as 0 (but non-numeric strings like "abc" still produce null).
      */
-    public function percentOf(int|float|SmartString $total, ?int $decimals = 0): SmartString
+    public function percentOf(int|float|SmartString|SmartNull $total, ?int $decimals = 0): SmartString
     {
         $left                  = self::getFloatOrNull($this->rawData);
         $right                 = self::getFloatOrNull($total);
@@ -426,7 +434,7 @@ class SmartString implements JsonSerializable
      *
      * Note: If SmartString::$treatNullAsZero is true, null values are treated as 0 (but non-numeric strings like "abc" still produce null).
      */
-    public function add(int|float|SmartString $addend): SmartString
+    public function add(int|float|SmartString|SmartNull $addend): SmartString
     {
         $left                  = self::getFloatOrNull($this->rawData);
         $right                 = self::getFloatOrNull($addend);
@@ -440,7 +448,7 @@ class SmartString implements JsonSerializable
      *
      * Note: If SmartString::$treatNullAsZero is true, null values are treated as 0 (but non-numeric strings like "abc" still produce null).
      */
-    public function subtract(int|float|SmartString $subtrahend): SmartString
+    public function subtract(int|float|SmartString|SmartNull $subtrahend): SmartString
     {
         $left                  = self::getFloatOrNull($this->rawData);
         $right                 = self::getFloatOrNull($subtrahend);
@@ -454,7 +462,7 @@ class SmartString implements JsonSerializable
      *
      * Note: If SmartString::$treatNullAsZero is true, null values are treated as 0 (but non-numeric strings like "abc" still produce null).
      */
-    public function multiply(int|float|SmartString $multiplier): SmartString
+    public function multiply(int|float|SmartString|SmartNull $multiplier): SmartString
     {
         $left                  = self::getFloatOrNull($this->rawData);
         $right                 = self::getFloatOrNull($multiplier);
@@ -468,7 +476,7 @@ class SmartString implements JsonSerializable
      *
      * Note: If SmartString::$treatNullAsZero is true, null values are treated as 0 (but non-numeric strings like "abc" still produce null).
      */
-    public function divide(int|float|SmartString $divisor): SmartString
+    public function divide(int|float|SmartString|SmartNull $divisor): SmartString
     {
         $left                  = self::getFloatOrNull($this->rawData);
         $right                 = self::getFloatOrNull($divisor);
@@ -477,8 +485,8 @@ class SmartString implements JsonSerializable
         return new self($newValue, get_object_vars($this));
     }
 
-    #endregion
-    #region Conditional Logic
+    //endregion
+    //region Conditional Logic
 
     /**
      * Replaces value if missing (null or ""), zero is not considered missing
@@ -559,8 +567,8 @@ class SmartString implements JsonSerializable
         return new self($newValue, get_object_vars($this));
     }
 
-    #endregion
-    #region Validation
+    //endregion
+    //region Validation
 
     /**
      * Returns true if the value is empty ("", null, false, 0, "0"), uses PHP empty()
@@ -607,8 +615,8 @@ class SmartString implements JsonSerializable
         return $this->rawData === null;
     }
 
-    #endregion
-    #region Error Handling
+    //endregion
+    //region Error Handling
 
     /**
      * Sends 404 header and exits if the current value is missing (null or ""), zero is not considered missing
@@ -663,8 +671,8 @@ class SmartString implements JsonSerializable
         return $this;
     }
 
-    #endregion
-    #region Utilities
+    //endregion
+    //region Utilities
 
     /**
      * Apply a callback or function to the value, e.g. ->apply('strtoupper')
@@ -682,8 +690,8 @@ class SmartString implements JsonSerializable
         return new self($newValue, get_object_vars($this));
     }
 
-    #endregion
-    #region Debugging and Help
+    //endregion
+    //region Debugging and Help
 
     /**
      * Displays helpful documentation about SmartString methods and functionality
@@ -728,8 +736,8 @@ class SmartString implements JsonSerializable
         return $output;
     }
 
-    #endregion
-    #region Internal
+    //endregion
+    //region Internal
 
     /**
      * Returns HTML-encoded string representation of the Value when object is accessed in string context.
@@ -848,6 +856,7 @@ class SmartString implements JsonSerializable
 
     /**
      * Show a helpful error message when an unknown method is called.
+     * @noinspection SpellCheckingInspection // ignore all lowercase method names
      */
     public static function __callStatic($method, $args): mixed
     { // NOSONAR - False-positive for unused $args parameter
@@ -859,7 +868,6 @@ class SmartString implements JsonSerializable
             return new SmartArray(...$args);
         }
         if ($methodLc === 'rawvalue') {
-            self::logDeprecation("Replace SmartString::$method() with SmartArray::getRawValue()");
             return self::getRawValue(...$args);
         }
 
@@ -894,7 +902,9 @@ class SmartString implements JsonSerializable
      */
     public static function logDeprecation($error): void
     {
-        @trigger_error($error, E_USER_DEPRECATED);  // Trigger a silent deprecation notice for logging purposes
+        if (self::$logDeprecations) {
+            @user_error($error, E_USER_DEPRECATED);  // Trigger a silent deprecation notice for logging purposes
+        }
     }
 
     /**
@@ -923,5 +933,5 @@ class SmartString implements JsonSerializable
         };
     }
 
-    #endregion
+    //endregion
 }

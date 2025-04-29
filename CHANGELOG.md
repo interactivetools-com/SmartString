@@ -1,5 +1,12 @@
 # SmartString Changelog
 
+## [2.1.1] - 2025-04-28
+
+### Added
+- `SmartString::$logDeprecations` to toggle logging deprecation errors for old method names, defaults to false
+- SmartNull type support for arithmetic methods: add(), subtract(), multiply(), divide(), and percentOf()
+- Misc code and other minor improvements
+
 ## [2.1.0] - 2025-03-27
 
 ### Added
