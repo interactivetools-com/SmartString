@@ -1,5 +1,16 @@
 # SmartString Changelog
 
+## [2.2.0] - 2025-09-05
+
+### Added
+- `orRedirect($url)` - Redirects to a URL if value is missing (null or ""), uses HTTP 302 Temporary Redirect
+
+### Changed
+- Minimum PHP version raised to 8.1 (from 8.0)
+- Misc code optimizations and other minor improvements
+- 
+---
+
 ## [2.1.2] - 2025-04-29
 
 > **Bundled with CMS Builder v3.76**  

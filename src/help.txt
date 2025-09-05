@@ -90,6 +90,7 @@ Error Checking
 ->or404('message')         Sends 404 header and exits if the value is missing (null or ""), zero is not considered missing
 ->orDie('message')         Outputs message and exits if the value is missing (null or ""), zero is not considered missing
 ->orThrow('message')       Throws Exception with message if the value is missing (null or ""), zero is not considered missing
+->orRedirect('url')        Redirects to URL if the value is missing (null or ""), zero is not considered missing
 
 Miscellaneous
 --------------

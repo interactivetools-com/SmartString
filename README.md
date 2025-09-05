@@ -517,9 +517,10 @@ $article = DB::get('articles', 123);        // Assume SmartArray returned
 $article->id->or404("Article not found");   // Sends 404 header and terminate script
 
 // Terminate with custom message if value missing
-$article = DB::get('articles', 123);        // Assume SmartArray returned
-$article->id->orDie("Article not found");   // Output message and terminate script
-$article->id->orThrow("Article not found");  // Throws Exception with error message
+$article = DB::get('articles', 123);           // Assume SmartArray returned
+$article->id->orDie("Article not found");      // Output message and terminate script
+$article->id->orThrow("Article not found");    // Throws Exception with error message
+$article->id->orRedirect("/articles/list");    // Redirect to listing page if missing
 ```
 
 ### Developer-Friendly Error Messages
@@ -675,6 +676,7 @@ or in an init file:
 |                           `->orDie($message)` | Outputs message and exits if the value is missing ("", null), zero is not considered missing                                            |                                                                 
 |                           `->or404($message)` | Outputs 404 header, message and exits if the value is missing ("", null), zero is not considered missing                                |
 |                         `->orThrow($message)` | Throws Exception with message if the value is missing ("", null), zero is not considered missing                                        |
+|                          `->orRedirect($url)` | Redirects to URL if the value is missing ("", null), zero is not considered missing                                                     |
 |                             **Miscellaneous** |                                                                                                                                         |
 |                    `->apply($func, ...$args)` | Applies a custom function to the value                                                                                                  |
 |                                    `->help()` | Displays help information about available methods                                                                                       |

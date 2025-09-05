@@ -1,5 +1,4 @@
 <?php
-
 declare(strict_types=1);
 
 namespace Itools\SmartString;
@@ -671,6 +670,31 @@ class SmartString implements JsonSerializable
         return $this;
     }
 
+    /**
+     * Redirects to a URL if the current value is missing (null or ""), zero is not considered missing
+     *
+     * Uses a simple Location header redirect (HTTP 302 Temporary Redirect).
+     * If headers have already been sent, this method will throw an exception.
+     *
+     * @param string $url The URL to redirect to if value is missing
+     * @return self Returns $this for method chaining if not missing, redirects if missing
+     * @throws RuntimeException If headers have already been sent
+     */
+    public function orRedirect(string $url): self
+    {
+        // Check if headers have already been sent (fail fast)
+        if (headers_sent($file, $line)) {
+            throw new RuntimeException("Cannot redirect: headers already sent in $file on line $line");
+        }
+
+        if ($this->isMissing()) {
+            // Send redirect headers (302 Temporary Redirect)
+            header("Location: " . $url);
+            exit;
+        }
+        return $this;
+    }
+
     //endregion
     //region Utilities
 
@@ -864,10 +888,11 @@ class SmartString implements JsonSerializable
 
         // deprecated methods, log and return new method (these may be removed in the future)
         if ($methodLc === 'fromarray') {
-            self::logDeprecation("Replace SmartString::$method() with SmartArray::new(\$array)->withSmartStrings()");
+            self::logDeprecation("Replace SmartString::$method() with SmartArray::new(\$array)->asHtml()");
             return new SmartArray(...$args);
         }
         if ($methodLc === 'rawvalue') {
+            // don't log // self::logDeprecation("Replace SmartString::$method() with SmartString::getRawValue()");
             return self::getRawValue(...$args);
         }
 
