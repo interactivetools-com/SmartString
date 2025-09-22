@@ -1,6 +1,6 @@
 # SmartString Changelog
 
-## [2.2.0] - 2025-09-05
+## [2.2.0] - 2025-09-21
 
 ### Added
 - `orRedirect($url)` - Redirects to a URL if value is missing (null or ""), uses HTTP 302 Temporary Redirect
@@ -8,7 +8,11 @@
 ### Changed
 - Minimum PHP version raised to 8.1 (from 8.0)
 - Misc code optimizations and other minor improvements
-- 
+- Documentation updated to reflect SmartArray v2.3.0 deprecations:
+  - Replaced `SmartArray::new($array)->withSmartStrings()` with `->asHtml()` in all examples
+  - Replaced `SmartArray::new($array, true)` with `SmartArray::new($array)->asHtml()` in all examples
+  - NOTE: For advanced users: SmartArray now offers `SmartArrayHtml::new()` and `SmartArrayRaw::new()` for direct instantiation
+
 ---
 
 ## [2.1.2] - 2025-04-29

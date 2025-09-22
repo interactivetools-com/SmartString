@@ -6,8 +6,11 @@ provides powerful chainable utility methods for encoding, formatting, and text m
 Creating SmartStrings
 ----------------------
 $str = SmartString::new("It's easy!<hr>");
-$req = SmartArray::new($_REQUEST)->withSmartStrings();  // Create a SmartArray of SmartStrings (verbose syntax)
-$req = SmartArray::new($_REQUEST, true);                // Create a SmartArray of SmartStrings (short syntax)
+$req = SmartArray::new($_REQUEST)->asHtml();            // Create a SmartArray of SmartStrings
+
+// Advanced: For direct instantiation with a specific type:
+// $html = SmartArrayHtml::new($data);   // Direct creation of HTML-safe SmartArray
+// $raw  = SmartArrayRaw::new($data);    // Direct creation of raw-value SmartArray
 
 Value access
 -------------
@@ -100,7 +103,7 @@ SmartString::getRawValue() Returns original value from Smart* objects while leav
 Working with arrays
 --------------------
 $user = ['id' => 42, 'name' => "John O'Reilly", "lastLogin" => "2024-09-10 14:30:00"];
-$u    = SmartArray::new($user)->withSmartStrings();  // SmartArray of SmartStrings
+$u    = SmartArray::new($user)->asHtml();            // SmartArray of SmartStrings
 "Hello, $u->name"                                    // "Hello, John O&apos;Reilly"
 "Hello, {$u->name->value()}"                         // Returns "Hello, John O'Reilly"
 "Last login: {$u->lastLogin->dateFormat('F j, Y')}"  // "Last login: Sep 10, 2024"

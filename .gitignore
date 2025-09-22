@@ -1,7 +1,8 @@
+.claude/
 .idea/
-vendor/
-composer.lock
-composer.phar
 .phpunit.result.cache
 CLAUDE*.md
+composer.lock
+composer.phar
 test.php
+vendor/

@@ -72,8 +72,7 @@ class SmartString implements JsonSerializable
      * Returns a SmartString object for a value.
      *
      * @example $str  = SmartString::new("Hello, World!");                  // Single value as SmartString
-     *          $rows = SmartArray::new($resultSet)->withSmartStrings();    // SmartArray of SmartStrings (verbose method)
-     *          $rows = SmartArray::new($resultSet, true);                  // SmartArray of SmartStrings (shortcut method)
+     *          $rows = SmartArray::new($resultSet)->asHtml();              // SmartArray of SmartStrings
      *
      * @return SmartArray|SmartString The newly created SmartString object.
      */
