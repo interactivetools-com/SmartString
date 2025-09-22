@@ -1,10 +1,11 @@
 {
   "name": "itools/smartstring",
-  "description": "Enhanced strings with automatic HTML encoding and chainable methods",
-  "keywords": ["string", "utility", "manipulation", "html", "encoding", "fluent", "chainable", "methods", "xss", "security", "multibyte", "utf-8", "helpers", "utils", "utf"],
+  "description": "Enhanced PHP strings with automatic HTML encoding and chainable transformation methods",
+  "keywords": ["SmartArray", "chainable", "encoding", "escape", "fluent", "format", "html", "json", "manipulation", "methods", "multibyte", "sanitize", "security", "string", "strip", "trim", "truncate", "urlencode", "utf", "utf8", "xss"],
   "type": "library",
   "homepage": "https://github.com/interactivetools-com/SmartString",
   "license": "MIT",
+  "readme": "README.md",
   "support": {
     "issues": "https://github.com/interactivetools-com/SmartString/issues",
     "source": "https://github.com/interactivetools-com/SmartString"
@@ -34,6 +35,6 @@
     "phpunit/phpunit": "^9.6"
   },
   "suggest": {
-    "itools/smartarray": "Optional integration with SmartArray for more extensive array operations"
+    "itools/smartarray": "Enhanced arrays with automatic HTML encoding and chainable collection methods"
   }
 }
