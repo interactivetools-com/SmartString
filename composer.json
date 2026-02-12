@@ -16,6 +16,9 @@
       "homepage": "https://interactivetools.com/"
     }
   ],
+  "repositories": [
+    {"type": "path", "url": "../SmartArray", "options": {"symlink": true}, "canonical": false}
+  ],
   "autoload": {
     "psr-4": {
       "Itools\\SmartString\\": "src/"

@@ -1,5 +1,17 @@
 # SmartString Changelog
 
+## [2.5.0] - 2026-02-12 - Deprecation cleanup and error reporting improvements
+
+### Changed
+- Removed `$logDeprecations` setting (use PHP's native error handling instead)
+- Deprecation warnings now always trigger via `@trigger_error()`, controlled by PHP's `display_errors`
+- Error and deprecation messages now show the actual calling file:line (outside the library) instead of the immediate caller
+
+### Internal
+- Added `ErrorHelpersTrait` with shared `logDeprecation()`, `getExternalCaller()`, and `occurredInFile()` methods
+
+---
+
 ## [2.2.0] - 2025-09-21
 
 ### Added

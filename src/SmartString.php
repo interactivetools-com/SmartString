@@ -14,6 +14,8 @@ use JsonSerializable;
  */
 class SmartString implements JsonSerializable
 {
+    use ErrorHelpersTrait;
+
     /**
      * The raw stored value (type as passed: string|int|float|bool|null).
      */
@@ -26,11 +28,6 @@ class SmartString implements JsonSerializable
     private bool $hasNumericError;
 
     //region Global Settings
-
-    /**
-     * Controls whether deprecation notices are logged
-     */
-    public static bool $logDeprecations = false;
 
     /**
      * Controls how null values are handled in numeric operations.
@@ -787,24 +784,30 @@ class SmartString implements JsonSerializable
      */
     public function __get(string $property): SmartString
     {
-        $baseClass = basename(self::class);
+        // Format value for display (truncate strings to 20 chars)
+        $formattedValue = match (true) {
+            is_string($this->rawData) => mb_strlen($this->rawData) <= 20
+                ? "\"$this->rawData\""
+                : '"' . mb_substr($this->rawData, 0, 20) . '..."',
+            is_bool($this->rawData)   => $this->rawData ? "TRUE" : "FALSE",
+            is_null($this->rawData)   => "NULL",
+            default                   => (string)$this->rawData,
+        };
 
         // throw unknown property warning
         // PHP Default Error: Warning: Undefined property: stdClass::$property in C:\dev\projects\SmartString\test.php on line 28
         if (method_exists($this, $property)) {
-            $error = "Method ->$property needs brackets() everywhere and {curly braces} in strings:\n";
+            $error = "$formattedValue->$property\n";
+            $error .= "Method ->$property needs brackets() everywhere and {curly braces} in strings:\n";
             $error .= "    ✓ Outside strings:         \$str->$property()\n";
             $error .= "    ✗ Missing brackets:        \$str->$property\n";
             $error .= "    ✓ Inside strings:          \"Hello {\$str->$property()}\"\n";
             $error .= "    ✗ Missing { } in string:   \"Hello \$str->$property()\"\n";
         } else {
-            $error = "Undefined property $baseClass->$property, call ->help() for available methods.\n";
+            $error = "Undefined property: $formattedValue->$property\n";
         }
 
-        // Add caller info
-        $caller = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[0];
-        $error  .= "Occurred in {$caller['file']}:{$caller['line']}\n";
-        $error  .= "Reported";                 // PHP will append " in file:line" to the error
+        $error .= self::occurredInFile();
         trigger_error($error, E_USER_WARNING); // Emulate PHP warning
 
         return new self(null, []);
@@ -871,9 +874,7 @@ class SmartString implements JsonSerializable
         // PHP Default Error: Fatal error: Uncaught Error: Call to undefined method SmartString::method() in C:\dev\projects\SmartString\test.php:17
         $suggestion ??= "call ->help() for available methods.";
         $error      = sprintf("Call to undefined method %s->$method(), $suggestion\n", basename(self::class));
-        $caller     = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[0];
-        $error      .= "Occurred in {$caller['file']}:{$caller['line']}\n";
-        $error      .= "Reported"; // PHP will append " in file:line" to the error
+        $error      .= self::occurredInFile();
         throw new Error($error);
     }
 
@@ -891,17 +892,14 @@ class SmartString implements JsonSerializable
             return new SmartArray(...$args);
         }
         if ($methodLc === 'rawvalue') {
-            // don't log // self::logDeprecation("Replace SmartString::$method() with SmartString::getRawValue()");
             return self::getRawValue(...$args);
         }
 
         // throw unknown method Error
         // PHP Default Error: Fatal error: Uncaught Error: Call to undefined method SmartString::method() in C:\dev\projects\SmartString\test.php:17
         $baseClass = basename(self::class);
-        $caller    = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[0];
         $error     = "Call to undefined method $baseClass::$method(), call ->help() for available methods.\n";
-        $error     .= "Occurred in {$caller['file']}:{$caller['line']}\n";
-        $error     .= "Reported"; // PHP will append " in file:line" to the error
+        $error     .= self::occurredInFile();
         throw new Error($error);
     }
 
@@ -919,16 +917,6 @@ class SmartString implements JsonSerializable
         $wrapInXmp          = $isTextHtml && !in_array('showme', $backtraceFunctions, true);
 
         return $wrapInXmp ? "\n<xmp>\n$output\n</xmp>\n" : "\n$output\n";
-    }
-
-    /**
-     * Logs a deprecation notice
-     */
-    public static function logDeprecation($error): void
-    {
-        if (self::$logDeprecations) {
-            @user_error($error, E_USER_DEPRECATED);  // Trigger a silent deprecation notice for logging purposes
-        }
     }
 
     /**
