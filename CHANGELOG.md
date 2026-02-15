@@ -1,5 +1,40 @@
 # SmartString Changelog
 
+## [2.6.0] - 2026-02-13 - textToHtml(), htmlEncode() cleanup, null-stays-null
+
+### Added
+- `textToHtml()` - Encodes special chars and converts newlines to `<br>` tags in one step
+  - `textToHtml(keepBr: true)` preserves existing `<br>` tags (for CMS text fields that already store them)
+- `apply()` now validates callback return types (must be scalar or null)
+- Many new method aliases: `truncate`, `fallback`, `pipe`, `plaintext`, `tohtml`, etc.
+
+### Changed
+- `htmlEncode()` now encodes all tags including `<br>` (previously preserved `<br>` tags)
+- `nl2br()` deprecated in favor of `textToHtml()` (still works, logs deprecation warning)
+- `SmartString::new($array)` now logs a deprecation warning (use `SmartArray::new($array)->asHtml()` instead)
+- Numeric operations now accept `string` type parameters for convenience
+
+### Removed
+- `SmartString::$treatNullAsZero` setting (null always stays null in numeric operations)
+
+### Fixed
+- `dateFormat()` now formats timestamp `0` as a real date instead of returning null
+- `maxWords()` no longer strips trailing punctuation when text isn't actually truncated
+- `getRawValue()` missing match arm for `is_scalar()`
+
+### Internal
+- Upgraded PHPUnit from 9.6 to 10.5 (all data providers now static)
+- Added `ENT_DISALLOWED` flag to all `htmlspecialchars()` calls
+- Narrowed `object` type hints to `SmartString|SmartNull` in `if()` and `set()`
+- Numeric operations refactored to use local error tracking instead of mutating `$this`
+
+### Migration Tips
+1. **`nl2br()` → `textToHtml()`** - The new method encodes *and* converts newlines. If you were chaining `->nl2br()` after manual encoding, you can simplify to just `->textToHtml()`.
+2. **`htmlEncode()` and `<br>` tags** - If you relied on `htmlEncode()` preserving `<br>` tags, switch to `textToHtml(keepBr: true)`.
+3. **`$treatNullAsZero` removed** - Null always stays null now. If you need zero, use `->ifNull(0)` before arithmetic.
+
+---
+
 ## [2.5.0] - 2026-02-12 - Deprecation cleanup and error reporting improvements
 
 ### Changed

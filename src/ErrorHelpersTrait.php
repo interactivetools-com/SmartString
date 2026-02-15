@@ -81,7 +81,7 @@ trait ErrorHelpersTrait
                 break;
             }
         }
-        $output = "Occurred in $file:$line$inMethod\nReported";
+        $output = "Occurred in $file:$line$inMethod\nReported"; // "Reported" is a prefix - trigger_error() appends " in file on line X"
 
         // Add Reported in file:line (if requested)
         if ($addReportedFileLine && isset($backtrace[0], $backtrace[1])) {

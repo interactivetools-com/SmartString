@@ -43,11 +43,11 @@ Encoding methods (returns value)
 ->urlEncode()              Returns URL-encoded string, example: "?user={$user->name->urlEncode()}"
 ->jsonEncode()             Returns JSON-encoded value, example: "let user={$user->name->jsonEncode()}"
 ->htmlEncode()             Returns HTML-encoded string (same as automatic encoding, for readability and non-string contexts)
+->textToHtml()             Encodes special chars and converts newlines to <br>, with option to preserve existing <br> tags
 
 String Manipulation (returns object, chainable)
 ------------------------------------------------
-->textOnly(...)            Remove HTML tags, decode HTML entities, and trims whitespace
-->nl2br()                  Convert newlines to br tags
+->textOnly()               Remove HTML tags, decode HTML entities, and trims whitespace
 ->trim(...)                Trim leading and trailing whitespace, supports same parameters as trim()
 ->maxWords($max)           Limit words to $max, if truncated adds ... (override with second parameter)
 ->maxChars($max)           Limit chars to $max, if truncated adds ... (override with second parameter)
@@ -68,7 +68,7 @@ Numeric Operations (returns object, chainable)
 ->divide($value)                     Returns value divided by $value
 ->multiply($value)                   Returns value multiplied by $value
 
-Note: Null values are treated as zero in numeric operations. Non-numeric strings always become null.
+Note: Null and non-numeric strings always become null in numeric operations.
 
 Conditional Operations (returns object, chainable)
 ---------------------------------------------------
@@ -110,7 +110,6 @@ $u    = SmartArray::new($user)->asHtml();            // SmartArray of SmartStrin
 
 Setting defaults (at the top of your script or in an init file)
 ----------------------------------------------------------------
-SmartString::$treatNullAsZero       = true;            // Treat null as zero in numeric operations (default: true)
 SmartString::$numberFormatDecimal   = '.';             // Default decimal separator
 SmartString::$numberFormatThousands = ',';             // Default thousands separator
 SmartString::$dateFormat            = 'Y-m-d';         // Default dateFormat() format

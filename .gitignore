@@ -1,5 +1,6 @@
 .claude/
 .idea/
+.phpunit.cache/
 .phpunit.result.cache
 CLAUDE*.md
 composer.lock

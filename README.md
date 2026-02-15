@@ -9,7 +9,7 @@ Instead of writing code like this:
 echo "<h1>" . htmlspecialchars($article['title'], ENT_QUOTES|ENT_SUBSTITUTE|ENT_HTML5, 'UTF-8') . "</h1>";
 $summary = strip_tags($article['content']); // remove tags
 $summary = html_entity_decode($summary, ENT_QUOTES|ENT_SUBSTITUTE|ENT_HTML5, 'UTF-8'); // decode entities
-$summary = substr($summary, 0, 200); // limit to 200 characters
+$summary = substr($summary, 0, 120); // limit to 120 characters
 echo "Summary: " . htmlspecialchars($summary, ENT_QUOTES|ENT_SUBSTITUTE|ENT_HTML5, 'UTF-8') . "...";
 ```
 
@@ -26,38 +26,36 @@ This makes your code cleaner, more readable, and inherently more secure.
 ## Table of Contents
 
 <!-- TOC -->
-
 * [SmartString: Secure and Simple String Handling for PHP](#smartstring-secure-and-simple-string-handling-for-php)
-    * [Table of Contents](#table-of-contents)
-    * [Quick Start](#quick-start)
-    * [Features and Usage Examples](#features-and-usage-examples)
-        * [Creating SmartStrings](#creating-smartstrings)
-        * [Fluent Chainable Interface](#fluent-chainable-interface)
-        * [Automatic HTML-encoding](#automatic-html-encoding)
-        * [Accessing Values](#accessing-values)
-        * [Working with SmartArrays](#working-with-smartarrays)
-        * [Type Conversion](#type-conversion)
-        * [Encoding Values](#encoding-values)
-        * [String Manipulation](#string-manipulation)
-        * [Number Formatting](#number-formatting)
-        * [Date Formatting](#date-formatting)
-        * [Phone Number Formatting](#phone-number-formatting)
-        * [Numeric Operations](#numeric-operations)
-        * [Conditional Operations](#conditional-operations)
-        * [Validation](#validation)
-        * [Error Checking](#error-checking)
-        * [Developer-Friendly Error Messages](#developer-friendly-error-messages)
-        * [Custom Functions](#custom-functions)
-        * [Developer Debugging &amp; Help](#developer-debugging--help)
-    * [Customizing Defaults](#customizing-defaults)
-    * [Method Reference](#method-reference)
-    * [Questions?](#questions)
-
+  * [Table of Contents](#table-of-contents)
+  * [Quick Start](#quick-start)
+  * [Features and Usage Examples](#features-and-usage-examples)
+    * [Creating SmartStrings](#creating-smartstrings)
+    * [Fluent Chainable Interface](#fluent-chainable-interface)
+    * [Automatic HTML-encoding](#automatic-html-encoding)
+    * [Accessing Values](#accessing-values)
+    * [Working with SmartArrays](#working-with-smartarrays)
+    * [Type Conversion](#type-conversion)
+    * [Encoding Values](#encoding-values)
+    * [String Manipulation](#string-manipulation)
+    * [Number Formatting](#number-formatting)
+    * [Date Formatting](#date-formatting)
+    * [Phone Number Formatting](#phone-number-formatting)
+    * [Numeric Operations](#numeric-operations)
+    * [Conditional Operations](#conditional-operations)
+    * [Validation](#validation)
+    * [Error Checking](#error-checking)
+    * [Developer-Friendly Error Messages](#developer-friendly-error-messages)
+    * [Custom Functions](#custom-functions)
+    * [Developer Debugging &amp; Help](#developer-debugging--help)
+  * [Customizing Defaults](#customizing-defaults)
+  * [Method Reference](#method-reference)
+  * [Questions?](#questions)
 <!-- TOC -->
 
 ## Quick Start
 
-> **Requirements:** PHP 8.0 or higher with mbstring extension
+> **Requirements:** PHP 8.1 or higher with mbstring extension
 
 Install via Composer:
 
@@ -263,6 +261,10 @@ echo "let title={$title->jsonEncode()}";    // let title="\u003C10% OFF \u0022SA
 
 // raw HTML - This is an alias for value() for readability when outputting trusted HTML
 echo "Title: {$title->rawHtml()}";         // 'Title: <10% OFF "SALE"'
+
+// Text to HTML - encodes special chars and converts newlines to <br> tags
+$text = SmartString::new("Hello\nWorld");
+echo "{$text->textToHtml()}";              // "Hello<br>\nWorld"
 ```
 
 ### String Manipulation
@@ -274,9 +276,9 @@ SmartString offers a variety of methods for common string operations, making it 
 $htmlText = SmartString::new(" <b> Some HTML </b> ");
 echo $htmlText->textOnly(); // "Some HTML"
 
-// Convert newlines to <br> tags - useful for displaying multi-line text in HTML
+// Convert text to HTML - encodes special chars and converts newlines to <br> tags
 $multiLineText = SmartString::new("Hello\nWorld");
-echo $multiLineText->nl2br(); // "Hello<br>\nWorld"
+echo "{$multiLineText->textToHtml()}"; // "Hello<br>\nWorld"
 
 // Trim whitespace
 $whitespaceText = SmartString::new("  Trim me  ");
@@ -563,7 +565,7 @@ $spacesToUnderscores = fn($str) => str_replace(' ', '_', $str);                 
 $urlSlug = $name->apply($spacesToUnderscores);   // returns "John_Doe"
 
 // Applying inline arrow functions
-$boldName = $name->apply(fn($val) => "<b>$name</b>"); // returns "<b>John Doe</b>" 
+$boldName = $name->apply(fn($val) => "<b>$val</b>"); // returns "<b>John Doe</b>"
 ```
 
 ### Developer Debugging &amp; Help
@@ -606,7 +608,6 @@ echo \$str;             // "It&apos;s easy!&lt;hr&gt;"
 You can customize the defaults by adding the following to the top of your script or in an init file:
 
 ```php
-SmartString::$treatNullAsZero       = true;            // Treat null as zero in numeric operations (default: true)
 SmartString::$numberFormatDecimal   = '.';             // Default decimal separator
 SmartString::$numberFormatThousands = ',';             // Default thousands separator
 SmartString::$dateFormat            = 'Y-m-d';         // Default dateFormat() format
@@ -614,76 +615,70 @@ SmartString::$dateTimeFormat        = 'Y-m-d H:i:s';   // Default dateTimeFormat
 SmartString::$phoneFormat           = [                // Default phoneFormat() formats
     ['digits' => 10, 'format' => '(###) ###-####'],
     ['digits' => 11, 'format' => '# (###) ###-####'],
-];  
+];
 ```
-
-The `$treatNullAsZero` setting controls how null values are handled in numeric operations:
-
-- When `true` (default): null values are treated as 0, making calculations more intuitive
-- When `false`: operations with null values return null results, useful for detecting uninitialized values or using ->
-  or()
 
 ## Method Reference
 
 In addition to the methods below, you can customize the defaults by adding the following to the top of your script
 or in an init file:
 
-|                       **Basic Usage** |                                                                                                                                         |
-|--------------------------------------:|-----------------------------------------------------------------------------------------------------------------------------------------|
-|            `SmartString::new($value)` | Creates a new SmartString object from a single value                                                                                    |
-|   `SmartArray::new($array)->asHtml()` | Creates a new SmartArray from a regular PHP array with HTML-safe SmartString values                                                     |
-|         `SmartArrayHtml::new($array)` | Advanced: Direct instantiation of SmartArray with SmartString values                                                                    |
-|          `SmartArrayRaw::new($array)` | Advanced: Direct instantiation of SmartArray with raw values                                                                            |
-|                           `->value()` | Returns the original, unencoded value                                                                                                   |
-|                   **Type Conversion** |                                                                                                                                         |
-|                             `->int()` | Returns the value as an integer                                                                                                         |
-|                           `->float()` | Returns the value as a float                                                                                                            |
-|                            `->bool()` | Returns the value as a boolean                                                                                                          |
-|                          `->string()` | Returns the value as a string (original value, not HTML-encoded)                                                                        |
-|          `SmartString::getRawValue()` | Returns original value from Smart* objects while leaving other types unchanged. Useful when working with mixed object/non-object values |
-|                  **Encoding Methods** |                                                                                                                                         |
-|                      `->htmlEncode()` | Returns HTML-encoded string                                                                                                             |
-|                       `->urlEncode()` | Returns URL-encoded string                                                                                                              |
-|                      `->jsonEncode()` | Returns JSON-encoded string                                                                                                             |
-|                         `->rawHtml()` | Alias for `value()`, useful for readability when outputting trusted HTML content                                                        |
-|               **String Manipulation** |                                                                                                                                         |
-|                        `->textOnly()` | Removes HTML tags from the string, decodes entities, and trims whitespace                                                               |
-|                           `->nl2br()` | Converts newlines to HTML line breaks                                                                                                   |
-|                            `->trim()` | Trims whitespace or specified characters from the string                                                                                |
-|   `maxWords($max, $ellipsis = '...')` | Limits the string to a specific number of words                                                                                         |
-|   `maxChars($max, $ellipsis = '...')` | Limits the string to a specific number of characters                                                                                    |
-|                        **Formatting** |                                                                                                                                         |
-|     `->dateFormat($format = default)` | Formats the value as a date, using default or specified date format                                                                     |
-| `->dateTimeFormat($format = default)` | Formats the value as a date and time, using default or specified date format                                                            |
-|       `->numberFormat($decimals = 0)` | Formats the value as a number                                                                                                           |
-|                     `->phoneFormat()` | Formats the value as a phone number                                                                                                     |
-|                **Numeric Operations** |                                                                                                                                         |
-|            `->percent($decimals = 0)` | Converts value to percentage                                                                                                            |
-|  `->percentOf($total, $decimals = 0)` | Calculates what percentage this number represents of $total                                                                             |
-|                       `->add($value)` | Adds $value to current number                                                                                                           |
-|                  `->subtract($value)` | Subtracts $value from current number                                                                                                    |
-|                  `->multiply($value)` | Multiplies current number by $value                                                                                                     |
-|                  `->divide($divisor)` | Divides current number by $divisor                                                                                                      |
-|            **Conditional Operations** |                                                                                                                                         |
-|                     `->or($fallback)` | Returns the fallback if the value is missing ("", null), zero is not considered missing                                                 |
-|                       `->and($value)` | Appends $value if the value is present (not "" or null), zero is considered present                                                     |
-|                 `->andPrefix($value)` | Prepends $value if the value is present (not "" or null), zero is considered present                                                    |
-|                 `->ifNull($fallback)` | Returns the fallback if the value is null                                                                                               |
-|                `->ifBlank($fallback)` | Returns the fallback if the value is an empty string                                                                                    |
-|                 `->ifZero($fallback)` | Returns the fallback if the value is zero                                                                                               |
-|                        **Validation** |                                                                                                                                         |
-|                         `->isEmpty()` | Returns true if the value is empty ("", null, false, 0, "0"), uses PHP empty()                                                          |
-|                      `->isNotEmpty()` | Returns true if the value is NOT empty ("", null, false, 0, "0"), uses PHP !empty()                                                     |
-|                       `->isMissing()` | Returns true if the value is missing (null or ""), zero is not considered missing                                                       |
-|                          `->isNull()` | Returns true if the value is null                                                                                                       |
-|                    **Error Checking** |                                                                                                                                         |
-|                   `->orDie($message)` | Outputs message and exits if the value is missing ("", null), zero is not considered missing                                            |                                                                 
-|                   `->or404($message)` | Outputs 404 header, message and exits if the value is missing ("", null), zero is not considered missing                                |
-|                 `->orThrow($message)` | Throws Exception with message if the value is missing ("", null), zero is not considered missing                                        |
-|                  `->orRedirect($url)` | Redirects to URL if the value is missing ("", null), zero is not considered missing                                                     |
-|                     **Miscellaneous** |                                                                                                                                         |
-|            `->apply($func, ...$args)` | Applies a custom function to the value                                                                                                  |
-|                            `->help()` | Displays help information about available methods                                                                                       |
+|                                  **Basic Usage** |                                                                                                                                         |
+|-------------------------------------------------:|-----------------------------------------------------------------------------------------------------------------------------------------|
+|                       `SmartString::new($value)` | Creates a new SmartString object from a single value                                                                                    |
+|              `SmartArray::new($array)->asHtml()` | Creates a new SmartArray from a regular PHP array with HTML-safe SmartString values                                                     |
+|                    `SmartArrayHtml::new($array)` | Advanced: Direct instantiation of SmartArray with SmartString values                                                                    |
+|                     `SmartArrayRaw::new($array)` | Advanced: Direct instantiation of SmartArray with raw values                                                                            |
+|                                      `->value()` | Returns the original, unencoded value                                                                                                   |
+|                              **Type Conversion** |                                                                                                                                         |
+|                                        `->int()` | Returns the value as an integer                                                                                                         |
+|                                      `->float()` | Returns the value as a float                                                                                                            |
+|                                       `->bool()` | Returns the value as a boolean                                                                                                          |
+|                                     `->string()` | Returns the value as a string (original value, not HTML-encoded)                                                                        |
+|                     `SmartString::getRawValue()` | Returns original value from Smart* objects while leaving other types unchanged. Useful when working with mixed object/non-object values |
+|                             **Encoding Methods** |                                                                                                                                         |
+|                                 `->htmlEncode()` | Returns HTML-encoded string                                                                                                             |
+|                                  `->urlEncode()` | Returns URL-encoded string                                                                                                              |
+|                                 `->jsonEncode()` | Returns JSON-encoded string                                                                                                             |
+|                                    `->rawHtml()` | Alias for `value()`, useful for readability when outputting trusted HTML content                                                        |
+|                                 `->textToHtml()` | Encodes special chars and converts newlines to `<br>`, with option to preserve existing `<br>` tags                                     |
+|                          **String Manipulation** |                                                                                                                                         |
+|                                   `->textOnly()` | Removes HTML tags from the string, decodes entities, and trims whitespace                                                               |
+|                                       `->trim()` | Trims whitespace or specified characters from the string                                                                                |
+|              `maxWords($max, $ellipsis = '...')` | Limits the string to a specific number of words                                                                                         |
+|              `maxChars($max, $ellipsis = '...')` | Limits the string to a specific number of characters                                                                                    |
+|                                   **Formatting** |                                                                                                                                         |
+|                `->dateFormat($format = default)` | Formats the value as a date, using default or specified date format                                                                     |
+|            `->dateTimeFormat($format = default)` | Formats the value as a date and time, using default or specified date format                                                            |
+|                  `->numberFormat($decimals = 0)` | Formats the value as a number                                                                                                           |
+|                                `->phoneFormat()` | Formats the value as a phone number                                                                                                     |
+|                           **Numeric Operations** |                                                                                                                                         |
+| `->percent($decimals = 0, $zeroFallback = null)` | Converts value to percentage, with optional fallback for zero                                                                           |
+|             `->percentOf($total, $decimals = 0)` | Calculates what percentage this number represents of $total                                                                             |
+|                                  `->add($value)` | Adds $value to current number                                                                                                           |
+|                             `->subtract($value)` | Subtracts $value from current number                                                                                                    |
+|                             `->multiply($value)` | Multiplies current number by $value                                                                                                     |
+|                             `->divide($divisor)` | Divides current number by $divisor                                                                                                      |
+|                       **Conditional Operations** |                                                                                                                                         |
+|                                `->or($fallback)` | Returns the fallback if the value is missing ("", null), zero is not considered missing                                                 |
+|                                  `->and($value)` | Appends $value if the value is present (not "" or null), zero is considered present                                                     |
+|                            `->andPrefix($value)` | Prepends $value if the value is present (not "" or null), zero is considered present                                                    |
+|                            `->ifNull($fallback)` | Returns the fallback if the value is null                                                                                               |
+|                           `->ifBlank($fallback)` | Returns the fallback if the value is an empty string                                                                                    |
+|                            `->ifZero($fallback)` | Returns the fallback if the value is zero                                                                                               |
+|                                   **Validation** |                                                                                                                                         |
+|                                    `->isEmpty()` | Returns true if the value is empty ("", null, false, 0, "0"), uses PHP empty()                                                          |
+|                                 `->isNotEmpty()` | Returns true if the value is NOT empty ("", null, false, 0, "0"), uses PHP !empty()                                                     |
+|                                  `->isMissing()` | Returns true if the value is missing (null or ""), zero is not considered missing                                                       |
+|                                     `->isNull()` | Returns true if the value is null                                                                                                       |
+|                               **Error Checking** |                                                                                                                                         |
+|                              `->orDie($message)` | Outputs message and exits if the value is missing ("", null), zero is not considered missing                                            |                                                                 
+|                              `->or404($message)` | Outputs 404 header, message and exits if the value is missing ("", null), zero is not considered missing                                |
+|                            `->orThrow($message)` | Throws Exception with message if the value is missing ("", null), zero is not considered missing                                        |
+|                             `->orRedirect($url)` | Redirects to URL if the value is missing ("", null), zero is not considered missing                                                     |
+|                                **Miscellaneous** |                                                                                                                                         |
+|                       `->apply($func, ...$args)` | Applies a custom function to the value                                                                                                  |
+|                                       `->help()` | Displays help information about available methods                                                                                       |
 
 **See Also:** For array operations, check out our companion library `SmartArray`,
 a powerful companion library that provides array operations with chainable methods and seamless `SmartString`
