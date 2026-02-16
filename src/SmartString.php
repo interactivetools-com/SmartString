@@ -182,10 +182,9 @@ class SmartString implements JsonSerializable
     public function textToHtml(bool $keepBr = false): string
     {
         $encoded = htmlspecialchars((string)$this->rawData, ENT_QUOTES | ENT_SUBSTITUTE | ENT_DISALLOWED | ENT_HTML5, 'UTF-8');
-        if ($keepBr) {
-            return preg_replace('|&lt;(br\s*/?)&gt;|i', "<$1>", $encoded);
-        }
-        return nl2br($encoded, false);
+        return $keepBr
+            ? preg_replace('|&lt;(br\s*/?)&gt;|i', "<$1>", $encoded)
+            : nl2br($encoded, false);
     }
 
     /**
@@ -674,14 +673,14 @@ class SmartString implements JsonSerializable
      */
     public function orRedirect(string $url): self
     {
-        // Check if headers have already been sent (fail fast)
+        // Check early so developers find out immediately, not only when isMissing()
         if (headers_sent($file, $line)) {
-            throw new RuntimeException("Cannot redirect: headers already sent in $file on line $line");
+            throw new RuntimeException("orRedirect(): headers already sent in $file on line $line");
         }
 
         if ($this->isMissing()) {
-            // Send redirect headers (302 Temporary Redirect)
-            header("Location: " . $url);
+            http_response_code(302);
+            header("Location: $url");
             exit;
         }
         return $this;
