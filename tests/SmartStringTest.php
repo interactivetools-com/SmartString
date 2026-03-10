@@ -1745,6 +1745,92 @@ class SmartStringTest extends TestCase
         $smartString->apply('non_existent_function');
     }
 
+    /**
+     * @dataProvider pregReplaceProvider
+     */
+    public function testPregReplace($input, $pattern, $replacement, $expected): void
+    {
+        $result = SmartString::new($input)->pregReplace($pattern, $replacement);
+        $this->assertSame($expected, $result->value());
+    }
+
+    /**
+     * @return array[]
+     */
+    public static function pregReplaceProvider(): array
+    {
+        return [
+            'strip non-digits'      => [
+                'input'       => '(555) 123-4567',
+                'pattern'     => '/\D/',
+                'replacement' => '',
+                'expected'    => '5551234567',
+            ],
+            'normalize whitespace'  => [
+                'input'       => "hello   \t world",
+                'pattern'     => '/\s+/',
+                'replacement' => ' ',
+                'expected'    => 'hello world',
+            ],
+            'backreference'         => [
+                'input'       => 'my-slug',
+                'pattern'     => '/(.+)/',
+                'replacement' => 'pre-$1',
+                'expected'    => 'pre-my-slug',
+            ],
+            'no match (unchanged)'  => [
+                'input'       => 'hello',
+                'pattern'     => '/\d+/',
+                'replacement' => 'X',
+                'expected'    => 'hello',
+            ],
+            'empty string input'    => [
+                'input'       => '',
+                'pattern'     => '/./',
+                'replacement' => 'X',
+                'expected'    => '',
+            ],
+            'null input'            => [
+                'input'       => null,
+                'pattern'     => '/./',
+                'replacement' => 'X',
+                'expected'    => '',
+            ],
+            'html in raw value'     => [
+                'input'       => '<b>bold</b>',
+                'pattern'     => '/<[^>]+>/',
+                'replacement' => '',
+                'expected'    => 'bold',
+            ],
+            'integer input'         => [
+                'input'       => 12345,
+                'pattern'     => '/(\d{3})(\d+)/',
+                'replacement' => '$1-$2',
+                'expected'    => '123-45',
+            ],
+        ];
+    }
+
+    public function testPregReplaceChainability(): void
+    {
+        $result = SmartString::new('hello world')->pregReplace('/\s/', '-');
+        $this->assertInstanceOf(SmartString::class, $result);
+        $this->assertSame('hello-world', $result->value());
+    }
+
+    public function testPregReplaceImmutability(): void
+    {
+        $original = SmartString::new('hello world');
+        $original->pregReplace('/world/', 'there');
+        $this->assertSame('hello world', $original->value());
+    }
+
+    public function testPregReplaceInvalidPattern(): void
+    {
+        $result = @SmartString::new('test')->pregReplace('/[/', 'X');
+        $this->assertNull($result->value());
+    }
+
     // endregion
     // region Validation
 

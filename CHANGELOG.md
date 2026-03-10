@@ -1,10 +1,11 @@
 # SmartString Changelog
 
-## [2.6.1] - 2026-03-08
-> **Bundled with CMS Builder v3.82**
-> Roll-up release - every change from **v2.2.1 → v2.6.1** is now part of this version.
+## [2.6.2] - 2026-03-09
+> **Bundled with CMS Builder v3.83**
+> Roll-up release - every change from **v2.2.1 → v2.6.2** is now part of this version.
 
 ### Added
+- `pregReplace()` - Apply regex search-and-replace, returning a new SmartString
 - `textToHtml()` - Encodes special chars and converts newlines to `<br>` tags in one step
   - `textToHtml(keepBr: true)` preserves existing `<br>` tags (for CMS text fields that already store them)
 - `apply()` now validates callback return types (must be scalar or null)

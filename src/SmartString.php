@@ -708,6 +708,23 @@ class SmartString implements JsonSerializable
         return new self($newValue, get_object_vars($this));
     }
 
+    /**
+     * Apply preg_replace to the value, returning a new SmartString.
+     *
+     *     $digits = $phone->pregReplace('/\D/', '');           // "5551234567"
+     *     $clean  = $text->pregReplace('/\s+/', ' ');          // normalize whitespace
+     *     $wrap   = $slug->pregReplace('/(.+)/', 'pre-$1');    // add prefix via backreference
+     *
+     * @param string $pattern Regex pattern
+     * @param string $replacement Replacement string (supports backreferences)
+     * @return SmartString A new SmartString with the replaced value
+     */
+    public function pregReplace(string $pattern, string $replacement): SmartString
+    {
+        $newValue = preg_replace($pattern, $replacement, (string) $this->rawData);
+        return new self($newValue, get_object_vars($this));
+    }
+
     //endregion
     //region Debugging and Help
 
