@@ -27,6 +27,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Checkout SmartArray
+        run: git clone --depth 1 https://github.com/interactivetools-com/SmartArray.git ../SmartArray
+
       - name: Setup PHP ${{ matrix.php }}
         uses: shivammathur/setup-php@v2
         with:
