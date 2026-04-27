@@ -917,10 +917,6 @@ class SmartStringTest extends TestCase
             'small number'       => [0.0000001, 7, '0.0000001'],
             'zero'               => [0, 2, '0.00'],
 
-            // invalid inputs
-            'non-numeric'        => ['abc', null, null],
-            'null'               => [null, null, null],
-
             // Old tests
             'Integer - default'         => [1000, 0, '1,000'],
             'Float - default'           => [1000.5, 0, '1,001'],
@@ -1794,7 +1790,7 @@ class SmartStringTest extends TestCase
                 'input'       => null,
                 'pattern'     => '/./',
                 'replacement' => 'X',
-                'expected'    => '',
+                'expected'    => null,
             ],
             'html in raw value'     => [
                 'input'       => '<b>bold</b>',

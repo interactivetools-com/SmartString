@@ -51,6 +51,7 @@ String Manipulation (returns object, chainable)
 ->trim(...)                Trim leading and trailing whitespace, supports same parameters as trim()
 ->maxWords($max)           Limit words to $max, if truncated adds ... (override with second parameter)
 ->maxChars($max)           Limit chars to $max, if truncated adds ... (override with second parameter)
+->pregReplace($pattern, $replacement)  Replace text matching a regex pattern
 
 Formatting (returns object, chainable)
 ---------------------------------------

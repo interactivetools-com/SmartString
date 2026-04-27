@@ -647,6 +647,7 @@ or in an init file:
 |                                       `->trim()` | Trims whitespace or specified characters from the string                                                                                |
 |              `maxWords($max, $ellipsis = '...')` | Limits the string to a specific number of words                                                                                         |
 |              `maxChars($max, $ellipsis = '...')` | Limits the string to a specific number of characters                                                                                    |
+|          `->pregReplace($pattern, $replacement)` | Replaces text matching a regex pattern                                                                                                  |
 |                                   **Formatting** |                                                                                                                                         |
 |                `->dateFormat($format = default)` | Formats the value as a date, using default or specified date format                                                                     |
 |            `->dateTimeFormat($format = default)` | Formats the value as a date and time, using default or specified date format                                                            |

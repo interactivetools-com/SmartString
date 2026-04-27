@@ -1,15 +1,15 @@
 # SmartString Changelog
 
-## [2.6.2] - 2026-03-09
+## [2.6.3] - 2026-04-27
 > **Bundled with CMS Builder v3.83**
-> Roll-up release - every change from **v2.2.1 → v2.6.2** is now part of this version.
+> Roll-up release - every change from **v2.2.1 → v2.6.3** is now part of this version.
 
 ### Added
 - `pregReplace()` - Apply regex search-and-replace, returning a new SmartString
 - `textToHtml()` - Encodes special chars and converts newlines to `<br>` tags in one step
   - `textToHtml(keepBr: true)` preserves existing `<br>` tags (for CMS text fields that already store them)
 - `apply()` now validates callback return types (must be scalar or null)
-- Many new method aliases: `truncate`, `fallback`, `pipe`, `plaintext`, `tohtml`, etc.
+- Unknown-method errors now suggest the correct method when a common alias is used (e.g., `->truncate()` suggests `->maxChars()`, `->fallback()` suggests `->or()`)
 
 ### Changed
 - `htmlEncode()` now encodes all tags including `<br>` (previously preserved `<br>` tags)
@@ -29,6 +29,13 @@
 - `dateFormat()` now formats timestamp `0` as a real date instead of returning null
 - `maxWords()` no longer strips trailing punctuation when text isn't actually truncated
 - `getRawValue()` missing match arm for `is_scalar()`
+- Error messages now show the short class name (`SmartString->foo()`) on Linux instead of the full namespace
+- `SmartString::fromArray()` deprecation shim now returns HTML-safe values matching the documented migration target
+- `SmartString::rawvalue()` static alias now logs a deprecation warning
+- `pregReplace()` now preserves null input, matching other string-manipulation methods
+- `numberFormat()`, `percent()`, and `percentOf()` now require `int $decimals` (passing null previously crashed inside `number_format()`)
+- `dateTimeFormat()` no longer double-wraps the result of `dateFormat()`
+- `or()`, `and()`, `andPrefix()`, `ifBlank()`, `ifNull()`, and `ifZero()` now accept `null` and `bool` fallbacks (previously TypeErrored under strict types)
 
 ### Migration Tips
 1. **`nl2br()` → `textToHtml()`** - The new method encodes *and* converts newlines. If you were chaining `->nl2br()` after manual encoding, you can simplify to just `->textToHtml()`.

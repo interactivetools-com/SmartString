@@ -320,9 +320,7 @@ class SmartString implements JsonSerializable
      */
     public function dateTimeFormat(?string $format = null): SmartString
     {
-        $format   ??= self::$dateTimeFormat;
-        $newValue = $this->dateFormat($format)->value();
-        return new self($newValue, get_object_vars($this));
+        return $this->dateFormat($format ?? self::$dateTimeFormat);
     }
 
     /**
@@ -330,14 +328,14 @@ class SmartString implements JsonSerializable
      * Uses the static properties $numberFormatDecimal and $numberFormatThousands for formatting.
      * Returns null if the value is not numeric.
      *
-     * @param int|null $decimals Number of decimal places to display (default: 0)
+     * @param int $decimals Number of decimal places to display (default: 0)
      * @return SmartString Formatted number or null if not numeric
      *
      * @example $num = SmartString::new(1234.56);
      *          echo $num->numberFormat();     // "1,235" (rounded to 0 decimals)
      *          echo $num->numberFormat(2);    // "1,234.56" (2 decimal places)
      */
-    public function numberFormat(?int $decimals = 0): SmartString
+    public function numberFormat(int $decimals = 0): SmartString
     {
         $newValue = match (true) {
             !is_numeric($this->rawData) => null,
@@ -390,7 +388,7 @@ class SmartString implements JsonSerializable
      * - If value is zero AND $zeroFallback is defined, $zeroFallback is returned
      * - Otherwise a percentage is returned. e.g., 0.1234 => 12.34%
      *
-     * @param int|null $decimals Number of decimal places in formatted output
+     * @param int $decimals Number of decimal places in formatted output
      * @param string|int|float|null $zeroFallback Alternative value to return when input is zero
      * @return SmartString Formatted percentage, zeroFallback value if zero, or null if not numeric
      *
@@ -403,7 +401,7 @@ class SmartString implements JsonSerializable
      *   echo $zero->percent(2);          // "0.00%"
      *   echo $zero->percent(2, "None");  // "None"
      */
-    public function percent(?int $decimals = 0, string|int|float|null $zeroFallback = null): SmartString
+    public function percent(int $decimals = 0, string|int|float|null $zeroFallback = null): SmartString
     {
         $value    = self::getFloatOrNull($this->rawData);
         $hasError = $this->hasNumericError || is_null($value);
@@ -418,7 +416,7 @@ class SmartString implements JsonSerializable
     /**
      * Returns the current value as a percentage of $total, e.g., 24 of 100 becomes 24%. Returns null if either value is non-numeric.
      */
-    public function percentOf(int|float|string|SmartString|SmartNull $total, ?int $decimals = 0): SmartString
+    public function percentOf(int|float|string|SmartString|SmartNull $total, int $decimals = 0): SmartString
     {
         $left     = self::getFloatOrNull($this->rawData);
         $right    = self::getFloatOrNull($total);
@@ -481,7 +479,7 @@ class SmartString implements JsonSerializable
     /**
      * Replaces value if missing (null or ""), zero is not considered missing
      */
-    public function or(int|float|string|SmartString $fallback): SmartString
+    public function or(int|float|string|bool|null|SmartString $fallback): SmartString
     {
         $newValue = $this->isMissing() ? self::getRawValue($fallback) : $this->rawData;
         return new self($newValue, get_object_vars($this));
@@ -490,7 +488,7 @@ class SmartString implements JsonSerializable
     /**
      * Appends value if present (not null or ""), zero is considered present
      */
-    public function and(int|float|string|SmartString $value): SmartString
+    public function and(int|float|string|bool|null|SmartString $value): SmartString
     {
         $newValue = $this->rawData;
         if (!$this->isMissing()) {
@@ -502,7 +500,7 @@ class SmartString implements JsonSerializable
     /**
      * Prepends value if present (not null or ""), zero is considered present
      */
-    public function andPrefix(int|float|string|SmartString $prefix): SmartString
+    public function andPrefix(int|float|string|bool|null|SmartString $prefix): SmartString
     {
         $newValue = $this->rawData;
         if (!$this->isMissing()) {
@@ -514,7 +512,7 @@ class SmartString implements JsonSerializable
     /**
      * Replaces value only if it's an empty string ("")
      */
-    public function ifBlank(int|float|string|SmartString $fallback): SmartString
+    public function ifBlank(int|float|string|bool|null|SmartString $fallback): SmartString
     {
         $newValue = $this->rawData === "" ? self::getRawValue($fallback) : $this->rawData;
         return new self($newValue, get_object_vars($this));
@@ -523,7 +521,7 @@ class SmartString implements JsonSerializable
     /**
      * Replaces value only if it's null or undefined
      */
-    public function ifNull(int|float|string|SmartString $fallback): SmartString
+    public function ifNull(int|float|string|bool|null|SmartString $fallback): SmartString
     {
         $newValue = $this->rawData ?? self::getRawValue($fallback);
         return new self($newValue, get_object_vars($this));
@@ -532,7 +530,7 @@ class SmartString implements JsonSerializable
     /**
      * Replaces value only if it's zero (0, 0.0, "0", or "0.0")
      */
-    public function ifZero(int|float|string|SmartString $fallback): SmartString
+    public function ifZero(int|float|string|bool|null|SmartString $fallback): SmartString
     {
         $isZero   = is_numeric($this->rawData) && (float)$this->rawData === 0.0;
         $newValue = $isZero ? self::getRawValue($fallback) : $this->rawData;
@@ -721,7 +719,10 @@ class SmartString implements JsonSerializable
      */
     public function pregReplace(string $pattern, string $replacement): SmartString
     {
-        $newValue = preg_replace($pattern, $replacement, (string) $this->rawData);
+        $newValue = match (true) {
+            is_null($this->rawData) => null,
+            default                 => preg_replace($pattern, $replacement, (string) $this->rawData),
+        };
         return new self($newValue, get_object_vars($this));
     }
 
@@ -871,7 +872,7 @@ class SmartString implements JsonSerializable
             'isEmpty'        => ['isblank', 'empty'],
             'isMissing'      => ['isempty', 'ismissingvalue'],
             'isNotEmpty'     => ['isnotblank', 'hasvalue', 'ispresent', 'notempty'],
-            'jsonEncode'     => ['tojson', 'encodejson', 'jsencode', 'json_encode', 'json'],
+            'jsonEncode'     => ['tojson', 'encodejson', 'json_encode', 'json'],
             'maxChars'       => ['truncate', 'limit', 'limitchars', 'excerpt', 'shorten'],
             'maxWords'       => ['truncatewords', 'limitwords'],
             'multiply'       => ['times', 'mul'],
@@ -900,7 +901,7 @@ class SmartString implements JsonSerializable
         // throw unknown method Error
         // PHP Default Error: Fatal error: Uncaught Error: Call to undefined method SmartString::method() in C:\dev\projects\SmartString\test.php:17
         $suggestion ??= "call ->help() for available methods.";
-        $error      = sprintf("Call to undefined method %s->$method(), $suggestion\n", basename(self::class));
+        $error      = sprintf("Call to undefined method %s->$method(), $suggestion\n", self::stripNamespace(self::class));
         $error      .= self::occurredInFile();
         throw new Error($error);
     }
@@ -916,15 +917,16 @@ class SmartString implements JsonSerializable
         // deprecated methods, log and return new method (these may be removed in the future)
         if ($methodLc === 'fromarray') {
             self::logDeprecation("Replace SmartString::$method() with SmartArray::new(\$array)->asHtml()");
-            return new SmartArray(...$args);
+            return SmartArray::new(...$args)->asHtml();
         }
         if ($methodLc === 'rawvalue') {
+            self::logDeprecation("Replace SmartString::$method() with SmartString::getRawValue()");
             return self::getRawValue(...$args);
         }
 
         // throw unknown method Error
         // PHP Default Error: Fatal error: Uncaught Error: Call to undefined method SmartString::method() in C:\dev\projects\SmartString\test.php:17
-        $baseClass = basename(self::class);
+        $baseClass = self::stripNamespace(self::class);
         $error     = "Call to undefined method $baseClass::$method(), call ->help() for available methods.\n";
         $error     .= self::occurredInFile();
         throw new Error($error);
