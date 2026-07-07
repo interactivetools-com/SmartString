@@ -1,5 +1,11 @@
 # SmartString Changelog
 
+## [Unreleased]
+
+### Security
+- `jsonEncode()` now substitutes malformed UTF-8 bytes with � (U+FFFD) instead of throwing JsonException, so one corrupt byte in a value no longer breaks the whole page
+- `jsonEncode()` now re-escapes invisible Unicode (zero-width chars, bidi controls, Unicode tag chars, variation selectors) as visible \uXXXX escapes so nothing can hide in page source. Lossless: each escape decodes back to the identical character, so the value JavaScript sees never changes
+
 ## [2.6.3] - 2026-04-27
 > **Bundled with CMS Builder v3.83**
 > Roll-up release - every change from **v2.2.1 → v2.6.3** is now part of this version.

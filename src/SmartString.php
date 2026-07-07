@@ -203,16 +203,33 @@ class SmartString implements JsonSerializable
     /**
      * Safely encodes the data as a JSON string with specific flags for secure and accurate JavaScript embedding.
      *
+     * Escapes " ' < > & as \uXXXX so values can't break out of a <script> block or JS string, substitutes
+     * malformed UTF-8 with � (U+FFFD) instead of throwing, and re-escapes invisible Unicode (zero-width
+     * chars, bidi controls, variation selectors) as visible \uXXXX escapes so nothing can hide in page
+     * source. INF, NAN, and recursion still throw JsonException - those are always code bugs.
+     *
      * Example Usage:
-     * 1. `<script>var jsonString = <?php echo $var->jsonEncode() ?>;</script>` // Embedded in single quotes
-     * 3. `echo "<script>var data = {$this->jsonEncode()};</script>";`          // Direct output in script
+     * `<script>var jsonString = <?php echo $var->jsonEncode() ?>;</script>`
+     * `echo "<script>var data = {$this->jsonEncode()};</script>";`
      *
      * @return string The encoded JSON string, safely formatted for embedding in JavaScript.
      */
     public function jsonEncode(): string
     {
-        $flags = JSON_THROW_ON_ERROR | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
-        return json_encode($this->rawData, $flags);
+        $flags = JSON_THROW_ON_ERROR | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE;
+        $json  = json_encode($this->rawData, $flags);
+
+        // Re-escape invisible Unicode (format chars, variation selectors) as visible \uXXXX escapes.
+        // Lossless: each escape decodes back to the identical character, so the value JavaScript sees
+        // never changes. json_encode of the single char (without JSON_UNESCAPED_UNICODE) produces the
+        // correct escape, including surrogate pairs for chars above U+FFFF. The fast-path scan is
+        // cheaper than preg_replace_callback's setup when there is nothing to replace (the common case).
+        $invisibleRx = '/[\p{Cf}\x{FE00}-\x{FE0F}\x{E0100}-\x{E01EF}]/u';
+        if (preg_match($invisibleRx, $json)) {
+            $json = preg_replace_callback($invisibleRx, fn($m) => substr(json_encode($m[0]), 1, -1), $json);
+        }
+
+        return $json;
     }
 
     //endregion

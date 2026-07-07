@@ -307,6 +307,30 @@ class SmartStringTest extends TestCase
     }
 
     /**
+     * Test jsonEncode() substitutes malformed UTF-8 and escapes invisible Unicode
+     */
+    public function testJsonEncodeHardening(): void
+    {
+        // malformed UTF-8 byte becomes U+FFFD instead of throwing
+        $this->assertSame('"a�(b"', SmartString::new("a\xC3(b")->jsonEncode());
+
+        // invisible Unicode re-escaped as visible \uXXXX:
+        // zero-width space, RTL override, Unicode tag char, variation selectors 16 and 17
+        $this->assertSame('"a\u200bb"',       SmartString::new("a\u{200B}b")->jsonEncode());
+        $this->assertSame('"a\u202eb"',       SmartString::new("a\u{202E}b")->jsonEncode());
+        $this->assertSame('"a\udb40\udc41b"', SmartString::new("a\u{E0041}b")->jsonEncode());
+        $this->assertSame('"a\ufe0fb"',       SmartString::new("a\u{FE0F}b")->jsonEncode());
+        $this->assertSame('"a\udb40\udd00b"', SmartString::new("a\u{E0100}b")->jsonEncode());
+
+        // escaping is lossless: decoding returns the original characters
+        $original = "x\u{200B}\u{202E}\u{E0041}y";
+        $this->assertSame($original, json_decode(SmartString::new($original)->jsonEncode()));
+
+        // visible non-ASCII text stays raw
+        $this->assertSame('"café 日"', SmartString::new("café 日")->jsonEncode());
+    }
+
+    /**
      * Test textToHtml() method
      */
     public function testTextToHtml(): void
