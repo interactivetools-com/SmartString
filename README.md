@@ -673,9 +673,9 @@ or in an init file:
 |                                  `->isMissing()` | Returns true if the value is missing (null or ""), zero is not considered missing                                                       |
 |                                     `->isNull()` | Returns true if the value is null                                                                                                       |
 |                               **Error Checking** |                                                                                                                                         |
-|                              `->orDie($message)` | Outputs message and exits if the value is missing ("", null), zero is not considered missing                                            |                                                                 
-|                              `->or404($message)` | Outputs 404 header, message and exits if the value is missing ("", null), zero is not considered missing                                |
-|                            `->orThrow($message)` | Throws Exception with message if the value is missing ("", null), zero is not considered missing                                        |
+|                                 `->orDie($text)` | Outputs message and exits if the value is missing ("", null), zero is not considered missing                                            |                                                                 
+|                                 `->or404($text)` | Outputs 404 header, message and exits if the value is missing ("", null), zero is not considered missing                                |
+|                               `->orThrow($text)` | Throws Exception with message if the value is missing ("", null), zero is not considered missing                                        |
 |                             `->orRedirect($url)` | Redirects to URL if the value is missing ("", null), zero is not considered missing                                                     |
 |                                **Miscellaneous** |                                                                                                                                         |
 |                       `->apply($func, ...$args)` | Applies a custom function to the value                                                                                                  |
