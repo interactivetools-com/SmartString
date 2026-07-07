@@ -331,6 +331,20 @@ class SmartStringTest extends TestCase
     }
 
     /**
+     * Test json_encode($smartString) substitutes malformed UTF-8 via jsonSerialize()
+     */
+    public function testJsonSerializeSubstitutesMalformedUtf8(): void
+    {
+        // corrupt byte becomes U+FFFD instead of json_encode() returning false (default flags escape non-ASCII)
+        $this->assertSame('"a\ufffd(b"',          json_encode(SmartString::new("a\xC3(b")));
+        $this->assertSame('{"name":"a\ufffd(b"}', json_encode(['name' => SmartString::new("a\xC3(b")]));
+
+        // valid strings pass through untouched
+        $this->assertSame('"caf\u00e9"', json_encode(SmartString::new("café")));
+        $this->assertSame('"café"',      json_encode(SmartString::new("café"), JSON_UNESCAPED_UNICODE));
+    }
+
+    /**
      * Test textToHtml() method
      */
     public function testTextToHtml(): void

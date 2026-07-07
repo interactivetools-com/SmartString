@@ -21,6 +21,12 @@ class SmartString implements JsonSerializable
     use ErrorHelpersTrait;
 
     /**
+     * Flags for HTML-encoding output. ENT_DISALLOWED substitutes code points HTML5 forbids
+     * (C1 controls, noncharacters) with � so they can't hide in page source.
+     */
+    private const HTML_ENCODE_FLAGS = ENT_QUOTES | ENT_SUBSTITUTE | ENT_DISALLOWED | ENT_HTML5;
+
+    /**
      * The raw stored value (type as passed: string|int|float|bool|null).
      */
     private string|int|float|bool|null $rawData;
@@ -163,7 +169,7 @@ class SmartString implements JsonSerializable
      */
     public function htmlEncode(): string
     {
-        return htmlspecialchars((string)$this->rawData, ENT_QUOTES | ENT_SUBSTITUTE | ENT_DISALLOWED | ENT_HTML5, 'UTF-8');
+        return htmlspecialchars((string)$this->rawData, self::HTML_ENCODE_FLAGS, 'UTF-8');
     }
 
     /**
@@ -181,7 +187,7 @@ class SmartString implements JsonSerializable
      */
     public function textToHtml(bool $keepBr = false): string
     {
-        $encoded = htmlspecialchars((string)$this->rawData, ENT_QUOTES | ENT_SUBSTITUTE | ENT_DISALLOWED | ENT_HTML5, 'UTF-8');
+        $encoded = htmlspecialchars((string)$this->rawData, self::HTML_ENCODE_FLAGS, 'UTF-8');
         return $keepBr
             ? preg_replace('|&lt;(br\s*/?)&gt;|i', "<$1>", $encoded)
             : nl2br($encoded, false);
@@ -625,8 +631,10 @@ class SmartString implements JsonSerializable
 
     /**
      * Sends 404 header and exits if the current value is missing (null or ""), zero is not considered missing
+     *
+     * @param string|null $text Plain-text message; HTML-encoded automatically before output. Defaults to "The requested URL was not found on this server."
      */
-    public function or404(?string $message = null): self
+    public function or404(?string $text = null): self
     {
         if (!$this->isMissing()) {
             return $this;
@@ -634,8 +642,8 @@ class SmartString implements JsonSerializable
 
         http_response_code(404);
         header("Content-Type: text/html; charset=utf-8");
-        $message ??= "The requested URL was not found on this server.";
-        $message = htmlspecialchars($message, ENT_QUOTES | ENT_SUBSTITUTE | ENT_DISALLOWED | ENT_HTML5, 'UTF-8');
+        $text ??= "The requested URL was not found on this server.";
+        $text = htmlspecialchars($text, self::HTML_ENCODE_FLAGS, 'UTF-8');
 
         echo <<<__HTML__
             <!DOCTYPE html>
@@ -645,7 +653,7 @@ class SmartString implements JsonSerializable
             </head>
             <body>
                 <h1>Not Found</h1>
-                <p>$message</p>
+                <p>$text</p>
             </body>
             </html>
             __HTML__;
@@ -654,24 +662,40 @@ class SmartString implements JsonSerializable
 
     /**
      * Outputs message and exits if the current value is missing (null or ""), zero is not considered missing
+     *
+     * SECURITY: The message is intentionally HTML-encoded: die() sends it straight to the browser, and
+     * messages often interpolate user input (e.g. ->orDie("Bad id: $id")). The only cost is encoded
+     * entities in CLI output, which is cosmetic.
+     *
+     * @param string $text Plain-text message; HTML-encoded automatically before output.
      */
-    public function orDie(string $message): self
+    public function orDie(string $text): self
     {
         if ($this->isMissing()) {
-            $message = htmlspecialchars($message, ENT_QUOTES | ENT_SUBSTITUTE | ENT_DISALLOWED | ENT_HTML5, 'UTF-8'); // HTML-encode to prevent XSS in browser output
-            die($message);
+            $text = htmlspecialchars($text, self::HTML_ENCODE_FLAGS, 'UTF-8'); // SECURITY: intentional encode, do not remove (see docblock)
+            die($text);
         }
         return $this;
     }
 
     /**
      * Throws Exception with message if the current value is missing (null or ""), zero is not considered missing
+     *
+     * SECURITY: The message is intentionally HTML-encoded: exception handlers often echo messages into
+     * a page, and messages often interpolate user input (e.g. ->orThrow("Bad id: $id")). Encoding at
+     * throw time keeps every handler safe. Handlers that want plain text (CLI, logs) can decode with:
+     *
+     *     htmlspecialchars_decode($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5)
+     *
+     * Pass those exact flags - the ENT_HTML401 default doesn't decode the &apos; this encoding produces.
+     *
+     * @param string $text Plain-text message; HTML-encoded automatically before output.
      */
-    public function orThrow(string $message): self
+    public function orThrow(string $text): self
     {
         if ($this->isMissing()) {
-            $message = htmlspecialchars($message, ENT_QUOTES | ENT_SUBSTITUTE | ENT_DISALLOWED | ENT_HTML5, 'UTF-8'); // HTML-encode to prevent XSS if exception is displayed in browser
-            throw new RuntimeException($message);
+            $text = htmlspecialchars($text, self::HTML_ENCODE_FLAGS, 'UTF-8'); // SECURITY: intentional encode, do not remove (see docblock)
+            throw new RuntimeException($text);
         }
         return $this;
     }
@@ -799,7 +823,7 @@ class SmartString implements JsonSerializable
      */
     public function __toString(): string
     {
-        return htmlspecialchars((string)$this->rawData, ENT_QUOTES | ENT_SUBSTITUTE | ENT_DISALLOWED | ENT_HTML5, 'UTF-8');
+        return htmlspecialchars((string)$this->rawData, self::HTML_ENCODE_FLAGS, 'UTF-8');
     }
 
     /**
@@ -970,10 +994,18 @@ class SmartString implements JsonSerializable
      *
      * You never need to call this directly, as PHP will call it automatically when you pass a SmartString object to json_encode().
      *
+     * Substitutes malformed UTF-8 with � (U+FFFD) so json_encode($smartString) returns valid JSON instead
+     * of false, matching jsonEncode(). Escaping flags are still up to the caller.
+     *
      * @see jsonEncode() Preferred for encoded JSON strings, escapes <, >, and & characters so they are safe for embedding in HTML.
- */
+     */
     public function jsonSerialize(): mixed
     {
+        // json_encode's own U+FFFD substitution, so this path and jsonEncode() produce identical characters
+        if (is_string($this->rawData) && preg_match('//u', $this->rawData) !== 1) { // isMalformed: ~5x faster than mb_check_encoding()
+            return json_decode(json_encode($this->rawData, JSON_INVALID_UTF8_SUBSTITUTE));
+        }
+
         return $this->rawData;
     }
 
