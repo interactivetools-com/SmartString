@@ -920,14 +920,14 @@ class SmartString implements JsonSerializable
             'numberFormat'   => ['formatnumber', 'number_format', 'format'],
             'or'             => ['default', 'ifmissing', 'fallback', 'else'],
             'phoneFormat'    => ['formatphone', 'phone', 'phone_format'],
-            'rawHtml'        => ['unsafe', 'unescaped', 'trusted'],
+            'rawHtml'        => ['unsafe', 'unescaped', 'trusted', 'trustedhtml', 'unsafehtml', 'raw', 'html'],
             'set'            => ['setvalue', 'replace'],
             'string'         => ['tostring', 'getstring', 'str'],
             'subtract'       => ['minus', 'sub'],
             'textOnly'       => ['plaintext', 'striphtml', 'strip', 'text'],
             'textToHtml'     => ['tohtml', 'text2html'],
             'urlEncode'      => ['escapeurl', 'encodeurl', 'url_encode', 'urlencode'],
-            'value'          => ['raw', 'noescape', 'getvalue', 'val'],
+            'value'          => ['noescape', 'getvalue', 'val'],
         ];
 
         // Check if the called method is an alias
