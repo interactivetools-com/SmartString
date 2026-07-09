@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Tests;
 
 use InvalidArgumentException;
+use Itools\SmartArray\SmartArray;
 use Itools\SmartArray\SmartArrayBase;
 use Itools\SmartArray\SmartArrayHtml;
+use Itools\SmartArray\SmartNull;
 use Itools\SmartString\SmartString;
 use PHPUnit\Framework\TestCase;
 use TypeError;
@@ -799,6 +801,16 @@ class SmartStringTest extends TestCase
                 'Y-m-d H:i:s T',
                 '2023-05-15 05:30:00 MST',
             ],
+            'Boolean true'              => [
+                true,
+                'Y-m-d T',
+                null,
+            ],
+            'Boolean false'             => [
+                false,
+                'Y-m-d T',
+                null,
+            ],
         ];
     }
 
@@ -1067,6 +1079,23 @@ class SmartStringTest extends TestCase
         ];
     }
 
+    /**
+     * getRawValue() unwraps every Smart* type, including SmartArrayHtml
+     */
+    public function testGetRawValue(): void
+    {
+        $this->assertSame('x', SmartString::getRawValue(SmartString::new('x')));
+        $this->assertSame(['a' => 1], SmartString::getRawValue(SmartArray::new(['a' => 1])));
+        $this->assertSame(['a' => 1], SmartString::getRawValue(SmartArrayHtml::new(['a' => 1])));
+        $this->assertNull(SmartString::getRawValue(SmartArray::new([])->first())); // SmartNull
+        $this->assertSame(['k' => ['a' => 1]], SmartString::getRawValue(['k' => SmartArrayHtml::new(['a' => 1])]));
+        $this->assertSame(5, SmartString::getRawValue(5));
+        $this->assertNull(SmartString::getRawValue(null));
+
+        $this->expectException(InvalidArgumentException::class);
+        SmartString::getRawValue((object)['a' => 1]);
+    }
+
     // endregion
     // region Numeric Operations
 
@@ -1123,6 +1152,67 @@ class SmartStringTest extends TestCase
 
         // Formatted numbers with commas are non-numeric
         $this->assertNull(SmartString::new(10)->add(SmartString::new('1,234'))->value(), "Formatted numbers should be treated as non-numeric");
+    }
+
+    /**
+     * Math results are float (or null), and rescued values can do math again
+     */
+    public function testMathReturnsFloatAndRescueWorks(): void
+    {
+        // float contract
+        $this->assertSame(8.0, SmartString::new(5)->add(3)->value());
+        $this->assertSame(15.0, SmartString::new(5)->multiply(3)->value());
+
+        // a failed operation returns null; or()/set() rescue the chain and math works again
+        $this->assertNull(SmartString::new('abc')->add(5)->value());
+        $this->assertSame(15.0, SmartString::new('abc')->add(5)->or(10)->add(5)->value());
+        $this->assertSame(15.0, SmartString::new('abc')->add(5)->set(10)->add(5)->value());
+        $this->assertSame(15.0, SmartString::new(null)->add(5)->ifNull(10)->add(5)->value());
+    }
+
+    /**
+     * Math and conditional methods accept literal null, bool, and SmartNull arguments
+     */
+    public function testWidenedArgumentTypes(): void
+    {
+        $smartNull = SmartArray::new([])->first();
+        $this->assertInstanceOf(SmartNull::class, $smartNull);
+
+        // math: literal null and bool produce null results (non-numeric), no TypeError
+        $this->assertNull(SmartString::new(10)->add(null)->value());
+        $this->assertNull(SmartString::new(10)->subtract(true)->value());
+        $this->assertNull(SmartString::new(10)->multiply(null)->value());
+        $this->assertNull(SmartString::new(10)->divide(null)->value());
+        $this->assertNull(SmartString::new(10)->percentOf(null)->value());
+        $this->assertNull(SmartString::new(10)->add($smartNull)->value());
+
+        // conditionals: SmartNull behaves like null
+        $this->assertSame('x', SmartString::new('x')->or($smartNull)->value());
+        $this->assertNull(SmartString::new(null)->or($smartNull)->value());
+        $this->assertNull(SmartString::new(null)->ifNull($smartNull)->value());
+        $this->assertSame('kept', SmartString::new('kept')->and($smartNull)->value());
+
+        // if(): SmartNull condition is falsy, no TypeError
+        $this->assertSame(5, SmartString::new(5)->if($smartNull, 99)->value());
+    }
+
+    /**
+     * percent()/percentOf() honor the global separator settings like numberFormat()
+     */
+    public function testPercentHonorsGlobalSeparators(): void
+    {
+        $origDecimal   = SmartString::$numberFormatDecimal;
+        $origThousands = SmartString::$numberFormatThousands;
+        SmartString::$numberFormatDecimal   = ',';
+        SmartString::$numberFormatThousands = '.';
+
+        try {
+            $this->assertSame('1.234.567,80%', SmartString::new(12345.678)->percent(2)->value());
+            $this->assertSame('1.234.567,00%', SmartString::new(1234567)->percentOf(100, 2)->value());
+        } finally {
+            SmartString::$numberFormatDecimal   = $origDecimal;
+            SmartString::$numberFormatThousands = $origThousands;
+        }
     }
 
     /**
@@ -1863,8 +1953,15 @@ class SmartStringTest extends TestCase
 
     public function testPregReplaceInvalidPattern(): void
     {
-        $result = @SmartString::new('test')->pregReplace('/[/', 'X');
-        $this->assertNull($result->value());
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('pregReplace():');
+        SmartString::new('test')->pregReplace('/[/', 'X');
+    }
+
+    public function testPregReplaceNullInputSkipsPatternCheck(): void
+    {
+        // null propagates before the pattern runs, even an invalid one
+        $this->assertNull(SmartString::new(null)->pregReplace('/[/', 'X')->value());
     }
 
     // endregion
@@ -2116,6 +2213,17 @@ class SmartStringTest extends TestCase
 
     // endregion
     // region Debugging & Help
+
+    public function testHelpStaticCall(): void
+    {
+        // README's Quick Start uses the static form
+        ob_start();
+        $result = SmartString::help('passthrough');
+        $output = ob_get_clean();
+
+        $this->assertSame('passthrough', $result);
+        $this->assertStringContainsString('SmartString: Enhanced Strings', $output);
+    }
 
     public function testHelpMethod(): void
     {

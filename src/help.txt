@@ -10,7 +10,7 @@ $req = SmartArray::new($_REQUEST)->asHtml();            // Create a SmartArray o
 
 // Advanced: For direct instantiation with a specific type:
 // $html = SmartArrayHtml::new($data);   // Direct creation of HTML-safe SmartArray
-// $raw  = SmartArrayRaw::new($data);    // Direct creation of raw-value SmartArray
+// $raw  = SmartArray::new($data);       // Direct creation of raw-value SmartArray
 
 Value access
 -------------
@@ -62,14 +62,14 @@ Formatting (returns object, chainable)
 
 Numeric Operations (returns object, chainable)
 -----------------------------------------------
-->percent($decimals, $zeroFallback)  Returns value as a percentage, e.g. 0.5 becomes 50%, with optional fallback value if result is zero
+->percent($decimals)                 Returns value as a percentage, e.g. 0.5 becomes 50% (chain ->ifZero() for a zero fallback)
 ->percentOf($total, $decimals)       Returns value as a percentage of $total, e.g., 24 of 100 becomes 24%
 ->add($value)                        Returns value plus $value
 ->subtract($value)                   Returns value minus $value
 ->divide($value)                     Returns value divided by $value
 ->multiply($value)                   Returns value multiplied by $value
 
-Note: Null and non-numeric strings always become null in numeric operations.
+Note: Null and non-numeric values always become null in numeric operations; results are floats.
 
 Conditional Operations (returns object, chainable)
 ---------------------------------------------------

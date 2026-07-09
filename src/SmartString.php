@@ -6,6 +6,7 @@ namespace Itools\SmartString;
 use Error;
 use InvalidArgumentException;
 use Itools\SmartArray\SmartArray;
+use Itools\SmartArray\SmartArrayBase;
 use Itools\SmartArray\SmartArrayHtml;
 use Itools\SmartArray\SmartNull;
 use JsonSerializable;
@@ -31,12 +32,6 @@ class SmartString implements JsonSerializable
      */
     private string|int|float|bool|null $rawData;
 
-    /**
-     * Flag to indicate if a numeric operation resulted in an error (e.g., non-numeric value, division by zero, or null if above flag is true).
-     * This flag is used to prevent further operations on the result.  e.g., one error in a chain of operations will propagate to the end and return null.
-     */
-    private bool $hasNumericError;
-
     //region Global Settings
 
     // default formats
@@ -56,15 +51,12 @@ class SmartString implements JsonSerializable
      * Initializes a new SmartString object with the given value.
      *
      * @param string|int|float|bool|null $value The value to store
-     * @param array $properties Optional properties to initialize the object with
      *
      * @example $value = new SmartString('<b>Hello World!</b>');
      */
-    public function __construct(string|int|float|bool|null $value, array $properties = [])
+    public function __construct(string|int|float|bool|null $value)
     {
-        // set properties
-        $this->rawData         = $value;
-        $this->hasNumericError = $properties['hasNumericError'] ?? false;
+        $this->rawData = $value;
     }
 
     /**
@@ -74,16 +66,15 @@ class SmartString implements JsonSerializable
      *          $rows = SmartArray::new($resultSet)->asHtml();              // SmartArray of SmartStrings
      *
      * @param string|int|float|bool|array|null $value
-     * @param array                            $properties
-     * @return SmartArrayHtml|SmartArray|SmartString The newly created SmartString object.
+     * @return SmartArrayHtml|SmartString The newly created SmartString object.
      */
-    public static function new(string|int|float|bool|null|array $value, array $properties = []): SmartArrayHtml|SmartArray|SmartString
+    public static function new(string|int|float|bool|null|array $value): SmartArrayHtml|SmartString
     {
         if (is_array($value)) {
             self::logDeprecation("Replace SmartString::new(\$array) with SmartArray::new(\$array)->asHtml()");
             return new SmartArrayHtml($value);
         }
-        return new self($value, $properties);
+        return new self($value);
     }
 
     /**
@@ -103,9 +94,9 @@ class SmartString implements JsonSerializable
     public static function getRawValue(mixed $value): mixed
     {
         return match (true) {
-            $value instanceof self       => $value->value(),
-            $value instanceof SmartArray => $value->toArray(),
-            $value instanceof SmartNull  => null,
+            $value instanceof self           => $value->value(),
+            $value instanceof SmartArrayBase => $value->toArray(), // SmartArray and SmartArrayHtml
+            $value instanceof SmartNull      => null,
             is_scalar($value)            => $value,
             is_null($value)              => $value,
             is_array($value)             => array_map([self::class, 'getRawValue'], $value), // for manually passed in arrays
@@ -211,6 +202,9 @@ class SmartString implements JsonSerializable
      * Example Output: "Save 10%+ off" becomes "Save+10%25%2B+off"
      * Example Usage: echo "?company=$company&offer=$offer"; // encode url parameter values only
      *
+     * Invalid UTF-8 bytes are percent-encoded as-is (not substituted with � like
+     * htmlEncode/jsonEncode) - urlencode() is byte-level by design.
+     *
      * @return string The URL-encoded string.
      */
     public function urlEncode(): string
@@ -262,7 +256,7 @@ class SmartString implements JsonSerializable
             is_null($this->rawData) => null,
             default                 => trim(strip_tags(html_entity_decode((string)$this->rawData, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8'))),
         };
-        return new self($newValue, get_object_vars($this));
+        return new self($newValue);
     }
 
 
@@ -275,7 +269,7 @@ class SmartString implements JsonSerializable
             is_null($this->rawData) => null,
             default                 => trim((string)$this->rawData, ...$args),
         };
-        return new self($newValue, get_object_vars($this));
+        return new self($newValue);
     }
 
     /**
@@ -294,7 +288,7 @@ class SmartString implements JsonSerializable
             }
         }
 
-        return new self($newValue, get_object_vars($this));
+        return new self($newValue);
     }
 
     /**
@@ -317,7 +311,7 @@ class SmartString implements JsonSerializable
             }
         }
 
-        return new self($newValue, get_object_vars($this));
+        return new self($newValue);
     }
 
     //endregion
@@ -325,6 +319,9 @@ class SmartString implements JsonSerializable
 
     /**
      * Formats a date using default or specified format.  Returns null on failure.
+     *
+     * Numeric values are treated as unix timestamps (so '2024' formats as epoch + 2024
+     * seconds, not as a year); everything else is parsed with strtotime().
      *
      * @param string|null $format Date format (default: SmartString::$dateFormat)
      * @return SmartString Formatted date or null on failure
@@ -334,13 +331,14 @@ class SmartString implements JsonSerializable
         $format    ??= self::$dateFormat;
         $timestamp = match (true) {
             is_null($this->rawData)    => null,
+            is_bool($this->rawData)    => null,
             is_numeric($this->rawData) => (int)$this->rawData,
             default                    => strtotime($this->rawData) ?: null,
         };
 
         $newValue = !is_null($timestamp) ? date($format, $timestamp) : null;
 
-        return new self($newValue, get_object_vars($this));
+        return new self($newValue);
     }
 
     /**
@@ -376,7 +374,7 @@ class SmartString implements JsonSerializable
             !is_numeric($this->rawData) => null,
             default                     => number_format((float)$this->rawData, $decimals, self::$numberFormatDecimal, self::$numberFormatThousands),
         };
-        return new self($newValue, get_object_vars($this));
+        return new self($newValue);
     }
 
     /**
@@ -398,8 +396,9 @@ class SmartString implements JsonSerializable
     {
         $newValue = null;
 
-        // get array of digits only
-        $digits = str_split(preg_replace('/\D/', '', (string)$this->rawData));
+        // get array of digits only ('' check: str_split('') returns [''] on PHP 8.1 but [] on 8.2+)
+        $digitsOnly = preg_replace('/\D/', '', (string)$this->rawData);
+        $digits     = $digitsOnly === '' ? [] : str_split($digitsOnly);
 
         // get phone format by number of digits, e.g., 10 => '(###) ###-####'
         $phoneFormatByDigits = array_column(self::$phoneFormat, 'format', 'digits');
@@ -411,7 +410,7 @@ class SmartString implements JsonSerializable
             $newValue = sprintf($format, ...$digits);
         }
 
-        return new self($newValue, get_object_vars($this));
+        return new self($newValue);
     }
 
     //endregion
@@ -424,8 +423,8 @@ class SmartString implements JsonSerializable
      * - Otherwise a percentage is returned. e.g., 0.1234 => 12.34%
      *
      * @param int $decimals Number of decimal places in formatted output
-     * @param string|int|float|null $zeroFallback Alternative value to return when input is zero
-     * @return SmartString Formatted percentage, zeroFallback value if zero, or null if not numeric
+     * @param string|int|float|null $zeroFallback Deprecated - use ->percent($decimals)->ifZero($fallback) instead
+     * @return SmartString Formatted percentage, or null if not numeric
      *
      * @example Converting numbers to percentages:
      *   $val = SmartString::new(0.1234);
@@ -433,79 +432,80 @@ class SmartString implements JsonSerializable
      *
      * @example Handling zero values:
      *   $zero = SmartString::new(0);
-     *   echo $zero->percent(2);          // "0.00%"
-     *   echo $zero->percent(2, "None");  // "None"
+     *   echo $zero->percent(2);                  // "0.00%"
+     *   echo $zero->percent(2)->ifZero("None");  // "None"
      */
     public function percent(int $decimals = 0, string|int|float|null $zeroFallback = null): SmartString
     {
+        if (!is_null($zeroFallback)) {
+            self::logDeprecation('Replace ->percent($decimals, $zeroFallback) with ->percent($decimals)->ifZero($fallback)');
+        }
+
         $value    = self::getFloatOrNull($this->rawData);
-        $hasError = $this->hasNumericError || is_null($value);
         $newValue = match (true) {
-            $hasError                                 => null,
+            is_null($value)                           => null,
             $value === 0.0 && !is_null($zeroFallback) => $zeroFallback,
-            default                                   => number_format($value * 100, $decimals) . '%',
+            default                                   => number_format($value * 100, $decimals, self::$numberFormatDecimal, self::$numberFormatThousands) . '%',
         };
-        return new self($newValue, ['hasNumericError' => $hasError]);
+        return new self($newValue);
     }
 
     /**
-     * Returns the current value as a percentage of $total, e.g., 24 of 100 becomes 24%. Returns null if either value is non-numeric.
+     * Returns the current value as a percentage of $total, e.g., 24 of 100 becomes 24%.
+     * Returns null if either value is non-numeric or $total is zero.
      */
-    public function percentOf(int|float|string|SmartString|SmartNull $total, int $decimals = 0): SmartString
+    public function percentOf(int|float|string|bool|null|SmartString|SmartNull $total, int $decimals = 0): SmartString
     {
         $left     = self::getFloatOrNull($this->rawData);
         $right    = self::getFloatOrNull($total);
-        $hasError = $this->hasNumericError || is_null($left) || is_null($right) || $right === 0.0;
-        $newValue = $hasError ? null : number_format($left / $right * 100, $decimals) . '%';
-        return new self($newValue, ['hasNumericError' => $hasError]);
+        $newValue = (is_null($left) || is_null($right) || $right === 0.0)
+            ? null
+            : number_format($left / $right * 100, $decimals, self::$numberFormatDecimal, self::$numberFormatThousands) . '%';
+        return new self($newValue);
     }
 
     /**
-     * Adds $addend to the current value. Returns null if either value is non-numeric.
+     * Adds $addend to the current value. Returns null if either value is non-numeric. Result is a float.
      */
-    public function add(int|float|string|SmartString|SmartNull $addend): SmartString
+    public function add(int|float|string|bool|null|SmartString|SmartNull $addend): SmartString
     {
         $left     = self::getFloatOrNull($this->rawData);
         $right    = self::getFloatOrNull($addend);
-        $hasError = $this->hasNumericError || is_null($left) || is_null($right);
-        $newValue = $hasError ? null : $left + $right;
-        return new self($newValue, ['hasNumericError' => $hasError]);
+        $newValue = (is_null($left) || is_null($right)) ? null : $left + $right;
+        return new self($newValue);
     }
 
     /**
-     * Subtracts $subtrahend from the current value. Returns null if either value is non-numeric.
+     * Subtracts $subtrahend from the current value. Returns null if either value is non-numeric. Result is a float.
      */
-    public function subtract(int|float|string|SmartString|SmartNull $subtrahend): SmartString
+    public function subtract(int|float|string|bool|null|SmartString|SmartNull $subtrahend): SmartString
     {
         $left     = self::getFloatOrNull($this->rawData);
         $right    = self::getFloatOrNull($subtrahend);
-        $hasError = $this->hasNumericError || is_null($left) || is_null($right);
-        $newValue = $hasError ? null : $left - $right;
-        return new self($newValue, ['hasNumericError' => $hasError]);
+        $newValue = (is_null($left) || is_null($right)) ? null : $left - $right;
+        return new self($newValue);
     }
 
     /**
-     * Multiplies the current value by $multiplier. Returns null if either value is non-numeric.
+     * Multiplies the current value by $multiplier. Returns null if either value is non-numeric. Result is a float.
      */
-    public function multiply(int|float|string|SmartString|SmartNull $multiplier): SmartString
+    public function multiply(int|float|string|bool|null|SmartString|SmartNull $multiplier): SmartString
     {
         $left     = self::getFloatOrNull($this->rawData);
         $right    = self::getFloatOrNull($multiplier);
-        $hasError = $this->hasNumericError || is_null($left) || is_null($right);
-        $newValue = $hasError ? null : $left * $right;
-        return new self($newValue, ['hasNumericError' => $hasError]);
+        $newValue = (is_null($left) || is_null($right)) ? null : $left * $right;
+        return new self($newValue);
     }
 
     /**
-     * Divides the current value by $divisor. Returns null if either value is non-numeric or the divisor is zero.
+     * Divides the current value by $divisor. Returns null if either value is non-numeric or the divisor is zero. Result is a float.
      */
-    public function divide(int|float|string|SmartString|SmartNull $divisor): SmartString
+    public function divide(int|float|string|bool|null|SmartString|SmartNull $divisor): SmartString
     {
         $left     = self::getFloatOrNull($this->rawData);
         $right    = self::getFloatOrNull($divisor);
-        $hasError = $this->hasNumericError || is_null($left) || is_null($right) || $right === 0.0;
-        $newValue = $hasError ? null : $left / $right;
-        return new self($newValue, ['hasNumericError' => $hasError]);
+        $newValue = (is_null($left) || is_null($right) || $right === 0.0) ? null : $left / $right;
+        return new self($newValue);
     }
 
     //endregion
@@ -514,71 +514,75 @@ class SmartString implements JsonSerializable
     /**
      * Replaces value if missing (null or ""), zero is not considered missing
      */
-    public function or(int|float|string|bool|null|SmartString $fallback): SmartString
+    public function or(int|float|string|bool|null|SmartString|SmartNull $fallback): SmartString
     {
         $newValue = $this->isMissing() ? self::getRawValue($fallback) : $this->rawData;
-        return new self($newValue, get_object_vars($this));
+        return new self($newValue);
     }
 
     /**
      * Appends value if present (not null or ""), zero is considered present
+     *
+     * false also counts as present but converts to "", so only the appended value appears.
      */
-    public function and(int|float|string|bool|null|SmartString $value): SmartString
+    public function and(int|float|string|bool|null|SmartString|SmartNull $value): SmartString
     {
         $newValue = $this->rawData;
         if (!$this->isMissing()) {
             $newValue .= self::getRawValue($value);
         }
-        return new self($newValue, get_object_vars($this));
+        return new self($newValue);
     }
 
     /**
      * Prepends value if present (not null or ""), zero is considered present
+     *
+     * false also counts as present but converts to "", so only the prepended value appears.
      */
-    public function andPrefix(int|float|string|bool|null|SmartString $prefix): SmartString
+    public function andPrefix(int|float|string|bool|null|SmartString|SmartNull $prefix): SmartString
     {
         $newValue = $this->rawData;
         if (!$this->isMissing()) {
             $newValue = self::getRawValue($prefix) . $newValue;
         }
-        return new self($newValue, get_object_vars($this));
+        return new self($newValue);
     }
 
     /**
      * Replaces value only if it's an empty string ("")
      */
-    public function ifBlank(int|float|string|bool|null|SmartString $fallback): SmartString
+    public function ifBlank(int|float|string|bool|null|SmartString|SmartNull $fallback): SmartString
     {
         $newValue = $this->rawData === "" ? self::getRawValue($fallback) : $this->rawData;
-        return new self($newValue, get_object_vars($this));
+        return new self($newValue);
     }
 
     /**
      * Replaces value only if it's null or undefined
      */
-    public function ifNull(int|float|string|bool|null|SmartString $fallback): SmartString
+    public function ifNull(int|float|string|bool|null|SmartString|SmartNull $fallback): SmartString
     {
         $newValue = $this->rawData ?? self::getRawValue($fallback);
-        return new self($newValue, get_object_vars($this));
+        return new self($newValue);
     }
 
     /**
      * Replaces value only if it's zero (0, 0.0, "0", or "0.0")
      */
-    public function ifZero(int|float|string|bool|null|SmartString $fallback): SmartString
+    public function ifZero(int|float|string|bool|null|SmartString|SmartNull $fallback): SmartString
     {
         $isZero   = is_numeric($this->rawData) && (float)$this->rawData === 0.0;
         $newValue = $isZero ? self::getRawValue($fallback) : $this->rawData;
-        return new self($newValue, get_object_vars($this));
+        return new self($newValue);
     }
 
     /**
      * Sets to $valueIfTrue only if $condition is true ($value can be a SmartString)
      */
-    public function if(string|int|float|bool|null|SmartString $condition, string|int|float|bool|null|SmartString|SmartNull $valueIfTrue): SmartString
+    public function if(string|int|float|bool|null|SmartString|SmartNull $condition, string|int|float|bool|null|SmartString|SmartNull $valueIfTrue): SmartString
     {
         $newValue = self::getRawValue($condition) ? self::getRawValue($valueIfTrue) : $this->rawData;
-        return new self($newValue, get_object_vars($this));
+        return new self($newValue);
     }
 
     /**
@@ -587,7 +591,7 @@ class SmartString implements JsonSerializable
     public function set(string|int|float|bool|null|SmartString|SmartNull $newValue): SmartString
     {
         $newValue = self::getRawValue($newValue);
-        return new self($newValue, get_object_vars($this));
+        return new self($newValue);
     }
 
     //endregion
@@ -595,6 +599,9 @@ class SmartString implements JsonSerializable
 
     /**
      * Returns true if the value is empty ("", null, false, 0, "0"), uses PHP empty()
+     *
+     * Zero IS empty here but is NOT missing to isMissing() and the or/and family -
+     * use isMissing() when a legitimate 0 must count as present.
      *
      * This is useful for conditionally showing blocks of HTML:
      * if ($value->isEmpty()) { echo "<p>No data available</p>"; }
@@ -617,6 +624,9 @@ class SmartString implements JsonSerializable
 
     /**
      * Checks if the current value is missing (null or "")
+     *
+     * Zero is NOT missing here (it's a real value) but IS empty to isEmpty() -
+     * the or/and family and the or404/orDie/orThrow guards all use this definition.
      *
      * @return bool True if the value is missing (null or "")
      */
@@ -679,13 +689,15 @@ class SmartString implements JsonSerializable
      * messages often interpolate user input (e.g. ->orDie("Bad id: $id")). The only cost is encoded
      * entities in CLI output, which is cosmetic.
      *
+     * Exits with code 1 so CLI and cron callers see a failure, not success.
+     *
      * @param string $text Plain-text message; HTML-encoded automatically before output.
      */
     public function orDie(string $text): self
     {
         if ($this->isMissing()) {
-            $text = htmlspecialchars($text, self::HTML_ENCODE_FLAGS, 'UTF-8'); // SECURITY: intentional encode, do not remove (see docblock)
-            die($text);
+            echo htmlspecialchars($text, self::HTML_ENCODE_FLAGS, 'UTF-8'); // SECURITY: intentional encode, do not remove (see docblock)
+            exit(1);
         }
         return $this;
     }
@@ -716,7 +728,8 @@ class SmartString implements JsonSerializable
      * Redirects to a URL if the current value is missing (null or ""), zero is not considered missing
      *
      * Uses a simple Location header redirect (HTTP 302 Temporary Redirect).
-     * If headers have already been sent, this method will throw an exception.
+     * If headers have already been sent, this method throws - even when the value is
+     * present - so misuse fails on the first request instead of only on empty values.
      *
      * @param string $url The URL to redirect to if value is missing
      * @return self Returns $this for method chaining if not missing, redirects if missing
@@ -756,7 +769,7 @@ class SmartString implements JsonSerializable
         if (!is_null($newValue) && !is_scalar($newValue)) {
             throw new InvalidArgumentException("apply() callback must return a scalar value (string, int, float, bool, or null), got " . get_debug_type($newValue));
         }
-        return new self($newValue, get_object_vars($this));
+        return new self($newValue);
     }
 
     /**
@@ -769,23 +782,32 @@ class SmartString implements JsonSerializable
      * @param string $pattern Regex pattern
      * @param string $replacement Replacement string (supports backreferences)
      * @return SmartString A new SmartString with the replaced value
+     * @throws InvalidArgumentException If the pattern is invalid or matching fails
      */
     public function pregReplace(string $pattern, string $replacement): SmartString
     {
-        $newValue = match (true) {
-            is_null($this->rawData) => null,
-            default                 => preg_replace($pattern, $replacement, (string) $this->rawData),
-        };
-        return new self($newValue, get_object_vars($this));
+        if (is_null($this->rawData)) {
+            return new self(null);
+        }
+
+        error_clear_last();
+        $newValue = @preg_replace($pattern, $replacement, (string)$this->rawData); // @: PHP warning becomes the exception below
+        if (is_null($newValue)) {
+            $reason = error_get_last()['message'] ?? preg_last_error_msg();
+            throw new InvalidArgumentException("pregReplace(): $reason");
+        }
+        return new self($newValue);
     }
 
     //endregion
     //region Debugging and Help
 
     /**
-     * Displays helpful documentation about SmartString methods and functionality
+     * Displays helpful documentation about SmartString methods and functionality.
+     *
+     * Static so both documented call forms work: SmartString::help() and $str->help().
      */
-    public function help(mixed $value = null): mixed
+    public static function help(mixed $value = null): mixed
     {
         $helpPath = __DIR__ . '/help.txt';
 
@@ -879,7 +901,7 @@ class SmartString implements JsonSerializable
         $error .= self::occurredInFile();
         trigger_error($error, E_USER_WARNING); // Emulate PHP warning
 
-        return new self(null, []);
+        return new self(null);
     }
 
     /**
@@ -897,9 +919,9 @@ class SmartString implements JsonSerializable
         // Deprecated Warnings: log warning and return proper value.  This will be removed in a future version
         [$return, $deprecationError] = match ($methodLc) {  // use lowercase names below for comparison
             'noencode'  => [$this->rawHtml(), "Replace ->$method() with ->rawHtml()"],
-            'tostring'  => [$this->htmlEncode(), "Replace ->$method() with ->string() or ->htmlEncode()"],
+            'tostring'  => [$this->htmlEncode(), "Replace ->$method() with ->htmlEncode() or ->string()"], // htmlEncode() first: it matches this shim's output
             'jsencode'  => [addcslashes((string)$this->rawData, "\x00-\x1F'\"`\n\r\\<>"), "Replace ->$method() with ->jsonEncode() (not identical functionality, code refactoring required)"],
-            'striptags' => [new self(is_null($this->rawData) ? null : strip_tags((string)$this->rawData, ...$args), get_object_vars($this)), "Replace ->$method() with ->textOnly()"],
+            'striptags' => [new self(is_null($this->rawData) ? null : strip_tags((string)$this->rawData, ...$args)), "Replace ->$method() with ->textOnly()"],
             default     => [null, null],
         };
         if ($deprecationError) {

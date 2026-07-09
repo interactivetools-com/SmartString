@@ -14,6 +14,37 @@
   string instead of a SmartString object: echoing the result directly now works (the old
   shim double-encoded the `<br>` tags at output), and code that chained after `->nl2br()`
   (e.g. `->nl2br()->value()`) now fails loudly.
+- Math and conditional methods accept any value type: literal `null`, `bool`, and `SmartNull`
+  arguments no longer throw TypeError (previously math methods rejected `null` while
+  conditional methods rejected `SmartNull` - same fix for `if()`'s condition)
+- Math after a fallback works again: `->add(5)->or(10)->add(5)` returns 15 instead of null.
+  The internal numeric-error flag is gone; a null value already carries the error state
+- `percent()` and `percentOf()` now use `$numberFormatDecimal`/`$numberFormatThousands`
+  like `numberFormat()` (previously always used '.' and ',')
+- `dateFormat()`/`dateTimeFormat()` on boolean values return null like other unformattable
+  input (previously threw TypeError from strtotime)
+- `pregReplace()` throws InvalidArgumentException on an invalid pattern instead of emitting
+  a PHP warning and continuing with a null value
+- `help()` is now static, so `SmartString::help()` (the documented form) and `$str->help()`
+  both work (previously the static call was a fatal error)
+- `orDie()` exits with code 1 so CLI and cron callers see a failure exit code
+
+### Deprecated
+- `percent()` `$zeroFallback` parameter - use `->percent($decimals)->ifZero($fallback)`
+  instead (logs a deprecation notice when passed; no live callers found in a 31-site scan)
+
+### Removed
+- `SmartString` constructor and `new()` no longer accept a `$properties` array - it only
+  carried the internal numeric-error flag, and nothing outside the class used it
+
+### Fixed
+- `getRawValue()` now unwraps `SmartArrayHtml` (previously threw "Unsupported value type" -
+  the instanceof check predated the SmartArray/SmartArrayHtml class split)
+- `phoneFormat()` on an empty value now behaves the same on PHP 8.1 and 8.2+ (str_split('')
+  changed between versions)
+- README: removed stale "null values are treated as zero" claim from Numeric Operations
+  (null propagation shipped in v2.6.3), replaced `SmartArrayRaw::new()` references with
+  `SmartArray::new()`, added missing `if()`/`set()` method-table rows
 
 ### Migration Tips
 1. **`textToHtml()` → `nl2br()`** - Drop-in rename; both return the same string. `keepBr: true`

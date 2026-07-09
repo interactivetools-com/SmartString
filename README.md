@@ -76,7 +76,7 @@ $request = SmartArray::new($_REQUEST)->asHtml();
 
 // Advanced: For direct instantiation with a specific type:
 // $user = SmartArrayHtml::new(['name' => "John O'Reilly", 'id' => 123]);
-// $data = SmartArrayRaw::new($rawData);  // For raw values without SmartStrings
+// $data = SmartArray::new($rawData);  // For raw values without SmartStrings
 
 // Use in string contexts for automatic HTML encoding
 echo "Hello, $user->name!"; // Output: Hello, John O&apos;Reilly!
@@ -234,7 +234,7 @@ echo $value->int(); // 123
 echo $value->float(); // 123.45
 
 // Convert to boolean
-echo $value->bool(); // true
+$isValid = $value->bool(); // true (note: echo would print "1")
 
 // Convert to string
 echo $value->string(); // "123.45"
@@ -347,6 +347,10 @@ echo $dateTime->dateTimeFormat('l, F j, Y g:i A'); // "Friday, June 21, 2024 5:3
 $invalid = SmartString::new("not a date");
 echo $invalid->dateFormat()->or("Invalid date"); // "Invalid date"
 echo $invalid->dateFormat()->or($invalid);       // "not a date"
+
+// Numeric values are treated as unix timestamps, everything else is parsed with strtotime()
+$timestamp = SmartString::new(1684159800);
+echo $timestamp->dateFormat(); // "2023-05-15"
 ```
 
 You can find a list of available date formats in the PHP documentation:
@@ -382,7 +386,8 @@ echo $phone->phoneFormat()->or($phone);          // or show the original value "
 
 SmartString provides a set of methods for performing basic arithmetic and percentage calculations.
 These methods are chainable, allowing for complex calculations to be expressed clearly and concisely.
-Null values are treated as zero by default, making calculations more intuitive.
+Null and non-numeric values propagate: they make the result null instead of throwing, so one
+`or()` or `ifNull()` at the end of a chain covers every failure in it. Results are floats.
 
 ```php
 // Percentage conversion
@@ -391,7 +396,7 @@ echo $ratio->percent(); // "75%"
 
 // Percentage with 2 decimals, and fallback value for 0
 $value = SmartString::new(0);
-echo $value->percent(2, "N/A"); // "N/A"
+echo $value->percent(2)->ifZero("N/A"); // "N/A"
 
 // Percentage of a total
 $score = SmartString::new(24);
@@ -401,9 +406,11 @@ echo $score->percentOf(100); // "24%"
 $base = SmartString::new(100);
 echo $base->add(50); // 150
 
-// Handling null values (treated as zero by default)
+// Null propagates through math - rescue with or() or ifNull() at the end
 $value = SmartString::new(null);
-echo $value->add(50); // 50
+echo $value->add(50);              // "" (null result, blank output)
+echo $value->add(50)->or('n/a');   // "n/a"
+echo $value->ifNull(0)->add(50);   // 50 (replace null BEFORE math to treat it as zero)
 
 // Subtraction
 $start = SmartString::new(100);
@@ -510,6 +517,10 @@ if ($value->isMissing()) {
     echo "Value is missing (null or empty string)!";
 }
 ```
+
+**Zero:** `isEmpty()` is true for 0 (PHP `empty()` rules) but `isMissing()` is false - the
+or/and family and the or404/orDie/orThrow guards all treat 0 as a real value. Use
+`isMissing()` when a legitimate zero must count as present.
 
 ### Error Checking
 
@@ -628,7 +639,7 @@ or in an init file:
 |                       `SmartString::new($value)` | Creates a new SmartString object from a single value                                                                                    |
 |              `SmartArray::new($array)->asHtml()` | Creates a new SmartArray from a regular PHP array with HTML-safe SmartString values                                                     |
 |                    `SmartArrayHtml::new($array)` | Advanced: Direct instantiation of SmartArray with SmartString values                                                                    |
-|                     `SmartArrayRaw::new($array)` | Advanced: Direct instantiation of SmartArray with raw values                                                                            |
+|                        `SmartArray::new($array)` | Advanced: Direct instantiation of SmartArray with raw values                                                                            |
 |                                      `->value()` | Returns the original, unencoded value                                                                                                   |
 |                              **Type Conversion** |                                                                                                                                         |
 |                                        `->int()` | Returns the value as an integer                                                                                                         |
@@ -654,7 +665,7 @@ or in an init file:
 |                  `->numberFormat($decimals = 0)` | Formats the value as a number                                                                                                           |
 |                                `->phoneFormat()` | Formats the value as a phone number                                                                                                     |
 |                           **Numeric Operations** |                                                                                                                                         |
-| `->percent($decimals = 0, $zeroFallback = null)` | Converts value to percentage, with optional fallback for zero                                                                           |
+|                       `->percent($decimals = 0)` | Converts value to percentage, e.g., 0.24 becomes 24% (chain `->ifZero()` for a zero fallback)                                           |
 |             `->percentOf($total, $decimals = 0)` | Calculates what percentage this number represents of $total                                                                             |
 |                                  `->add($value)` | Adds $value to current number                                                                                                           |
 |                             `->subtract($value)` | Subtracts $value from current number                                                                                                    |
@@ -667,6 +678,8 @@ or in an init file:
 |                            `->ifNull($fallback)` | Returns the fallback if the value is null                                                                                               |
 |                           `->ifBlank($fallback)` | Returns the fallback if the value is an empty string                                                                                    |
 |                            `->ifZero($fallback)` | Returns the fallback if the value is zero                                                                                               |
+|                 `->if($condition, $valueIfTrue)` | Sets the value to $valueIfTrue only if $condition is true                                                                               |
+|                                `->set($newValue)` | Sets the value to $newValue (accepts expression results, e.g., match() expressions)                                                    |
 |                                   **Validation** |                                                                                                                                         |
 |                                    `->isEmpty()` | Returns true if the value is empty ("", null, false, 0, "0"), uses PHP empty()                                                          |
 |                                 `->isNotEmpty()` | Returns true if the value is NOT empty ("", null, false, 0, "0"), uses PHP !empty()                                                     |
