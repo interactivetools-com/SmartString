@@ -262,9 +262,9 @@ echo "let title={$title->jsonEncode()}";    // let title="\u003C10% OFF \u0022SA
 // raw HTML - This is an alias for value() for readability when outputting trusted HTML
 echo "Title: {$title->rawHtml()}";         // 'Title: <10% OFF "SALE"'
 
-// Text to HTML - encodes special chars and converts newlines to <br> tags
+// nl2br - encodes special chars, then converts newlines to <br> tags
 $text = SmartString::new("Hello\nWorld");
-echo "{$text->textToHtml()}";              // "Hello<br>\nWorld"
+echo "{$text->nl2br()}";                   // "Hello<br>\nWorld"
 ```
 
 ### String Manipulation
@@ -276,9 +276,9 @@ SmartString offers a variety of methods for common string operations, making it 
 $htmlText = SmartString::new(" <b> Some HTML </b> ");
 echo $htmlText->textOnly(); // "Some HTML"
 
-// Convert text to HTML - encodes special chars and converts newlines to <br> tags
+// Convert text to HTML - encodes special chars, then converts newlines to <br> tags
 $multiLineText = SmartString::new("Hello\nWorld");
-echo "{$multiLineText->textToHtml()}"; // "Hello<br>\nWorld"
+echo "{$multiLineText->nl2br()}"; // "Hello<br>\nWorld"
 
 // Trim whitespace
 $whitespaceText = SmartString::new("  Trim me  ");
@@ -641,7 +641,7 @@ or in an init file:
 |                                  `->urlEncode()` | Returns URL-encoded string                                                                                                              |
 |                                 `->jsonEncode()` | Returns JSON-encoded string                                                                                                             |
 |                                    `->rawHtml()` | Alias for `value()`, useful for readability when outputting trusted HTML content                                                        |
-|                                 `->textToHtml()` | Encodes special chars and converts newlines to `<br>`, with option to preserve existing `<br>` tags                                     |
+|                                      `->nl2br()` | HTML-encodes special chars, then converts newlines to `<br>` tags (unlike PHP's `nl2br()`, output is XSS-safe)                          |
 |                          **String Manipulation** |                                                                                                                                         |
 |                                   `->textOnly()` | Removes HTML tags from the string, decodes entities, and trims whitespace                                                               |
 |                                       `->trim()` | Trims whitespace or specified characters from the string                                                                                |

@@ -1,5 +1,26 @@
 # SmartString Changelog
 
+## [2.8.0] - [UNRELEASED]
+
+### Changed
+- `nl2br()` is back as the primary name for "HTML-encode, then convert newlines to `<br>`".
+  Same behavior and string return `textToHtml()` had; renamed because `textToHtml` never
+  read clearly at call sites. Unlike PHP's `nl2br()`, output is XSS-safe: text is encoded
+  first, so the only tags in the result are the `<br>` tags the method adds.
+- `textToHtml()` still works but is no longer documented. With no arguments it returns the
+  same string as `nl2br()`; `keepBr: true` instead preserves existing `<br>` tags and leaves
+  newlines alone. No deprecation warning; it may be re-promoted or retired later.
+- Calling `->nl2br()` no longer logs a deprecation warning. It now returns an HTML-safe
+  string instead of a SmartString object: echoing the result directly now works (the old
+  shim double-encoded the `<br>` tags at output), and code that chained after `->nl2br()`
+  (e.g. `->nl2br()->value()`) now fails loudly.
+
+### Migration Tips
+1. **`textToHtml()` → `nl2br()`** - Drop-in rename; both return the same string. `keepBr: true`
+   stays available on `textToHtml()` only.
+2. **Pre-2.6 `->nl2br()` chains** - `->nl2br()->value()` and similar now fail with "call to a
+   member function on string". Move chained methods before `->nl2br()`; it is a terminal call.
+
 ## [2.7.0] - 2026-07-07
 
 ### Security

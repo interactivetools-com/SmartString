@@ -43,7 +43,7 @@ Encoding methods (returns value)
 ->urlEncode()              Returns URL-encoded string, example: "?user={$user->name->urlEncode()}"
 ->jsonEncode()             Returns JSON-encoded value, example: "let user={$user->name->jsonEncode()}"
 ->htmlEncode()             Returns HTML-encoded string (same as automatic encoding, for readability and non-string contexts)
-->textToHtml()             Encodes special chars and converts newlines to <br>, with option to preserve existing <br> tags
+->nl2br()                  HTML-encodes special chars, then converts newlines to <br> tags
 
 String Manipulation (returns object, chainable)
 ------------------------------------------------

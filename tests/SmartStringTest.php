@@ -345,33 +345,43 @@ class SmartStringTest extends TestCase
     }
 
     /**
-     * Test textToHtml() method
+     * Test nl2br() method
      */
-    public function testTextToHtml(): void
+    public function testNl2br(): void
     {
-        // Default: encode + nl2br
-        $result = SmartString::new("Hello\nWorld")->textToHtml();
+        // Default: encode + newlines to <br>
+        $result = SmartString::new("Hello\nWorld")->nl2br();
         $this->assertSame("Hello<br>\nWorld", $result);
 
-        // With special chars: encode first, then nl2br
+        // With special chars: encode first, then convert newlines
+        $result = SmartString::new("It's <b>bold</b>\nLine 2")->nl2br();
+        $this->assertSame("It&apos;s &lt;b&gt;bold&lt;/b&gt;<br>\nLine 2", $result);
+
+        // <br> tags in the data get encoded, newlines become <br>
+        $result = SmartString::new("Hello<br>World")->nl2br();
+        $this->assertSame("Hello&lt;br&gt;World", $result);
+
+        // Null input
+        $result = SmartString::new(null)->nl2br();
+        $this->assertSame("", $result);
+    }
+
+    /**
+     * Test textToHtml() compatibility alias (v2.6-v2.7 code, undocumented)
+     */
+    public function testTextToHtmlAlias(): void
+    {
+        // Same output as nl2br()
         $result = SmartString::new("It's <b>bold</b>\nLine 2")->textToHtml();
         $this->assertSame("It&apos;s &lt;b&gt;bold&lt;/b&gt;<br>\nLine 2", $result);
 
-        // keepBr: true - existing <br> tags survive encoding, no nl2br
+        // keepBr: true - existing <br> tags survive encoding, newlines left alone
         $result = SmartString::new("Hello<br>World")->textToHtml(keepBr: true);
         $this->assertSame("Hello<br>World", $result);
 
         // keepBr with case variations and self-closing
         $result = SmartString::new("Hello<BR>World<br/>End")->textToHtml(keepBr: true);
         $this->assertSame("Hello<BR>World<br/>End", $result);
-
-        // keepBr: false (default) - <br> tags get encoded, newlines become <br>
-        $result = SmartString::new("Hello<br>World")->textToHtml();
-        $this->assertSame("Hello&lt;br&gt;World", $result);
-
-        // Null input
-        $result = SmartString::new(null)->textToHtml();
-        $this->assertSame("", $result);
     }
 
     /**
@@ -504,14 +514,6 @@ class SmartStringTest extends TestCase
                 "Hello World",
             ],
         ];
-    }
-
-    public function testNl2brDeprecated(): void
-    {
-        // nl2br() is deprecated - use textToHtml() instead
-        $smartString = new SmartString("Hello\nWorld");
-        $result      = @$smartString->nl2br()->value(); // @ suppresses E_USER_DEPRECATED
-        $this->assertSame("Hello<br>\nWorld", $result, "Deprecated nl2br() should still work");
     }
 
     /**

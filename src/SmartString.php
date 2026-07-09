@@ -173,24 +173,36 @@ class SmartString implements JsonSerializable
     }
 
     /**
-     * Converts plain text to HTML-safe output with line break handling.
+     * HTML-encodes the value, then converts newlines to <br> tags. Returns a string.
      *
-     * By default, encodes special characters and converts newlines to <br> tags.
-     * With keepBr: true, preserves existing <br> tags instead (for CMS text fields
-     * that already store line breaks as <br> tags).
+     * Unlike PHP's nl2br(), output is XSS-safe: the text is encoded first, so the
+     * only tags in the result are the <br> tags this method adds.
      *
-     *     echo "{$text->textToHtml()}";                // encode + convert newlines to <br>
-     *     echo "{$text->textToHtml(keepBr: true)}";    // encode + preserve existing <br> tags
+     *     echo "{$text->nl2br()}";    // "Bob & Sons\nSuite 5" → "Bob &amp; Sons<br>\nSuite 5"
+     *
+     * @return string HTML-safe output with newlines converted to <br> tags
+     */
+    public function nl2br(): string
+    {
+        $encoded = htmlspecialchars((string)$this->rawData, self::HTML_ENCODE_FLAGS, 'UTF-8');
+        return nl2br($encoded, false);
+    }
+
+    /**
+     * Same as nl2br() when $keepBr is false (the default); kept so code written for
+     * v2.6-v2.7 keeps working. Prefer nl2br().
+     *
+     * keepBr: true preserves existing <br> tags instead of converting newlines (for
+     * CMS text fields that already store line breaks as <br> tags).
      *
      * @param bool $keepBr Preserve existing <br> tags instead of converting newlines (default: false)
      * @return string HTML-safe output
      */
     public function textToHtml(bool $keepBr = false): string
     {
-        $encoded = htmlspecialchars((string)$this->rawData, self::HTML_ENCODE_FLAGS, 'UTF-8');
         return $keepBr
-            ? preg_replace('|&lt;(br\s*/?)&gt;|i', "<$1>", $encoded)
-            : nl2br($encoded, false);
+            ? preg_replace('|&lt;(br\s*/?)&gt;|i', "<$1>", htmlspecialchars((string)$this->rawData, self::HTML_ENCODE_FLAGS, 'UTF-8'))
+            : $this->nl2br();
     }
 
     /**
@@ -887,7 +899,6 @@ class SmartString implements JsonSerializable
             'noencode'  => [$this->rawHtml(), "Replace ->$method() with ->rawHtml()"],
             'tostring'  => [$this->htmlEncode(), "Replace ->$method() with ->string() or ->htmlEncode()"],
             'jsencode'  => [addcslashes((string)$this->rawData, "\x00-\x1F'\"`\n\r\\<>"), "Replace ->$method() with ->jsonEncode() (not identical functionality, code refactoring required)"],
-            'nl2br'     => [new self(is_null($this->rawData) ? null : nl2br((string)$this->rawData, false), get_object_vars($this)), "Replace ->$method() with ->textToHtml() which encodes and converts newlines to <br> tags"],
             'striptags' => [new self(is_null($this->rawData) ? null : strip_tags((string)$this->rawData, ...$args), get_object_vars($this)), "Replace ->$method() with ->textOnly()"],
             default     => [null, null],
         };
@@ -917,6 +928,7 @@ class SmartString implements JsonSerializable
             'maxChars'       => ['truncate', 'limit', 'limitchars', 'excerpt', 'shorten'],
             'maxWords'       => ['truncatewords', 'limitwords'],
             'multiply'       => ['times', 'mul'],
+            'nl2br'          => ['tohtml', 'text2html'],
             'numberFormat'   => ['formatnumber', 'number_format', 'format'],
             'or'             => ['default', 'ifmissing', 'fallback', 'else'],
             'phoneFormat'    => ['formatphone', 'phone', 'phone_format'],
@@ -925,7 +937,6 @@ class SmartString implements JsonSerializable
             'string'         => ['tostring', 'getstring', 'str'],
             'subtract'       => ['minus', 'sub'],
             'textOnly'       => ['plaintext', 'striphtml', 'strip', 'text'],
-            'textToHtml'     => ['tohtml', 'text2html'],
             'urlEncode'      => ['escapeurl', 'encodeurl', 'url_encode', 'urlencode'],
             'value'          => ['noescape', 'getvalue', 'val'],
         ];
