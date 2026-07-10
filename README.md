@@ -311,7 +311,7 @@ You can customize the default formats at the top of your script or in an init fi
 ```php
 // Basic number formatting with default arguments
 $number = SmartString::new(1234567.89);
-echo $number->numberFormat(); // "1,234,567"
+echo $number->numberFormat(); // "1,234,568" (rounded to 0 decimals)
 
 // Formatting options can be customized to match your locale or regional preferences
 SmartString::$numberFormatDecimal   = ',';  // Decimal separator, default is '.'
@@ -350,7 +350,7 @@ echo $invalid->dateFormat()->or($invalid);       // "not a date"
 
 // Numeric values are treated as unix timestamps, everything else is parsed with strtotime()
 $timestamp = SmartString::new(1684159800);
-echo $timestamp->dateFormat(); // "2023-05-15"
+echo $timestamp->dateFormat('Y-m-d'); // "2023-05-15"
 ```
 
 You can find a list of available date formats in the PHP documentation:
@@ -426,7 +426,7 @@ echo $factor->multiply(4); // 100
 
 // Chaining operations
 $price = SmartString::new(100);
-echo $price->multiply(1.1)->divide(2)->percent(); // "55%" (add tax, divide by 2, show as percent)
+echo $price->multiply(1.1)->divide(2)->numberFormat(2); // "55.00" (add tax, divide by 2, format)
 
 // Math operations can be useful for simple reporting, calculating totals, discounts, taxes, etc.
 Order Total: $order->total->add( $order->shipping )->numberFormat(2)
@@ -476,7 +476,7 @@ echo $eggs->if($eggs->int() === 12, "Full Carton"); // "Full Carton"
 // set($newValue): Assign a new value or expression result to the current object
 $price = SmartString::new(19.99);
 echo $price->set('24.99'); // 24.99
-echo $price->set($price->value() < 20 ? "Under 20" : "Over 20"); // "Over 20"
+echo $price->set($price->value() < 20 ? "Under 20" : "Over 20"); // "Under 20"
 
 // Or more complex operations using PHP match() expressions
 $eggs = SmartString::new(12);
@@ -538,6 +538,9 @@ $article->id->orDie("Article not found");      // Output message and terminate s
 $article->id->orThrow("Article not found");    // Throws Exception with error message
 $article->id->orRedirect("/articles/list");    // Redirect to listing page if missing
 ```
+
+**Note:** Messages are HTML-encoded automatically - they often interpolate user input
+(e.g., `->orDie("Bad id: $id")`) and may be echoed into a page.
 
 ### Developer-Friendly Error Messages
 
@@ -650,7 +653,7 @@ or in an init file:
 |                             **Encoding Methods** |                                                                                                                                         |
 |                                 `->htmlEncode()` | Returns HTML-encoded string                                                                                                             |
 |                                  `->urlEncode()` | Returns URL-encoded string                                                                                                              |
-|                                 `->jsonEncode()` | Returns JSON-encoded string                                                                                                             |
+|                                 `->jsonEncode()` | Returns JSON-encoded string (malformed UTF-8 is substituted with � instead of failing)                                                  |
 |                                    `->rawHtml()` | Alias for `value()`, useful for readability when outputting trusted HTML content                                                        |
 |                                      `->nl2br()` | HTML-encodes special chars, then converts newlines to `<br>` tags (unlike PHP's `nl2br()`, output is XSS-safe)                          |
 |                          **String Manipulation** |                                                                                                                                         |

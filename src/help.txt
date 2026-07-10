@@ -41,7 +41,7 @@ Encoding methods (returns value)
 ->value()                  Returns original value and type
 ->rawHtml()                Alias for ->value(), for when you want to make it clear you're outputting trusted unencoded HTML content
 ->urlEncode()              Returns URL-encoded string, example: "?user={$user->name->urlEncode()}"
-->jsonEncode()             Returns JSON-encoded value, example: "let user={$user->name->jsonEncode()}"
+->jsonEncode()             Returns JSON-encoded value, example: "let user={$user->name->jsonEncode()}" (malformed UTF-8 becomes �)
 ->htmlEncode()             Returns HTML-encoded string (same as automatic encoding, for readability and non-string contexts)
 ->nl2br()                  HTML-encodes special chars, then converts newlines to <br> tags
 
@@ -96,9 +96,12 @@ Error Checking
 ->orThrow('message')       Throws Exception with message if the value is missing (null or ""), zero is not considered missing
 ->orRedirect('url')        Redirects to URL if the value is missing (null or ""), zero is not considered missing
 
+Note: Messages are HTML-encoded automatically before being output or thrown.
+
 Miscellaneous
 --------------
 ->apply()                  Apply a callback or function to the value, e.g. ->apply('strtoupper')
+->help()                   Displays this help text, works as $str->help() or SmartString::help()
 SmartString::getRawValue() Returns original value from Smart* objects while leaving other types unchanged, useful for working with mixed types
 
 Working with arrays
@@ -107,7 +110,7 @@ $user = ['id' => 42, 'name' => "John O'Reilly", "lastLogin" => "2024-09-10 14:30
 $u    = SmartArray::new($user)->asHtml();            // SmartArray of SmartStrings
 "Hello, $u->name"                                    // "Hello, John O&apos;Reilly"
 "Hello, {$u->name->value()}"                         // Returns "Hello, John O'Reilly"
-"Last login: {$u->lastLogin->dateFormat('F j, Y')}"  // "Last login: Sep 10, 2024"
+"Last login: {$u->lastLogin->dateFormat('M j, Y')}"  // "Last login: Sep 10, 2024"
 
 Setting defaults (at the top of your script or in an init file)
 ----------------------------------------------------------------

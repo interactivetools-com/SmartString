@@ -996,13 +996,18 @@ class SmartStringTest extends TestCase
      */
     public function testPhoneFormat($input, $expected): void
     {
+        $originalFormat           = SmartString::$phoneFormat;
         SmartString::$phoneFormat = [
             ['digits' => 10, 'format' => '1 (###) ###-####'],
             ['digits' => 11, 'format' => '#-###-###-####'],
         ];
 
-        $result = SmartString::new($input)->phoneFormat()->value();
-        $this->assertSame($expected, $result, "Phone format failed for input: " . var_export($input, true));
+        try {
+            $result = SmartString::new($input)->phoneFormat()->value();
+            $this->assertSame($expected, $result, "Phone format failed for input: " . var_export($input, true));
+        } finally {
+            SmartString::$phoneFormat = $originalFormat;
+        }
     }
 
     /**
