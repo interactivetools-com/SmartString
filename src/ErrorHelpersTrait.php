@@ -18,8 +18,9 @@ trait ErrorHelpersTrait
     /**
      * Logs a deprecation notice via trigger_error() with the calling file and line number.
      *
-     * The @ suppressor prevents direct output while still allowing custom error handlers
-     * and PHP's built-in error logging to capture the notice.
+     * The @ suppressor mutes PHP's default display and logging entirely - only a custom
+     * error handler (set_error_handler) ever sees these notices. Apps without one get
+     * full silence, which is the intent: deprecations here inform, they don't nag.
      */
     protected static function logDeprecation(string $message): void
     {

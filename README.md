@@ -422,6 +422,13 @@ echo $value->add(50);              // "" (null result, blank output)
 echo $value->add(50)->or('n/a');   // "n/a"
 echo $value->ifNull(0)->add(50);   // 50 (replace null BEFORE math to treat it as zero)
 
+// or() placement changes meaning: before formatting supplies a number, after supplies display text
+echo $value->or(0)->numberFormat(2);      // "0.00" - fallback number, then formatted
+echo $value->numberFormat(2)->or('n/a');  // "n/a" - format failed, then display fallback
+
+// Run conditionals before formatting: formatted output ("1,234.00", "50%") is no longer numeric,
+// so ifZero() and math can't see it (percent() takes its zero rule as a parameter for this reason)
+
 // Subtraction
 $start = SmartString::new(100);
 echo $start->subtract(30); // 70
@@ -533,9 +540,9 @@ if ($value->isMissing()) {
 }
 ```
 
-**Zero:** `isEmpty()` is true for 0 (PHP `empty()` rules) but `isMissing()` is false - the
-or/and family and the or404/orDie/orThrow guards all treat 0 as a real value. Use
-`isMissing()` when a legitimate zero must count as present.
+**Zero:** `isEmpty()` is true for 0 (PHP `empty()` rules) but `isMissing()` is false - `or()`,
+the attach methods (append/prepend/wrap), and the or404/orDie/orThrow guards all treat 0 as
+a real value. Use `isMissing()` when a legitimate zero must count as present.
 
 ### Error Checking
 

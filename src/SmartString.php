@@ -661,8 +661,8 @@ class SmartString implements JsonSerializable
     /**
      * Returns true if the value is empty ("", null, false, 0, "0"), uses PHP empty()
      *
-     * Zero IS empty here but is NOT missing to isMissing() and the or/and family -
-     * use isMissing() when a legitimate 0 must count as present.
+     * Zero IS empty here but is NOT missing to isMissing(), or(), and the attach
+     * methods - use isMissing() when a legitimate 0 must count as present.
      *
      * This is useful for conditionally showing blocks of HTML:
      * if ($value->isEmpty()) { echo "<p>No data available</p>"; }
@@ -687,7 +687,8 @@ class SmartString implements JsonSerializable
      * Checks if the current value is missing (null or "")
      *
      * Zero is NOT missing here (it's a real value) but IS empty to isEmpty() -
-     * the or/and family and the or404/orDie/orThrow guards all use this definition.
+     * or(), the attach methods (append/prepend/wrap), and the or404/orDie/orThrow
+     * guards all use this definition.
      *
      * @return bool True if the value is missing (null or "")
      */

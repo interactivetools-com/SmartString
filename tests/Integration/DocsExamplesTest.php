@@ -197,6 +197,9 @@ class DocsExamplesTest extends SmartStringTestCase
         $this->assertSame('n/a', (string)$value->add(50)->or('n/a'));
         $this->assertSame('50', (string)$value->ifNull(0)->add(50));
 
+        $this->assertSame('0.00', (string)$value->or(0)->numberFormat(2));
+        $this->assertSame('n/a', (string)$value->numberFormat(2)->or('n/a'));
+
         $this->assertSame('70', (string)SmartString::new(100)->subtract(30));
         $this->assertSame('25', (string)SmartString::new(100)->divide(4));
         $this->assertSame('100', (string)SmartString::new(25)->multiply(4));

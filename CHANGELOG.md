@@ -21,11 +21,14 @@
 
 ### Changed
 - `and()` renamed to `append()` and `andPrefix()` renamed to `prepend()` - plain verbs; the
-  "applies only when a value is present" behavior is unchanged and is now the library-wide
-  rule: missing values (null or "") pass through every transform, and `or()`/`ifNull()`/
-  `ifBlank()` and the or404/orDie/orThrow/orRedirect guards are the rescue points
+  "applies only when a value is present" behavior is unchanged and is now the stated rule:
+  missing values (null or "") pass through the attach, formatting, and math methods, and
+  `or()`/`ifNull()` and the or404/orDie/orThrow/orRedirect guards are the rescue points
 - `if()` renamed to `ifTrue()` - it replaces the value when your condition is truthy, and the
   old name read like it might gate the rest of the chain
+- `apply()` renamed to `map()` - same name and contract as `SmartArray::map()` and
+  `array_map()`: the callback always runs and receives the raw value, null included. Chain
+  `->ifNull('')` first when using built-ins that require a string
 - `ifBlank()` retired (undocumented, keeps working) - it fired only on "" and never on null,
   a distinction with no observed use; `or()` covers the usual intent
 - Old names keep working forever as silent aliases (`and()`, `andPrefix()`, `apply()`, `if()`,
@@ -35,16 +38,16 @@
   Same behavior and string return `textToHtml()` had; renamed because `textToHtml` never
   read clearly at call sites. Unlike PHP's `nl2br()`, output is XSS-safe: text is encoded
   first, so the only tags in the result are the `<br>` tags the method adds.
-- `textToHtml()` still works but is no longer documented. With no arguments it returns the
-  same string as `nl2br()`; `keepBr: true` instead preserves existing `<br>` tags and leaves
-  newlines alone. No deprecation warning; it may be re-promoted or retired later.
+- `textToHtml()` joins the silent aliases. With no arguments it returns the same string as
+  `nl2br()`; `keepBr: true` instead preserves existing `<br>` tags and stays available only
+  on `textToHtml()`.
 - Calling `->nl2br()` no longer logs a deprecation warning. It now returns an HTML-safe
   string instead of a SmartString object: echoing the result directly now works (the old
   shim double-encoded the `<br>` tags at output), and code that chained after `->nl2br()`
   (e.g. `->nl2br()->value()`) now fails loudly.
 - Math and conditional methods accept any value type: literal `null`, `bool`, and `SmartNull`
   arguments no longer throw TypeError (previously math methods rejected `null` while
-  conditional methods rejected `SmartNull` - same fix for `if()`'s condition)
+  conditional methods rejected `SmartNull` - same fix for `ifTrue()`'s condition)
 - Math after a fallback works again: `->add(5)->or(10)->add(5)` returns 15 instead of null.
   The internal numeric-error flag is gone; a null value already carries the error state
 - `percent()` and `percentOf()` now use `$numberFormatDecimal`/`$numberFormatThousands`
@@ -53,10 +56,6 @@
   input (previously threw TypeError from strtotime)
 - `pregReplace()` throws InvalidArgumentException on an invalid pattern instead of emitting
   a PHP warning and continuing with a null value
-- `apply()` renamed to `map()` - same name and contract as `SmartArray::map()` and
-  `array_map()`: the callback always runs and receives the raw value, null included. Chain
-  `->ifNull('')` first when using built-ins that require a string. `apply()` keeps working
-  as a silent alias
 - `help()` is now static, so `SmartString::help()` (the documented form) and `$str->help()`
   both work (previously the static call was a fatal error)
 - `or404()`, `orDie()`, `orThrow()` message parameter renamed to `$text` and documented as
