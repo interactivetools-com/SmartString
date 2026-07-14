@@ -260,34 +260,21 @@ class MathTest extends SmartStringTestCase
     }
 
     /**
-     * $zeroFallback still works but is deprecated in favor of
-     * ->percent($decimals)->ifZero($fallback).
+     * $zeroFallback is a parameter, not a chain link, because a chained
+     * ->ifZero() can't detect zero after formatting (percent() has already
+     * made it "0.00%").
      */
-    public function testPercentZeroFallbackIsDeprecated(): void
+    public function testPercentZeroFallback(): void
     {
-        $result = $this->expectDeprecationMessage(
-            fn() => SmartString::new(0)->percent(2, 'N/A'),
-            'Replace ->percent($decimals, $zeroFallback) with ->percent($decimals)->ifZero($fallback)'
-        );
+        $result = $this->assertNoOutput(fn() => SmartString::new(0)->percent(2, 'N/A'));
         $this->assertSmartString('N/A', $result);
     }
 
     public function testPercentZeroFallbackOnlyAppliesToZero(): void
     {
-        [$results, ] = $this->captureDeprecations(function () {
-            return [
-                SmartString::new(0)->percent(2, 0)->value(),      // numeric fallback keeps its type
-                SmartString::new(0.5)->percent(2, 'N/A')->value(), // non-zero ignores fallback
-                SmartString::new(null)->percent(2, 'N/A')->value(), // null stays null, fallback is for zero only
-            ];
-        });
-        $this->assertSame([0, '50.00%', null], $results);
-    }
-
-    public function testPercentWithoutZeroFallbackStaysSilent(): void
-    {
-        $result = $this->assertNoOutput(fn() => SmartString::new(0)->percent(2));
-        $this->assertSmartString('0.00%', $result);
+        $this->assertSmartString(0, SmartString::new(0)->percent(2, 0));              // numeric fallback keeps its type
+        $this->assertSmartString('50.00%', SmartString::new(0.5)->percent(2, 'N/A')); // non-zero ignores fallback
+        $this->assertSmartString(null, SmartString::new(null)->percent(2, 'N/A'));    // null stays null, fallback is for zero only
     }
 
     //endregion

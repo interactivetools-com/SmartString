@@ -199,14 +199,10 @@ class DocsExamplesTest extends SmartStringTestCase
         $this->assertSame('55.00', (string)$price->multiply(1.1)->divide(2)->numberFormat(2));
     }
 
-    /**
-     * README claims percent(2)->ifZero("N/A") shows "N/A"; the actual output
-     * is '0.00%' because percent() formats zero before ifZero() can see it.
-     */
-    public function testPercentIfZeroRecipe(): void
+    public function testPercentZeroFallback(): void
     {
         $value = SmartString::new(0);
-        $this->assertSame('0.00%', (string)$value->percent(2)->ifZero('N/A')); // pinned: under review, the docs recipe doesn't fire
+        $this->assertSame('N/A', (string)$value->percent(2, 'N/A'));
     }
 
     //endregion

@@ -422,8 +422,11 @@ class SmartString implements JsonSerializable
      * - If value is zero AND $zeroFallback is defined, $zeroFallback is returned
      * - Otherwise a percentage is returned. e.g., 0.1234 => 12.34%
      *
+     * $zeroFallback is a parameter, not a chain link, because a chained ->ifZero()
+     * can't detect zero after formatting (percent() has already made it "0.00%").
+     *
      * @param int $decimals Number of decimal places in formatted output
-     * @param string|int|float|null $zeroFallback Deprecated - use ->percent($decimals)->ifZero($fallback) instead
+     * @param string|int|float|null $zeroFallback Optional fallback returned when the value is zero
      * @return SmartString Formatted percentage, or null if not numeric
      *
      * @example Converting numbers to percentages:
@@ -432,15 +435,11 @@ class SmartString implements JsonSerializable
      *
      * @example Handling zero values:
      *   $zero = SmartString::new(0);
-     *   echo $zero->percent(2);                  // "0.00%"
-     *   echo $zero->percent(2)->ifZero("None");  // "None"
+     *   echo $zero->percent(2);          // "0.00%"
+     *   echo $zero->percent(2, "None");  // "None"
      */
     public function percent(int $decimals = 0, string|int|float|null $zeroFallback = null): SmartString
     {
-        if (!is_null($zeroFallback)) {
-            self::logDeprecation('Replace ->percent($decimals, $zeroFallback) with ->percent($decimals)->ifZero($fallback)');
-        }
-
         $value    = self::getFloatOrNull($this->rawData);
         $newValue = match (true) {
             is_null($value)                           => null,

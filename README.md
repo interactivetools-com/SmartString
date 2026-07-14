@@ -396,7 +396,7 @@ echo $ratio->percent(); // "75%"
 
 // Percentage with 2 decimals, and fallback value for 0
 $value = SmartString::new(0);
-echo $value->percent(2)->ifZero("N/A"); // "N/A"
+echo $value->percent(2, "N/A"); // "N/A"
 
 // Percentage of a total
 $score = SmartString::new(24);
@@ -668,7 +668,7 @@ or in an init file:
 |                  `->numberFormat($decimals = 0)` | Formats the value as a number                                                                                                           |
 |                                `->phoneFormat()` | Formats the value as a phone number                                                                                                     |
 |                           **Numeric Operations** |                                                                                                                                         |
-|                       `->percent($decimals = 0)` | Converts value to percentage, e.g., 0.24 becomes 24% (chain `->ifZero()` for a zero fallback)                                           |
+| `->percent($decimals = 0, $zeroFallback = null)` | Converts value to percentage, e.g., 0.24 becomes 24% ($zeroFallback is returned for zero values)                                        |
 |             `->percentOf($total, $decimals = 0)` | Calculates what percentage this number represents of $total                                                                             |
 |                                  `->add($value)` | Adds $value to current number                                                                                                           |
 |                             `->subtract($value)` | Subtracts $value from current number                                                                                                    |
