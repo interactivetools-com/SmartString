@@ -2,12 +2,28 @@
 
 ## [3.0.0] - [UNRELEASED]
 
+### Added
+- `wrap($before, $after)` - wraps the value only when present (not null or ""), so the whole
+  wrapper vanishes for missing values. Both sides required; pass "" for a side you don't want
+- `appendHtml($html)` and `wrapHtml($before, $after)` - HTML-encode the value, then attach
+  your trusted markup as-is, returning a finished string (same terminal shape as `nl2br()`).
+  Missing values return "", so `->wrapHtml('<h2>', '</h2>')` replaces the isNotEmpty-guard
+  template idiom and `->appendHtml(',<br>')` covers conditional line breaks. The markup
+  arguments are trusted: only pass literals you wrote, never user input
+
 ### Security
 - `jsonEncode()` now substitutes malformed UTF-8 bytes with � (U+FFFD) instead of throwing JsonException, so one corrupt byte in a value no longer breaks the whole page
 - `jsonEncode()` now re-escapes invisible Unicode (zero-width chars, bidi controls, Unicode tag chars, variation selectors) as visible \uXXXX escapes so nothing can hide in page source. Lossless: each escape decodes back to the identical character, so the value JavaScript sees never changes
 - `json_encode($smartString)` now also substitutes malformed UTF-8 with � instead of returning false, matching `jsonEncode()`
 
 ### Changed
+- `and()` renamed to `append()` and `andPrefix()` renamed to `prepend()` - plain verbs; the
+  "applies only when a value is present" behavior is unchanged and is now the library-wide
+  rule: missing values (null or "") pass through every transform, and `or()`/`ifNull()`/
+  `ifBlank()` and the or404/orDie/orThrow/orRedirect guards are the rescue points
+- Old names keep working forever as silent aliases (`and()`, `andPrefix()`, `textToHtml()`,
+  collected in one DeprecatedAliases trait): no runtime notices; PHPStorm shows them struck
+  through with a one-click rewrite to the new name
 - `nl2br()` is back as the primary name for "HTML-encode, then convert newlines to `<br>`".
   Same behavior and string return `textToHtml()` had; renamed because `textToHtml` never
   read clearly at call sites. Unlike PHP's `nl2br()`, output is XSS-safe: text is encoded
@@ -52,9 +68,11 @@
   `SmartArray::new()`, added missing `if()`/`set()` method-table rows
 
 ### Migration Tips
-1. **`textToHtml()` → `nl2br()`** - Drop-in rename; both return the same string. `keepBr: true`
+1. **`and()` → `append()`, `andPrefix()` → `prepend()`** - Drop-in renames, and the old names
+   keep working silently; rename at your own pace (PHPStorm offers a one-click fix).
+2. **`textToHtml()` → `nl2br()`** - Drop-in rename; both return the same string. `keepBr: true`
    stays available on `textToHtml()` only.
-2. **Pre-2.6 `->nl2br()` chains** - `->nl2br()->value()` and similar now fail with "call to a
+3. **Pre-2.6 `->nl2br()` chains** - `->nl2br()->value()` and similar now fail with "call to a
    member function on string". Move chained methods before `->nl2br()`; it is a terminal call.
 
 ## [2.6.3] - 2026-04-27

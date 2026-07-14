@@ -265,6 +265,16 @@ echo "Title: {$title->rawHtml()}";         // 'Title: <10% OFF "SALE"'
 // nl2br - encodes special chars, then converts newlines to <br> tags
 $text = SmartString::new("Hello\nWorld");
 echo "{$text->nl2br()}";                   // "Hello<br>\nWorld"
+
+// appendHtml - encode the value, then append your markup as-is; missing values return ""
+echo SmartString::new('12 High St')->appendHtml(',<br>');  // "12 High St,<br>"
+echo SmartString::new(null)->appendHtml(',<br>');          // ""
+
+// wrapHtml - encode the value, then wrap it in your markup; the whole wrapper vanishes when missing
+echo SmartString::new('Our Story')->wrapHtml('<h2 class="lead">', '</h2>');  // "<h2 class=\"lead\">Our Story</h2>"
+echo SmartString::new('')->wrapHtml('<h2 class="lead">', '</h2>');           // ""
+
+// The markup arguments are trusted and output as-is - only pass literals you wrote, never user input
 ```
 
 ### String Manipulation
@@ -447,13 +457,18 @@ or handle specific conditions like null or zero values.
 $value = SmartString::new('');
 echo $value->or('Default'); // "Default"
 
-// and($value): Append a value if the value is present (not "" or null). Zero is considered present.
-echo $record->address1->and(",<br>\n");
-echo $record->address2->and(",<br>\n");
-echo $record->address3->and(",<br>\n");
+// append($value): Append a value if the value is present (not "" or null). Zero is considered present.
+$city = SmartString::new('Vancouver');
+echo $city->append(', ');                    // "Vancouver, "
+echo SmartString::new(null)->append(', ');   // "" - nothing to append to, nothing appended
 
-// andPrefix($value): Prepend a value if the value is present (not "" or null). Zero is considered present.
-echo $record->phone->andPrefix("Phone: ");
+// prepend($value): Prepend a value if the value is present (not "" or null). Zero is considered present.
+echo $record->phone->prepend("Phone: ");
+
+// wrap($before, $after): Wrap the value if present; the whole wrapper vanishes when the value is missing.
+$ext = SmartString::new(204);
+echo $ext->wrap('(ext. ', ')');                    // "(ext. 204)"
+echo SmartString::new(null)->wrap('(ext. ', ')');  // ""
 
 // ifBlank($newValue): Handling blank values (only on empty string "")
 $name1 = SmartString::new('');
@@ -656,6 +671,8 @@ or in an init file:
 |                                 `->jsonEncode()` | Returns JSON-encoded string (malformed UTF-8 is substituted with � instead of failing)                                                  |
 |                                    `->rawHtml()` | Alias for `value()`, useful for readability when outputting trusted HTML content                                                        |
 |                                      `->nl2br()` | HTML-encodes special chars, then converts newlines to `<br>` tags (unlike PHP's `nl2br()`, output is XSS-safe)                          |
+|                            `->appendHtml($html)` | HTML-encodes the value, then appends your trusted markup as-is; missing values return ""                                                |
+|                    `->wrapHtml($before, $after)` | HTML-encodes the value, then wraps it in your trusted markup as-is; the whole wrapper vanishes when the value is missing                |
 |                          **String Manipulation** |                                                                                                                                         |
 |                                   `->textOnly()` | Removes HTML tags from the string, decodes entities, and trims whitespace                                                               |
 |                                       `->trim()` | Trims whitespace or specified characters from the string                                                                                |
@@ -676,8 +693,9 @@ or in an init file:
 |                             `->divide($divisor)` | Divides current number by $divisor                                                                                                      |
 |                       **Conditional Operations** |                                                                                                                                         |
 |                                `->or($fallback)` | Returns the fallback if the value is missing ("", null), zero is not considered missing                                                 |
-|                                  `->and($value)` | Appends $value if the value is present (not "" or null), zero is considered present                                                     |
-|                            `->andPrefix($value)` | Prepends $value if the value is present (not "" or null), zero is considered present                                                    |
+|                               `->append($value)` | Appends $value if the value is present (not "" or null), zero is considered present                                                     |
+|                              `->prepend($value)` | Prepends $value if the value is present (not "" or null), zero is considered present                                                    |
+|                        `->wrap($before, $after)` | Wraps the value if present; the whole wrapper vanishes when the value is missing. Pass "" for a side you don't want                     |
 |                            `->ifNull($fallback)` | Returns the fallback if the value is null                                                                                               |
 |                           `->ifBlank($fallback)` | Returns the fallback if the value is an empty string                                                                                    |
 |                            `->ifZero($fallback)` | Returns the fallback if the value is zero                                                                                               |

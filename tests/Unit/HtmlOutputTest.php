@@ -8,10 +8,12 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Support\SmartStringTestCase;
 
 /**
- * nl2br() and its silent alias textToHtml().
+ * The terminal HTML exits: nl2br(), appendHtml(), wrapHtml(), and the
+ * silent alias textToHtml().
  *
- * Both are terminal (return native string), so immutability is n/a.
- * n/a dimensions: global settings, argument matrix (keepBr is a plain bool).
+ * All are terminal (return native string), so immutability is n/a.
+ * n/a dimensions: global settings, argument matrix (markup arguments are
+ * plain strings by contract - trusted literals, never user values).
  */
 class HtmlOutputTest extends SmartStringTestCase
 {
@@ -40,6 +42,68 @@ class HtmlOutputTest extends SmartStringTestCase
             'empty string'         => ['', ''],
             'invalid utf8'         => ["caf\xE9\nbar", "caf�<br>\nbar"],
         ];
+    }
+
+    //endregion
+    //region appendHtml()
+
+    /**
+     * The value is encoded, the markup argument is not, and missing values
+     * return "" so the markup never appears alone.
+     */
+    #[DataProvider('appendHtmlProvider')]
+    public function testAppendHtml($input, string $html, string $expected): void
+    {
+        $this->assertSame($expected, SmartString::new($input)->appendHtml($html));
+    }
+
+    public static function appendHtmlProvider(): array
+    {
+        return [
+            'address line'       => ['12 High St', ",<br>\n", "12 High St,<br>\n"],
+            'value is encoded'   => ['Bob & Sons <Ltd>', '<br>', 'Bob &amp; Sons &lt;Ltd&gt;<br>'],
+            'null returns empty' => [null, '<br>', ''],
+            'blank returns empty' => ['', '<br>', ''],
+            'zero is present'    => [0, '<br>', '0<br>'],
+            'false is present but blank' => [false, '<br>', '<br>'], // matches append(): false attaches alone
+        ];
+    }
+
+    //endregion
+    //region wrapHtml()
+
+    /**
+     * The value is encoded, the markup arguments are not, and missing values
+     * return "" - the whole wrapper vanishes (replaces the isNotEmpty-guard
+     * template idiom).
+     */
+    #[DataProvider('wrapHtmlProvider')]
+    public function testWrapHtml($input, string $before, string $after, string $expected): void
+    {
+        $this->assertSame($expected, SmartString::new($input)->wrapHtml($before, $after));
+    }
+
+    public static function wrapHtmlProvider(): array
+    {
+        return [
+            'heading wrapper'     => ['Our Story', '<h2 class="lead">', '</h2>', '<h2 class="lead">Our Story</h2>'],
+            'value is encoded'    => ['<script>alert(1)</script>', '<p>', '</p>', '<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>'],
+            'null vanishes'       => [null, '<h2>', '</h2>', ''],
+            'blank vanishes'      => ['', '<h2>', '</h2>', ''],
+            'zero is present'     => [0, '<td>', '</td>', '<td>0</td>'],
+            'prefix-only markup'  => ['555-1234', '<i class="icon-phone"></i> ', '', '<i class="icon-phone"></i> 555-1234'],
+            'value into attribute' => ['photo "1".jpg', '<img src="/uploads/', '" alt="">', '<img src="/uploads/photo &quot;1&quot;.jpg" alt="">'],
+        ];
+    }
+
+    public function testHtmlExitsAreTerminalStrings(): void
+    {
+        $this->assertIsString(SmartString::new('x')->appendHtml('<br>'));
+        $this->assertIsString(SmartString::new('x')->wrapHtml('<b>', '</b>'));
+
+        // formatting and fallbacks chain BEFORE the terminal exit
+        $price = SmartString::new(null);
+        $this->assertSame('0.00<br>', $price->numberFormat(2)->or('0.00')->appendHtml('<br>'));
     }
 
     //endregion

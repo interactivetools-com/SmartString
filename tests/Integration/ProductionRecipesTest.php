@@ -48,6 +48,22 @@ class ProductionRecipesTest extends SmartStringTestCase
         // address block: present line gets separator + <br>, missing line vanishes
         $this->assertSame("Acme Ltd,<br>\n", SmartString::new('Acme Ltd')->and(",\n")->nl2br());
         $this->assertSame('', SmartString::new(null)->and(",\n")->nl2br());
+
+        // same output, one call: appendHtml() is the v3 spelling for this recipe
+        $this->assertSame("Acme Ltd,<br>\n", SmartString::new('Acme Ltd')->appendHtml(",<br>\n"));
+        $this->assertSame('', SmartString::new(null)->appendHtml(",<br>\n"));
+    }
+
+    /**
+     * The isNotEmpty-guard wrapper, the single most common template idiom in
+     * the sweep: <?php if (!$page->subheading->isEmpty()): ?><h2>...</h2><?php endif ?>
+     * becomes one wrapHtml() call.
+     */
+    public function testGuardWrapperIdiom(): void
+    {
+        $this->assertSame('<h2 class="lead">Our Story</h2>', SmartString::new('Our Story')->wrapHtml('<h2 class="lead">', '</h2>'));
+        $this->assertSame('', SmartString::new('')->wrapHtml('<h2 class="lead">', '</h2>'));
+        $this->assertSame('', SmartString::new(null)->wrapHtml('<h2 class="lead">', '</h2>'));
     }
 
     public function testB4TrustedWysiwygPassthrough(): void

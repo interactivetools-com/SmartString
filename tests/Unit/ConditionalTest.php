@@ -10,10 +10,12 @@ use Tests\Support\Fixtures;
 use Tests\Support\SmartStringTestCase;
 
 /**
- * or(), and(), andPrefix(), ifBlank(), ifNull(), ifZero(), if(), set().
+ * or(), append(), prepend(), wrap(), ifBlank(), ifNull(), ifZero(), if(), set().
  *
  * The falsy matrix is the library's core promise: only null and '' are
  * missing; zero in every form is present.
+ *
+ * The and()/andPrefix() aliases are covered in DeprecatedAliasesTest.
  *
  * n/a dimensions: encoding (conditionals transform the raw value), global
  * settings.
@@ -78,15 +80,15 @@ class ConditionalTest extends SmartStringTestCase
     }
 
     //endregion
-    //region and() / andPrefix()
+    //region append() / prepend() / wrap()
 
-    #[DataProvider('andProvider')]
-    public function testAnd($value, $suffix, $expected): void
+    #[DataProvider('appendProvider')]
+    public function testAppend($value, $suffix, $expected): void
     {
-        $this->assertSmartString($expected, SmartString::new($value)->and($suffix));
+        $this->assertSmartString($expected, SmartString::new($value)->append($suffix));
     }
 
-    public static function andProvider(): array
+    public static function appendProvider(): array
     {
         return [
             'non-empty string'   => ['Hello', ' World', 'Hello World'],
@@ -99,13 +101,13 @@ class ConditionalTest extends SmartStringTestCase
         ];
     }
 
-    #[DataProvider('andPrefixProvider')]
-    public function testAndPrefix($value, $prefix, $expected): void
+    #[DataProvider('prependProvider')]
+    public function testPrepend($value, $prefix, $expected): void
     {
-        $this->assertSmartString($expected, SmartString::new($value)->andPrefix($prefix));
+        $this->assertSmartString($expected, SmartString::new($value)->prepend($prefix));
     }
 
-    public static function andPrefixProvider(): array
+    public static function prependProvider(): array
     {
         return [
             'non-empty string'   => ['World', 'Hello ', 'Hello World'],
@@ -118,14 +120,36 @@ class ConditionalTest extends SmartStringTestCase
         ];
     }
 
+    #[DataProvider('wrapProvider')]
+    public function testWrap($value, $before, $after, $expected): void
+    {
+        $this->assertSmartString($expected, SmartString::new($value)->wrap($before, $after));
+    }
+
+    public static function wrapProvider(): array
+    {
+        return [
+            'non-empty string'    => ['Sale', '[', ']', '[Sale]'],
+            'empty string'        => ['', '(', ')', ''],
+            'null'                => [null, '(', ')', null],
+            'false attaches alone' => [false, '(', ')', '()'], // false is present but stringifies to ''
+            'zero is present'     => [0, '(', ')', '(0)'],
+            'numeric value'       => [19.99, '(', ')', '(19.99)'],
+            'empty before'        => ['note', '', '!', 'note!'],
+            'empty after'         => ['ext. 204', '(', '', '(ext. 204'],
+            'SmartString sides'   => ['x', SmartString::new('<'), SmartString::new('>'), '<x>'],
+        ];
+    }
+
     /**
      * Pinned: attaching mutates the value type to string (string
      * concatenation), except when nothing attaches.
      */
-    public function testAndMutatesTypeToStringWhenAttaching(): void
+    public function testAttachMutatesTypeToStringWhenAttaching(): void
     {
-        $this->assertSame('0 items', SmartString::new(0)->and(' items')->value());
-        $this->assertNull(SmartString::new(null)->and(' items')->value()); // null stays null, not ''
+        $this->assertSame('0 items', SmartString::new(0)->append(' items')->value());
+        $this->assertNull(SmartString::new(null)->append(' items')->value()); // null stays null, not ''
+        $this->assertNull(SmartString::new(null)->wrap('(', ')')->value());   // wrapper vanishes, null preserved
     }
 
     //endregion
@@ -194,7 +218,7 @@ class ConditionalTest extends SmartStringTestCase
         $this->assertSame('x', SmartString::new('x')->or($smartNull)->value());
         $this->assertNull(SmartString::new(null)->or($smartNull)->value());
         $this->assertNull(SmartString::new(null)->ifNull($smartNull)->value());
-        $this->assertSame('kept', SmartString::new('kept')->and($smartNull)->value());
+        $this->assertSame('kept', SmartString::new('kept')->append($smartNull)->value());
     }
 
     //endregion
@@ -207,7 +231,7 @@ class ConditionalTest extends SmartStringTestCase
         $this->assertNull($original->value());
 
         $present = SmartString::new('Hi');
-        $present->and('!')->andPrefix('>');
+        $present->append('!')->prepend('>')->wrap('[', ']');
         $this->assertSame('Hi', $present->value());
     }
 

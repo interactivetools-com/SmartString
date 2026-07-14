@@ -19,6 +19,7 @@ use RuntimeException;
  */
 class SmartString implements JsonSerializable
 {
+    use DeprecatedAliases;
     use ErrorHelpersTrait;
 
     /**
@@ -180,20 +181,47 @@ class SmartString implements JsonSerializable
     }
 
     /**
-     * Same as nl2br() when $keepBr is false (the default); kept so code written for
-     * v2.6-v2.7 keeps working. Prefer nl2br().
+     * HTML-encodes the value and appends $html as-is, only when a value is present (not null
+     * or ""), zero is considered present. Missing values return "".
      *
-     * keepBr: true preserves existing <br> tags instead of converting newlines (for
-     * CMS text fields that already store line breaks as <br> tags).
+     * Terminal: returns a plain string so nothing downstream can re-encode the markup.
+     * The markup argument must be a literal you wrote - never pass user input.
      *
-     * @param bool $keepBr Preserve existing <br> tags instead of converting newlines (default: false)
-     * @return string HTML-safe output
+     *     echo $member->AddressLine1->appendHtml(",<br>\n");  // "12 High St,<br>\n", or "" when missing
+     *
+     * @param string $html Trusted markup, appended as-is (not encoded)
+     * @return string HTML-safe output, or "" when the value is missing
      */
-    public function textToHtml(bool $keepBr = false): string
+    public function appendHtml(string $html): string
     {
-        return $keepBr
-            ? preg_replace('|&lt;(br\s*/?)&gt;|i', "<$1>", htmlspecialchars((string)$this->rawData, self::HTML_ENCODE_FLAGS, 'UTF-8'))
-            : $this->nl2br();
+        if ($this->isMissing()) {
+            return '';
+        }
+        return $this->htmlEncode() . $html;
+    }
+
+    /**
+     * HTML-encodes the value and wraps it in $before/$after as-is, only when a value is
+     * present (not null or ""), zero is considered present. Missing values return "", so the
+     * whole wrapper vanishes when there is nothing to wrap.
+     *
+     * Terminal: returns a plain string so nothing downstream can re-encode the markup.
+     * Both sides are required: pass "" for a side you don't want. Best for single-tag
+     * wrappers; keep the template if() for multi-element blocks. The markup arguments must
+     * be literals you wrote - never pass user input.
+     *
+     *     echo $page->subheading->wrapHtml('<h2 class="lead">', '</h2>');  // whole <h2> vanishes when empty
+     *
+     * @param string $before Trusted markup placed before the encoded value (not encoded)
+     * @param string $after Trusted markup placed after the encoded value (not encoded)
+     * @return string HTML-safe output, or "" when the value is missing
+     */
+    public function wrapHtml(string $before, string $after): string
+    {
+        if ($this->isMissing()) {
+            return '';
+        }
+        return $before . $this->htmlEncode() . $after;
     }
 
     /**
@@ -520,11 +548,12 @@ class SmartString implements JsonSerializable
     }
 
     /**
-     * Appends value if present (not null or ""), zero is considered present
+     * Appends $value if present (not null or ""), zero is considered present
      *
+     * Missing values pass through unchanged, so nothing is appended to nothing.
      * false also counts as present but converts to "", so only the appended value appears.
      */
-    public function and(int|float|string|bool|null|SmartString|SmartNull $value): SmartString
+    public function append(int|float|string|bool|null|SmartString|SmartNull $value): SmartString
     {
         $newValue = $this->rawData;
         if (!$this->isMissing()) {
@@ -534,15 +563,35 @@ class SmartString implements JsonSerializable
     }
 
     /**
-     * Prepends value if present (not null or ""), zero is considered present
+     * Prepends $prefix if present (not null or ""), zero is considered present
      *
+     * Missing values pass through unchanged, so nothing is prepended to nothing.
      * false also counts as present but converts to "", so only the prepended value appears.
      */
-    public function andPrefix(int|float|string|bool|null|SmartString|SmartNull $prefix): SmartString
+    public function prepend(int|float|string|bool|null|SmartString|SmartNull $prefix): SmartString
     {
         $newValue = $this->rawData;
         if (!$this->isMissing()) {
             $newValue = self::getRawValue($prefix) . $newValue;
+        }
+        return new self($newValue);
+    }
+
+    /**
+     * Wraps the value in $before and $after if present (not null or ""), zero is considered present
+     *
+     * Missing values pass through unchanged, so the whole wrapper vanishes when there is
+     * nothing to wrap. Both sides are required: pass "" for a side you don't want, or use
+     * prepend()/append() for one-sided text.
+     *
+     *     $price->wrap('(', ')');            // "(19.99)"; missing stays missing
+     *     $label->wrap('[', ']')->or('none'); // "[Sale]", or "none" when missing
+     */
+    public function wrap(int|float|string|bool|null|SmartString|SmartNull $before, int|float|string|bool|null|SmartString|SmartNull $after): SmartString
+    {
+        $newValue = $this->rawData;
+        if (!$this->isMissing()) {
+            $newValue = self::getRawValue($before) . $newValue . self::getRawValue($after);
         }
         return new self($newValue);
     }
@@ -932,8 +981,8 @@ class SmartString implements JsonSerializable
         $methodAliases = [
             // use lowercase for aliases
             'add'            => ['plus'],
-            'and'            => ['append', 'concat', 'suffix'],
-            'andPrefix'      => ['prepend', 'prefix'],
+            'append'         => ['concat', 'suffix'],
+            'appendHtml'     => ['andhtml', 'addhtml', 'suffixhtml'],
             'apply'          => ['pipe', 'transform', 'callback'],
             'bool'           => ['tobool', 'getbool', 'boolean'],
             'dateFormat'     => ['formatdate', 'todate', 'date_format', 'date'],
@@ -953,6 +1002,7 @@ class SmartString implements JsonSerializable
             'numberFormat'   => ['formatnumber', 'number_format', 'format'],
             'or'             => ['default', 'ifmissing', 'fallback', 'else'],
             'phoneFormat'    => ['formatphone', 'phone', 'phone_format'],
+            'prepend'        => ['prefix'],
             'rawHtml'        => ['unsafe', 'unescaped', 'trusted', 'trustedhtml', 'unsafehtml', 'raw', 'html'],
             'set'            => ['setvalue', 'replace'],
             'string'         => ['tostring', 'getstring', 'str'],
@@ -960,6 +1010,8 @@ class SmartString implements JsonSerializable
             'textOnly'       => ['plaintext', 'striphtml', 'strip', 'text'],
             'urlEncode'      => ['escapeurl', 'encodeurl', 'url_encode', 'urlencode'],
             'value'          => ['noescape', 'getvalue', 'val'],
+            'wrap'           => ['surround', 'enclose'],
+            'wrapHtml'       => ['andwraphtml', 'surroundhtml'],
         ];
 
         // Check if the called method is an alias

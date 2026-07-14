@@ -15,12 +15,13 @@ use Tests\Support\SmartStringTestCase;
  *
  * Exemptions:
  * - magic methods and jsonSerialize(): interface plumbing, never called directly
- * - textToHtml(): the one deliberate omission - a silent compatibility alias
- *   for nl2br(), kept undocumented by design
+ * - the DeprecatedAliases trait (and, andPrefix, textToHtml): silent
+ *   compatibility aliases, kept undocumented by design - docs show only the
+ *   new names
  */
 class DocsCoverageTest extends SmartStringTestCase
 {
-    private const EXEMPT = ['textToHtml', 'jsonSerialize'];
+    private const EXEMPT = ['and', 'andPrefix', 'textToHtml', 'jsonSerialize'];
 
     #[DataProvider('publicMethodsProvider')]
     public function testMethodIsInReadme(string $method): void

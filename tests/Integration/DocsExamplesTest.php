@@ -91,6 +91,12 @@ class DocsExamplesTest extends SmartStringTestCase
 
         $text = SmartString::new("Hello\nWorld");
         $this->assertSame("Hello<br>\nWorld", "{$text->nl2br()}");
+
+        $this->assertSame('12 High St,<br>', SmartString::new('12 High St')->appendHtml(',<br>'));
+        $this->assertSame('', SmartString::new(null)->appendHtml(',<br>'));
+
+        $this->assertSame('<h2 class="lead">Our Story</h2>', SmartString::new('Our Story')->wrapHtml('<h2 class="lead">', '</h2>'));
+        $this->assertSame('', SmartString::new('')->wrapHtml('<h2 class="lead">', '</h2>'));
     }
 
     //endregion
@@ -211,6 +217,16 @@ class DocsExamplesTest extends SmartStringTestCase
     public function testConditionalOperations(): void
     {
         $this->assertSame('Default', (string)SmartString::new('')->or('Default'));
+
+        $city = SmartString::new('Vancouver');
+        $this->assertSame('Vancouver, ', (string)$city->append(', '));
+        $this->assertSame('', (string)SmartString::new(null)->append(', '));
+
+        $this->assertSame('Phone: 555-1234', (string)SmartString::new('555-1234')->prepend('Phone: '));
+
+        $ext = SmartString::new(204);
+        $this->assertSame('(ext. 204)', (string)$ext->wrap('(ext. ', ')'));
+        $this->assertSame('', (string)SmartString::new(null)->wrap('(ext. ', ')'));
 
         $this->assertSame('John Doe', (string)SmartString::new('')->ifBlank('John Doe'));
         $this->assertSame('Alice', (string)SmartString::new('Alice')->ifBlank('John Doe'));
