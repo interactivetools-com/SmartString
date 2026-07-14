@@ -260,17 +260,17 @@ class MathTest extends SmartStringTestCase
     }
 
     /**
-     * $zeroFallback is a parameter, not a chain link, because a chained
-     * ->ifZero() can't detect zero after formatting (percent() has already
-     * made it "0.00%").
+     * The zero rule is a parameter ($ifZero), not a chain link, because a
+     * chained ->ifZero() can't detect zero after formatting (percent() has
+     * already made it "0.00%").
      */
-    public function testPercentZeroFallback(): void
+    public function testPercentIfZeroParameter(): void
     {
-        $result = $this->assertNoOutput(fn() => SmartString::new(0)->percent(2, 'N/A'));
+        $result = $this->assertNoOutput(fn() => SmartString::new(0)->percent(2, ifZero: 'N/A'));
         $this->assertSmartString('N/A', $result);
     }
 
-    public function testPercentZeroFallbackOnlyAppliesToZero(): void
+    public function testPercentIfZeroOnlyAppliesToZero(): void
     {
         $this->assertSmartString(0, SmartString::new(0)->percent(2, 0));              // numeric fallback keeps its type
         $this->assertSmartString('50.00%', SmartString::new(0.5)->percent(2, 'N/A')); // non-zero ignores fallback

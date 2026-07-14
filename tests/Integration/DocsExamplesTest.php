@@ -199,10 +199,10 @@ class DocsExamplesTest extends SmartStringTestCase
         $this->assertSame('55.00', (string)$price->multiply(1.1)->divide(2)->numberFormat(2));
     }
 
-    public function testPercentZeroFallback(): void
+    public function testPercentIfZeroParameter(): void
     {
         $value = SmartString::new(0);
-        $this->assertSame('N/A', (string)$value->percent(2, 'N/A'));
+        $this->assertSame('N/A', (string)$value->percent(2, ifZero: 'N/A'));
     }
 
     //endregion

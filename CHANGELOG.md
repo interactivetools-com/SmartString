@@ -34,6 +34,8 @@
   both work (previously the static call was a fatal error)
 - `or404()`, `orDie()`, `orThrow()` message parameter renamed to `$text` and documented as
   HTML-encoded before output
+- `percent()` second parameter renamed from `$zeroFallback` to `$ifZero` - same name as the
+  chain method, one vocabulary for the concept: `->percent(2, ifZero: "None")`
 - `orDie()` exits with code 1 so CLI and cron callers see a failure exit code
 
 ### Removed

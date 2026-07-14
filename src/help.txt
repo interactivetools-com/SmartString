@@ -62,7 +62,7 @@ Formatting (returns object, chainable)
 
 Numeric Operations (returns object, chainable)
 -----------------------------------------------
-->percent($decimals, $zeroFallback)  Returns value as a percentage, e.g. 0.5 becomes 50% ($zeroFallback is returned for zero)
+->percent($decimals, $ifZero)        Returns value as a percentage, e.g. 0.5 becomes 50% ($ifZero is returned for zero)
 ->percentOf($total, $decimals)       Returns value as a percentage of $total, e.g., 24 of 100 becomes 24%
 ->add($value)                        Returns value plus $value
 ->subtract($value)                   Returns value minus $value

@@ -1242,7 +1242,7 @@ class SmartStringTest extends TestCase
     }
 
     /**
-     * Test the percent() method with the zeroFallback parameter.
+     * Test the percent() method with the $ifZero parameter.
      */
     public function testPercentWithZeroFallback(): void
     {

@@ -419,14 +419,14 @@ class SmartString implements JsonSerializable
     /**
      * Converts a number to a percentage. Support optional decimal places and fallback value for zero
      * - If value is null, null is returned
-     * - If value is zero AND $zeroFallback is defined, $zeroFallback is returned
+     * - If value is zero AND $ifZero is defined, $ifZero is returned
      * - Otherwise a percentage is returned. e.g., 0.1234 => 12.34%
      *
-     * $zeroFallback is a parameter, not a chain link, because a chained ->ifZero()
-     * can't detect zero after formatting (percent() has already made it "0.00%").
+     * The zero rule is a parameter ($ifZero), not a chain link, because a chained
+     * ->ifZero() can't detect zero after formatting (percent() has already made it "0.00%").
      *
      * @param int $decimals Number of decimal places in formatted output
-     * @param string|int|float|null $zeroFallback Optional fallback returned when the value is zero
+     * @param string|int|float|null $ifZero Optional fallback returned when the value is zero
      * @return SmartString Formatted percentage, or null if not numeric
      *
      * @example Converting numbers to percentages:
@@ -435,15 +435,15 @@ class SmartString implements JsonSerializable
      *
      * @example Handling zero values:
      *   $zero = SmartString::new(0);
-     *   echo $zero->percent(2);          // "0.00%"
-     *   echo $zero->percent(2, "None");  // "None"
+     *   echo $zero->percent(2);                  // "0.00%"
+     *   echo $zero->percent(2, ifZero: "None");  // "None"
      */
-    public function percent(int $decimals = 0, string|int|float|null $zeroFallback = null): SmartString
+    public function percent(int $decimals = 0, string|int|float|null $ifZero = null): SmartString
     {
         $value    = self::getFloatOrNull($this->rawData);
         $newValue = match (true) {
-            is_null($value)                           => null,
-            $value === 0.0 && !is_null($zeroFallback) => $zeroFallback,
+            is_null($value)                     => null,
+            $value === 0.0 && !is_null($ifZero) => $ifZero,
             default                                   => number_format($value * 100, $decimals, self::$numberFormatDecimal, self::$numberFormatThousands) . '%',
         };
         return new self($newValue);
