@@ -45,6 +45,31 @@ trait DeprecatedAliases
     }
 
     /**
+     * @deprecated Use ifTrue() - same behavior, new name
+     */
+    #[Deprecated(reason: 'renamed to ifTrue() in v3.0', replacement: '%class%->ifTrue(%parametersList%)')]
+    public function if(string|int|float|bool|null|SmartString|SmartNull $condition, string|int|float|bool|null|SmartString|SmartNull $valueIfTrue): SmartString
+    {
+        return $this->ifTrue($condition, $valueIfTrue);
+    }
+
+    /**
+     * Replaces value only if it's an empty string ("") - strictly "", not null.
+     *
+     * Retired: use or() when null and "" should both be replaced (the usual intent),
+     * or ifEquals('', ...) when blank specifically should be (note ifEquals is loose,
+     * so it also matches null and false).
+     *
+     * @deprecated Use or() for missing values, or ifEquals('', ...) for blank
+     */
+    #[Deprecated(reason: 'retired in v3.0 - use or() for missing values, or ifEquals("", ...) for blank')]
+    public function ifBlank(int|float|string|bool|null|SmartString|SmartNull $fallback): SmartString
+    {
+        $newValue = $this->rawData === "" ? SmartString::getRawValue($fallback) : $this->rawData;
+        return new SmartString($newValue);
+    }
+
+    /**
      * Same as nl2br() when $keepBr is false (the default); kept so code written for
      * v2.6-v2.7 keeps working.
      *

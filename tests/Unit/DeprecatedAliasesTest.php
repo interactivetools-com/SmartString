@@ -40,6 +40,8 @@ class DeprecatedAliasesTest extends SmartStringTestCase
             'andPrefix → prepend (missing)' => ['andPrefix', 'prepend', ['$'], ''],
             'apply → map'                   => ['apply', 'map', ['strtoupper'], 'hello'],
             'apply → map (with args)'       => ['apply', 'map', ['str_pad', 5, '*'], 'ab'],
+            'if → ifTrue (fires)'           => ['if', 'ifTrue', [true, 'FB'], 5],
+            'if → ifTrue (keeps)'           => ['if', 'ifTrue', [false, 'FB'], 5],
             'textToHtml → nl2br'            => ['textToHtml', 'nl2br', [], "a<b\nc"],
         ];
     }
@@ -49,5 +51,18 @@ class DeprecatedAliasesTest extends SmartStringTestCase
         $result = SmartString::new('x')->and('!')->andPrefix('>')->or('n/a');
         $this->assertInstanceOf(SmartString::class, $result);
         $this->assertSame('>x!', $result->value());
+    }
+
+    /**
+     * ifBlank() is retired with no direct replacement (or() covers the usual
+     * intent; ifEquals('', ...) is loose). It keeps its own implementation
+     * here: strictly '', not null. The full falsy matrix in ConditionalTest
+     * pins its behavior; this just pins the silence.
+     */
+    public function testIfBlankStillWorksSilently(): void
+    {
+        $result = $this->assertNoOutput(fn() => SmartString::new('')->ifBlank('FB'));
+        $this->assertSame('FB', $result->value());
+        $this->assertNull(SmartString::new(null)->ifBlank('FB')->value()); // null does not fire
     }
 }

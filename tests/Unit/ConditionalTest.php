@@ -10,12 +10,14 @@ use Tests\Support\Fixtures;
 use Tests\Support\SmartStringTestCase;
 
 /**
- * or(), append(), prepend(), wrap(), ifBlank(), ifNull(), ifZero(), if(), set().
+ * or(), append(), prepend(), wrap(), ifNull(), ifZero(), ifTrue(),
+ * ifEquals(), set().
  *
  * The falsy matrix is the library's core promise: only null and '' are
- * missing; zero in every form is present.
+ * missing; zero in every form is present. The retired ifBlank() keeps its
+ * column in the matrix - the matrix IS its behavior spec.
  *
- * The and()/andPrefix() aliases are covered in DeprecatedAliasesTest.
+ * The and()/andPrefix()/if() aliases are covered in DeprecatedAliasesTest.
  *
  * n/a dimensions: encoding (conditionals transform the raw value), global
  * settings.
@@ -36,6 +38,7 @@ class ConditionalTest extends SmartStringTestCase
         $this->assertSmartString($expected['ifNull'], SmartString::new($value)->ifNull($fallback));
     }
 
+    /** ifBlank() is retired to DeprecatedAliases but keeps working - strictly '', not null */
     #[DataProvider('falsyMatrixProvider')]
     public function testIfBlank($value, $fallback, array $expected): void
     {
@@ -153,15 +156,15 @@ class ConditionalTest extends SmartStringTestCase
     }
 
     //endregion
-    //region if() / set()
+    //region ifTrue() / ifEquals() / set()
 
-    #[DataProvider('ifProvider')]
-    public function testIf($value, $condition, $valueIfTrue, $expected): void
+    #[DataProvider('ifTrueProvider')]
+    public function testIfTrue($value, $condition, $valueIfTrue, $expected): void
     {
-        $this->assertSmartString($expected, SmartString::new($value)->if($condition, $valueIfTrue));
+        $this->assertSmartString($expected, SmartString::new($value)->ifTrue($condition, $valueIfTrue));
     }
 
-    public static function ifProvider(): array
+    public static function ifTrueProvider(): array
     {
         return [
             'true condition'          => [5, true, 10, 10],
@@ -173,6 +176,29 @@ class ConditionalTest extends SmartStringTestCase
             'SmartNull condition'     => [5, new SmartNull(), 99, 5], // falsy, no TypeError
             'SmartString condition'   => [5, SmartString::new('x'), 10, 10],
             'SmartString valueIfTrue' => [5, true, new SmartString('replaced'), 'replaced'],
+        ];
+    }
+
+    #[DataProvider('ifEqualsProvider')]
+    public function testIfEquals($value, $match, $newValue, $expected): void
+    {
+        $this->assertSmartString($expected, SmartString::new($value)->ifEquals($match, $newValue));
+    }
+
+    public static function ifEqualsProvider(): array
+    {
+        return [
+            'exact match'              => ['unknown', 'unknown', '', ''],
+            'no match keeps value'     => ['Vancouver', 'unknown', '', 'Vancouver'],
+            'loose: string vs int'     => ['5', 5, 'five', 'five'],
+            'loose: int vs string'     => [-1, '-1', 'Unlimited', 'Unlimited'],
+            'sentinel date'            => ['0000-00-00', '0000-00-00', null, null],
+            'zero vs string zero'      => [0, '0', 'none', 'none'],
+            'loose: false matches 0'   => [false, 0, 'zero', 'zero'],     // pinned: PHP loose ==, docs say use ifNull/ifZero for these
+            'blank does not match 0'   => ['', 0, 'zero', ''],            // PHP 8 saner comparisons
+            'replacement type kept'    => ['9', 9, 42, 42],
+            'SmartString match'        => ['x', SmartString::new('x'), 'hit', 'hit'],
+            'SmartNull match on null'  => [null, new SmartNull(), 'hit', 'hit'], // null == null
         ];
     }
 

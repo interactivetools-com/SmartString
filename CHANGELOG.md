@@ -5,6 +5,9 @@
 ### Added
 - `wrap($before, $after)` - wraps the value only when present (not null or ""), so the whole
   wrapper vanishes for missing values. Both sides required; pass "" for a side you don't want
+- `ifEquals($match, $newValue)` - replaces the value when it loosely equals `$match` (`==`,
+  so `"5"` matches `5`). Made for sentinel data: `->ifEquals('0000-00-00', null)`,
+  `->ifEquals(-1, 'Unlimited')`. Use `ifNull()` for null (in PHP, `null == 0` is true)
 - `appendHtml($html)` and `wrapHtml($before, $after)` - HTML-encode the value, then attach
   your trusted markup as-is, returning a finished string (same terminal shape as `nl2br()`).
   Missing values return "", so `->wrapHtml('<h2>', '</h2>')` replaces the isNotEmpty-guard
@@ -21,9 +24,13 @@
   "applies only when a value is present" behavior is unchanged and is now the library-wide
   rule: missing values (null or "") pass through every transform, and `or()`/`ifNull()`/
   `ifBlank()` and the or404/orDie/orThrow/orRedirect guards are the rescue points
-- Old names keep working forever as silent aliases (`and()`, `andPrefix()`, `textToHtml()`,
-  collected in one DeprecatedAliases trait): no runtime notices; PHPStorm shows them struck
-  through with a one-click rewrite to the new name
+- `if()` renamed to `ifTrue()` - it replaces the value when your condition is truthy, and the
+  old name read like it might gate the rest of the chain
+- `ifBlank()` retired (undocumented, keeps working) - it fired only on "" and never on null,
+  a distinction with no observed use; `or()` covers the usual intent
+- Old names keep working forever as silent aliases (`and()`, `andPrefix()`, `apply()`, `if()`,
+  `ifBlank()`, `textToHtml()`, collected in one DeprecatedAliases trait): no runtime notices;
+  PHPStorm shows them struck through with a one-click rewrite to the new name
 - `nl2br()` is back as the primary name for "HTML-encode, then convert newlines to `<br>`".
   Same behavior and string return `textToHtml()` had; renamed because `textToHtml` never
   read clearly at call sites. Unlike PHP's `nl2br()`, output is XSS-safe: text is encoded
@@ -69,12 +76,12 @@
   changed between versions)
 - README: removed stale "null values are treated as zero" claim from Numeric Operations
   (null propagation shipped in v2.6.3), replaced `SmartArrayRaw::new()` references with
-  `SmartArray::new()`, added missing `if()`/`set()` method-table rows
+  `SmartArray::new()`, added missing method-table rows (`ifTrue()`, `set()`)
 
 ### Migration Tips
-1. **`and()` → `append()`, `andPrefix()` → `prepend()`, `apply()` → `map()`** - Drop-in
-   renames, and the old names keep working silently; rename at your own pace (PHPStorm
-   offers a one-click fix).
+1. **`and()` → `append()`, `andPrefix()` → `prepend()`, `apply()` → `map()`, `if()` →
+   `ifTrue()`** - Drop-in renames, and the old names keep working silently; rename at your
+   own pace (PHPStorm offers a one-click fix).
 2. **`textToHtml()` → `nl2br()`** - Drop-in rename; both return the same string. `keepBr: true`
    stays available on `textToHtml()` only.
 3. **Pre-2.6 `->nl2br()` chains** - `->nl2br()->value()` and similar now fail with "call to a

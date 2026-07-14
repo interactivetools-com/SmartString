@@ -470,12 +470,6 @@ $ext = SmartString::new(204);
 echo $ext->wrap('(ext. ', ')');                    // "(ext. 204)"
 echo SmartString::new(null)->wrap('(ext. ', ')');  // ""
 
-// ifBlank($newValue): Handling blank values (only on empty string "")
-$name1 = SmartString::new('');
-$name2 = SmartString::new('Alice');
-echo $name1->ifBlank('John Doe'); // "John Doe"
-echo $name2->ifBlank('John Doe'); // "Alice"
-
 // ifNull($newValue): Handling null values - SmartString will return nulls on failed operations
 $nullable = SmartString::new(null);
 echo $nullable->ifNull('Not Null'); // "Not Null"
@@ -484,9 +478,15 @@ echo $nullable->ifNull('Not Null'); // "Not Null"
 $zero = SmartString::new(0);
 echo $zero->ifZero('No balance'); // "No balance"
 
-// if($condition, $valueIfTrue): Change value if condition is true
+// ifTrue($condition, $valueIfTrue): Replace the value when your condition is truthy
 $eggs = SmartString::new(12);
-echo $eggs->if($eggs->int() === 12, "Full Carton"); // "Full Carton"
+echo $eggs->ifTrue($eggs->int() === 12, "Full Carton"); // "Full Carton"
+
+// ifEquals($match, $newValue): Replace sentinel values (loose ==, so "5" matches 5; use ifNull() for null)
+$date = SmartString::new('0000-00-00');
+echo $date->ifEquals('0000-00-00', null)->dateFormat('M j, Y')->or('Not set'); // "Not set"
+$maxUsers = SmartString::new(-1);
+echo $maxUsers->ifEquals(-1, 'Unlimited'); // "Unlimited"
 
 // set($newValue): Assign a new value or expression result to the current object
 $price = SmartString::new(19.99);
@@ -698,9 +698,9 @@ or in an init file:
 |                              `->prepend($value)` | Prepends $value if the value is present (not "" or null), zero is considered present                                                    |
 |                        `->wrap($before, $after)` | Wraps the value if present; the whole wrapper vanishes when the value is missing. Pass "" for a side you don't want                     |
 |                            `->ifNull($fallback)` | Returns the fallback if the value is null                                                                                               |
-|                           `->ifBlank($fallback)` | Returns the fallback if the value is an empty string                                                                                    |
 |                            `->ifZero($fallback)` | Returns the fallback if the value is zero                                                                                               |
-|                 `->if($condition, $valueIfTrue)` | Sets the value to $valueIfTrue only if $condition is true                                                                               |
+|             `->ifTrue($condition, $valueIfTrue)` | Replaces the value when your condition is truthy (replaces the value only, does not gate the chain)                                     |
+|                  `->ifEquals($match, $newValue)` | Replaces the value when it loosely equals $match (==, so "5" matches 5; use ifNull() for null)                                          |
 |                                `->set($newValue)` | Sets the value to $newValue (accepts expression results, e.g., match() expressions)                                                    |
 |                                   **Validation** |                                                                                                                                         |
 |                                    `->isEmpty()` | Returns true if the value is empty ("", null, false, 0, "0"), uses PHP empty()                                                          |

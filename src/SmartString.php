@@ -597,15 +597,6 @@ class SmartString implements JsonSerializable
     }
 
     /**
-     * Replaces value only if it's an empty string ("")
-     */
-    public function ifBlank(int|float|string|bool|null|SmartString|SmartNull $fallback): SmartString
-    {
-        $newValue = $this->rawData === "" ? self::getRawValue($fallback) : $this->rawData;
-        return new self($newValue);
-    }
-
-    /**
      * Replaces value only if it's null or undefined
      */
     public function ifNull(int|float|string|bool|null|SmartString|SmartNull $fallback): SmartString
@@ -625,11 +616,33 @@ class SmartString implements JsonSerializable
     }
 
     /**
-     * Sets to $valueIfTrue only if $condition is true ($value can be a SmartString)
+     * Replaces the value with $valueIfTrue when $condition is truthy
+     *
+     * The condition is a plain value you computed, not a callback. This replaces the
+     * VALUE only - it does not gate the rest of the chain.
+     *
+     *     $eggs->ifTrue($eggs->int() >= 12, 'Full Carton');
      */
-    public function if(string|int|float|bool|null|SmartString|SmartNull $condition, string|int|float|bool|null|SmartString|SmartNull $valueIfTrue): SmartString
+    public function ifTrue(string|int|float|bool|null|SmartString|SmartNull $condition, string|int|float|bool|null|SmartString|SmartNull $valueIfTrue): SmartString
     {
         $newValue = self::getRawValue($condition) ? self::getRawValue($valueIfTrue) : $this->rawData;
+        return new self($newValue);
+    }
+
+    /**
+     * Replaces the value with $newValue when the value loosely equals $match (==)
+     *
+     * Loose comparison so "5" matches 5 - database numbers often arrive as strings.
+     * For null use ifNull() instead: PHP's null == 0, null == "", and null == false
+     * are all true, so ifEquals(null) would match far more than null.
+     *
+     *     $date->ifEquals('0000-00-00', null)->dateFormat('M j, Y')->or('Not set');
+     *     $plan->max_users->ifEquals(-1, 'Unlimited');  // fires on -1 and "-1"
+     */
+    public function ifEquals(string|int|float|bool|null|SmartString|SmartNull $match, string|int|float|bool|null|SmartString|SmartNull $newValue): SmartString
+    {
+        $isMatch  = $this->rawData == self::getRawValue($match);
+        $newValue = $isMatch ? self::getRawValue($newValue) : $this->rawData;
         return new self($newValue);
     }
 
@@ -994,6 +1007,8 @@ class SmartString implements JsonSerializable
             'float'          => ['tofloat', 'getfloat'],
             'htmlEncode'     => ['escapehtml', 'encodehtml', 'e', 'encode', 'escape', 'html_encode'],
             'int'            => ['toint', 'getint', 'integer'],
+            'ifEquals'       => ['ifequal', 'ifmatch'],
+            'ifTrue'         => ['when', 'setif'],
             'isEmpty'        => ['isblank', 'empty'],
             'isMissing'      => ['isempty', 'ismissingvalue'],
             'isNotEmpty'     => ['isnotblank', 'hasvalue', 'ispresent', 'notempty'],

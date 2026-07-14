@@ -21,7 +21,7 @@ use Tests\Support\SmartStringTestCase;
  */
 class DocsCoverageTest extends SmartStringTestCase
 {
-    private const EXEMPT = ['and', 'andPrefix', 'apply', 'textToHtml', 'jsonSerialize'];
+    private const EXEMPT = ['and', 'andPrefix', 'apply', 'if', 'ifBlank', 'textToHtml', 'jsonSerialize'];
 
     #[DataProvider('publicMethodsProvider')]
     public function testMethodIsInReadme(string $method): void

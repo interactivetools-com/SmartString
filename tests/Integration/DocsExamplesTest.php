@@ -228,14 +228,16 @@ class DocsExamplesTest extends SmartStringTestCase
         $this->assertSame('(ext. 204)', (string)$ext->wrap('(ext. ', ')'));
         $this->assertSame('', (string)SmartString::new(null)->wrap('(ext. ', ')'));
 
-        $this->assertSame('John Doe', (string)SmartString::new('')->ifBlank('John Doe'));
-        $this->assertSame('Alice', (string)SmartString::new('Alice')->ifBlank('John Doe'));
-
         $this->assertSame('Not Null', (string)SmartString::new(null)->ifNull('Not Null'));
         $this->assertSame('No balance', (string)SmartString::new(0)->ifZero('No balance'));
 
         $eggs = SmartString::new(12);
-        $this->assertSame('Full Carton', (string)$eggs->if($eggs->int() === 12, 'Full Carton'));
+        $this->assertSame('Full Carton', (string)$eggs->ifTrue($eggs->int() === 12, 'Full Carton'));
+
+        $date = SmartString::new('0000-00-00');
+        $this->assertSame('Not set', (string)$date->ifEquals('0000-00-00', null)->dateFormat('M j, Y')->or('Not set'));
+        $maxUsers = SmartString::new(-1);
+        $this->assertSame('Unlimited', (string)$maxUsers->ifEquals(-1, 'Unlimited'));
 
         $price = SmartString::new(19.99);
         $this->assertSame('24.99', (string)$price->set('24.99'));

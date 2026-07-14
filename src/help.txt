@@ -79,10 +79,10 @@ Conditional Operations (returns object, chainable)
 ->append('suffix')         Appends value if present (not null or ""), zero is considered present
 ->prepend('prefix')        Prepends value if present (not null or ""), zero is considered present
 ->wrap('(', ')')           Wraps value if present, whole wrapper vanishes when missing; pass "" for a side you don't want
-->ifBlank('replacement')   Replaces value only if it's a blank string ("")
+->ifEquals($match, $new)   Replaces value when it loosely equals $match (==, "5" matches 5; use ifNull for null)
 ->ifNull('replacement')    Replaces value only if it's null or undefined
 ->ifZero('replacement')    Replaces value only if it's zero (0, 0.0, "0", or "0.0")
-->if($condition, $value)   Sets to $value only if $condition is true ($value can be a SmartString)
+->ifTrue($condition, $new) Replaces value when $condition is truthy (replaces the value only, doesn't gate the chain)
 ->set($value)              Sets to $value (accepts expression, e.g., match($itemCount->int()) { 0 => "No items", ... })
 
 Validation (returns true/false)
