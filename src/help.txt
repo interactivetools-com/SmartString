@@ -103,7 +103,7 @@ Note: Messages are HTML-encoded automatically before being output or thrown.
 
 Miscellaneous
 --------------
-->apply()                  Apply a callback or function to the value, e.g. ->apply('strtoupper')
+->map()                    Call a function on the value, e.g. ->map('strtoupper') (always runs, null included)
 ->help()                   Displays this help text, works as $str->help() or SmartString::help()
 SmartString::getRawValue() Returns original value from Smart* objects while leaving other types unchanged, useful for working with mixed types
 

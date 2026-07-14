@@ -36,6 +36,15 @@ trait DeprecatedAliases
     }
 
     /**
+     * @deprecated Use map() - same behavior, new name
+     */
+    #[Deprecated(reason: 'renamed to map() in v3.0', replacement: '%class%->map(%parametersList%)')]
+    public function apply(callable|string $func, mixed ...$args): SmartString
+    {
+        return $this->map($func, ...$args);
+    }
+
+    /**
      * Same as nl2br() when $keepBr is false (the default); kept so code written for
      * v2.6-v2.7 keeps working.
      *

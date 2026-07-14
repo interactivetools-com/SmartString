@@ -573,28 +573,29 @@ echo "Hello $name->trim()";  // Will show helpful error explaining you need to u
 
 ### Custom Functions
 
-SmartString provides an `apply()` method that allows you to use custom code or PHP's built-in functions.
+SmartString provides a `map()` method that allows you to use custom code or PHP's built-in functions.
 The value of the SmartString object is passed as the first argument to the callback function
-followed by any supplied arguments.
+followed by any supplied arguments. The callback always runs, even on null - chain `->ifNull('')`
+first when using built-in functions that require a string.
 
-Examples of using apply():
+Examples of using map():
 
 ```php
 $name = SmartString::new('John Doe');
 
 // Using built-in PHP functions:
-$uppercase = $name->apply('strtoupper');  // returns "JOHN DOE"
+$uppercase = $name->map('strtoupper');  // returns "JOHN DOE"
 
 // Passing arguments to built-in functions:
-$paddedValue = $name->apply('str_pad', 15, '.'); // returns "John Doe......."
+$paddedValue = $name->map('str_pad', 15, '.'); // returns "John Doe......."
 
 // Writing your own custom function
 $spacesToUnderscores = function($str) { return str_replace(' ', '_', $str); }; // anonymous function
 $spacesToUnderscores = fn($str) => str_replace(' ', '_', $str);                 // arrow function (PHP 7.4+)
-$urlSlug = $name->apply($spacesToUnderscores);   // returns "John_Doe"
+$urlSlug = $name->map($spacesToUnderscores);   // returns "John_Doe"
 
 // Applying inline arrow functions
-$boldName = $name->apply(fn($val) => "<b>$val</b>"); // returns "<b>John Doe</b>"
+$boldName = $name->map(fn($val) => "<b>$val</b>"); // returns "<b>John Doe</b>"
 ```
 
 ### Developer Debugging &amp; Help
@@ -712,7 +713,7 @@ or in an init file:
 |                               `->orThrow($text)` | Throws Exception with message if the value is missing ("", null), zero is not considered missing                                        |
 |                             `->orRedirect($url)` | Redirects to URL if the value is missing ("", null), zero is not considered missing                                                     |
 |                                **Miscellaneous** |                                                                                                                                         |
-|                       `->apply($func, ...$args)` | Applies a custom function to the value                                                                                                  |
+|                         `->map($func, ...$args)` | Calls a custom function on the value (always runs, null included)                                                                       |
 |                                       `->help()` | Displays help information about available methods                                                                                       |
 
 **See Also:** For array operations, check out our companion library `SmartArray`,

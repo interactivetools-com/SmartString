@@ -46,6 +46,10 @@
   input (previously threw TypeError from strtotime)
 - `pregReplace()` throws InvalidArgumentException on an invalid pattern instead of emitting
   a PHP warning and continuing with a null value
+- `apply()` renamed to `map()` - same name and contract as `SmartArray::map()` and
+  `array_map()`: the callback always runs and receives the raw value, null included. Chain
+  `->ifNull('')` first when using built-ins that require a string. `apply()` keeps working
+  as a silent alias
 - `help()` is now static, so `SmartString::help()` (the documented form) and `$str->help()`
   both work (previously the static call was a fatal error)
 - `or404()`, `orDie()`, `orThrow()` message parameter renamed to `$text` and documented as
@@ -68,8 +72,9 @@
   `SmartArray::new()`, added missing `if()`/`set()` method-table rows
 
 ### Migration Tips
-1. **`and()` → `append()`, `andPrefix()` → `prepend()`** - Drop-in renames, and the old names
-   keep working silently; rename at your own pace (PHPStorm offers a one-click fix).
+1. **`and()` → `append()`, `andPrefix()` → `prepend()`, `apply()` → `map()`** - Drop-in
+   renames, and the old names keep working silently; rename at your own pace (PHPStorm
+   offers a one-click fix).
 2. **`textToHtml()` → `nl2br()`** - Drop-in rename; both return the same string. `keepBr: true`
    stays available on `textToHtml()` only.
 3. **Pre-2.6 `->nl2br()` chains** - `->nl2br()->value()` and similar now fail with "call to a

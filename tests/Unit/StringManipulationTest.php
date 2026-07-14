@@ -213,15 +213,15 @@ class StringManipulationTest extends SmartStringTestCase
     }
 
     //endregion
-    //region apply()
+    //region map()
 
-    #[DataProvider('applyProvider')]
-    public function testApply($input, $function, array $args, ?string $expected): void
+    #[DataProvider('mapProvider')]
+    public function testMap($input, $function, array $args, ?string $expected): void
     {
-        $this->assertSmartString($expected, SmartString::new($input)->apply($function, ...$args));
+        $this->assertSmartString($expected, SmartString::new($input)->map($function, ...$args));
     }
 
-    public static function applyProvider(): array
+    public static function mapProvider(): array
     {
         return [
             'strtoupper'          => ['hello world', 'strtoupper', [], 'HELLO WORLD'],
@@ -230,27 +230,54 @@ class StringManipulationTest extends SmartStringTestCase
             'arrow function'      => ['hello', fn($s) => $s . ' world', [], 'hello world'],
             'arrow fn with arg'   => ['hello', fn($s, $suffix) => $s . $suffix, [' universe'], 'hello universe'],
             'first-class callable' => ['  x  ', trim(...), [], 'x'],
+            'blank is a string'   => ['', fn($s) => str_pad($s, 5, '*'), [], '*****'],
         ];
     }
 
-    public function testApplyRejectsUncallableName(): void
+    /**
+     * The callback always runs and receives the raw value, null included -
+     * same contract as array_map() and SmartArray::map(). Built-ins that
+     * reject null need ->ifNull('') first.
+     */
+    public function testMapCallbackAlwaysRunsIncludingNull(): void
+    {
+        $this->assertSmartString('X', SmartString::new(null)->map(fn($v) => $v ?? 'X'));
+
+        $received = 'sentinel';
+        SmartString::new(null)->map(function ($v) use (&$received) {
+            $received = $v;
+            return $v;
+        });
+        $this->assertNull($received, 'callback must receive raw null, not a coerced value');
+
+        $this->expectException(TypeError::class); // strict built-ins reject null - the documented ifNull('') case
+        SmartString::new(null)->map('strtoupper');
+    }
+
+    public function testMapRescueFirstRecipe(): void
+    {
+        $this->assertSmartString('', SmartString::new(null)->ifNull('')->map('strtoupper'));
+        $this->assertSmartString('DEFAULT', SmartString::new(null)->ifNull('default')->map('strtoupper'));
+    }
+
+    public function testMapRejectsUncallableName(): void
     {
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage("Function 'non_existent_function' is not callable");
-        SmartString::new('test')->apply('non_existent_function');
+        SmartString::new('test')->map('non_existent_function');
     }
 
-    public function testApplyRejectsNonScalarReturn(): void
+    public function testMapRejectsNonScalarReturn(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('apply() callback must return a scalar value (string, int, float, bool, or null), got array');
-        SmartString::new('test')->apply(fn($s) => [$s]);
+        $this->expectExceptionMessage('map() callback must return a scalar value (string, int, float, bool, or null), got array');
+        SmartString::new('test')->map(fn($s) => [$s]);
     }
 
-    public function testApplyCallbackReceivesRawValue(): void
+    public function testMapCallbackReceivesRawValue(): void
     {
         $received = null;
-        SmartString::new('<b>raw</b>')->apply(function ($value) use (&$received) {
+        SmartString::new('<b>raw</b>')->map(function ($value) use (&$received) {
             $received = $value;
             return $value;
         });

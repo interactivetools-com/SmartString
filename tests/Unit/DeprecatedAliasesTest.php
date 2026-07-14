@@ -38,6 +38,8 @@ class DeprecatedAliasesTest extends SmartStringTestCase
             'and → append (missing)'        => ['and', 'append', [' items'], null],
             'andPrefix → prepend (present)' => ['andPrefix', 'prepend', ['$'], 100],
             'andPrefix → prepend (missing)' => ['andPrefix', 'prepend', ['$'], ''],
+            'apply → map'                   => ['apply', 'map', ['strtoupper'], 'hello'],
+            'apply → map (with args)'       => ['apply', 'map', ['str_pad', 5, '*'], 'ab'],
             'textToHtml → nl2br'            => ['textToHtml', 'nl2br', [], "a<b\nc"],
         ];
     }

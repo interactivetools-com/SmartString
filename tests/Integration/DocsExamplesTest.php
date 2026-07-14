@@ -278,13 +278,13 @@ class DocsExamplesTest extends SmartStringTestCase
     {
         $name = SmartString::new('John Doe');
 
-        $this->assertSame('JOHN DOE', $name->apply('strtoupper')->value());
-        $this->assertSame('John Doe.......', $name->apply('str_pad', 15, '.')->value());
+        $this->assertSame('JOHN DOE', $name->map('strtoupper')->value());
+        $this->assertSame('John Doe.......', $name->map('str_pad', 15, '.')->value());
 
         $spacesToUnderscores = fn($str) => str_replace(' ', '_', $str);
-        $this->assertSame('John_Doe', $name->apply($spacesToUnderscores)->value());
+        $this->assertSame('John_Doe', $name->map($spacesToUnderscores)->value());
 
-        $this->assertSame('<b>John Doe</b>', $name->apply(fn($val) => "<b>$val</b>")->value());
+        $this->assertSame('<b>John Doe</b>', $name->map(fn($val) => "<b>$val</b>")->value());
     }
 
     //endregion

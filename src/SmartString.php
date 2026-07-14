@@ -802,12 +802,16 @@ class SmartString implements JsonSerializable
     //region Utilities
 
     /**
-     * Apply a callback or function to the value, e.g. ->apply('strtoupper')
+     * Call a function on the value and rewrap the result, e.g. ->map('strtoupper')
      *
-     * @param callable|string $func The function to apply
+     * The callback always runs and receives the raw value - null included - like
+     * array_map() and SmartArray::map(). Chain ->ifNull('') first when using
+     * built-ins that require a string.
+     *
+     * @param callable|string $func The function to call with the value
      * @param mixed ...$args Additional arguments to pass to the function
      */
-    public function apply(callable|string $func, mixed ...$args): SmartString
+    public function map(callable|string $func, mixed ...$args): SmartString
     {
         if (!is_callable($func)) {
             throw new InvalidArgumentException("Function '$func' is not callable");
@@ -815,7 +819,7 @@ class SmartString implements JsonSerializable
 
         $newValue = $func($this->rawData, ...$args);
         if (!is_null($newValue) && !is_scalar($newValue)) {
-            throw new InvalidArgumentException("apply() callback must return a scalar value (string, int, float, bool, or null), got " . get_debug_type($newValue));
+            throw new InvalidArgumentException("map() callback must return a scalar value (string, int, float, bool, or null), got " . get_debug_type($newValue));
         }
         return new self($newValue);
     }
@@ -983,7 +987,6 @@ class SmartString implements JsonSerializable
             'add'            => ['plus'],
             'append'         => ['concat', 'suffix'],
             'appendHtml'     => ['andhtml', 'addhtml', 'suffixhtml'],
-            'apply'          => ['pipe', 'transform', 'callback'],
             'bool'           => ['tobool', 'getbool', 'boolean'],
             'dateFormat'     => ['formatdate', 'todate', 'date_format', 'date'],
             'dateTimeFormat' => ['formatdatetime', 'todatetime', 'datetime'],
@@ -995,6 +998,7 @@ class SmartString implements JsonSerializable
             'isMissing'      => ['isempty', 'ismissingvalue'],
             'isNotEmpty'     => ['isnotblank', 'hasvalue', 'ispresent', 'notempty'],
             'jsonEncode'     => ['tojson', 'encodejson', 'json_encode', 'json'],
+            'map'            => ['pipe', 'transform', 'callback'],
             'maxChars'       => ['truncate', 'limit', 'limitchars', 'excerpt', 'shorten'],
             'maxWords'       => ['truncatewords', 'limitwords'],
             'multiply'       => ['times', 'mul'],
