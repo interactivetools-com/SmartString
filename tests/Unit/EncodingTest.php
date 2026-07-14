@@ -163,7 +163,7 @@ class EncodingTest extends SmartStringTestCase
     //region jsonEncode()
 
     /**
-     * The 2.7.0 hardening contract, ported as-is: malformed UTF-8 becomes �
+     * The jsonEncode hardening contract, ported as-is: malformed UTF-8 becomes �
      * instead of throwing, and invisible Unicode is re-escaped as visible
      * \uXXXX (losslessly).
      */

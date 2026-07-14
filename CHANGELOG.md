@@ -1,6 +1,11 @@
 # SmartString Changelog
 
-## [2.8.0] - [UNRELEASED]
+## [3.0.0] - [UNRELEASED]
+
+### Security
+- `jsonEncode()` now substitutes malformed UTF-8 bytes with � (U+FFFD) instead of throwing JsonException, so one corrupt byte in a value no longer breaks the whole page
+- `jsonEncode()` now re-escapes invisible Unicode (zero-width chars, bidi controls, Unicode tag chars, variation selectors) as visible \uXXXX escapes so nothing can hide in page source. Lossless: each escape decodes back to the identical character, so the value JavaScript sees never changes
+- `json_encode($smartString)` now also substitutes malformed UTF-8 with � instead of returning false, matching `jsonEncode()`
 
 ### Changed
 - `nl2br()` is back as the primary name for "HTML-encode, then convert newlines to `<br>`".
@@ -27,11 +32,9 @@
   a PHP warning and continuing with a null value
 - `help()` is now static, so `SmartString::help()` (the documented form) and `$str->help()`
   both work (previously the static call was a fatal error)
+- `or404()`, `orDie()`, `orThrow()` message parameter renamed to `$text` and documented as
+  HTML-encoded before output
 - `orDie()` exits with code 1 so CLI and cron callers see a failure exit code
-
-### Deprecated
-- `percent()` `$zeroFallback` parameter - use `->percent($decimals)->ifZero($fallback)`
-  instead (logs a deprecation notice when passed; no live callers found in a 31-site scan)
 
 ### Removed
 - `SmartString` constructor and `new()` no longer accept a `$properties` array - it only
@@ -51,16 +54,6 @@
    stays available on `textToHtml()` only.
 2. **Pre-2.6 `->nl2br()` chains** - `->nl2br()->value()` and similar now fail with "call to a
    member function on string". Move chained methods before `->nl2br()`; it is a terminal call.
-
-## [2.7.0] - 2026-07-07
-
-### Security
-- `jsonEncode()` now substitutes malformed UTF-8 bytes with � (U+FFFD) instead of throwing JsonException, so one corrupt byte in a value no longer breaks the whole page
-- `jsonEncode()` now re-escapes invisible Unicode (zero-width chars, bidi controls, Unicode tag chars, variation selectors) as visible \uXXXX escapes so nothing can hide in page source. Lossless: each escape decodes back to the identical character, so the value JavaScript sees never changes
-- `json_encode($smartString)` now also substitutes malformed UTF-8 with � instead of returning false, matching `jsonEncode()`
-
-### Changed
-- `or404()`, `orDie()`, `orThrow()` message parameter renamed to `$text` and documented as HTML-encoded before output
 
 ## [2.6.3] - 2026-04-27
 > **Bundled with CMS Builder v3.83**
