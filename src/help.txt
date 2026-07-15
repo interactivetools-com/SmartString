@@ -1,129 +1,111 @@
-SmartString: Enhanced Strings with Automatic HTML Encoding and Chainable Utility Methods
-============================================================================================
+SmartString: XSS-Safe Strings with Automatic HTML Encoding and Chainable Utility Methods
+==========================================================================================
 SmartString automatically HTML-encodes output in string contexts for XSS protection and
-provides powerful chainable utility methods for encoding, formatting, and text manipulation.
+provides chainable utility methods for encoding, formatting, and text manipulation.
 
-Creating SmartStrings
-----------------------
-$str = SmartString::new("It's easy!<hr>");
-$req = SmartArray::new($_REQUEST)->asHtml();            // Create a SmartArray of SmartStrings
+Basics
+-------
+$str = SmartString::new("It's easy!<hr>");    // wrap any value (string, int, float, bool, null)
+echo $str;                                    // "It&apos;s easy!&lt;hr&gt;" - HTML-encodes automatically in string contexts
+echo $str->value();                           // "It's easy!<hr>" - the original value (the escape hatch)
+echo $str->trim()->maxChars(60)->or('None');  // methods chain left to right
+print_r($str);                                // show object value in a readable debug format
+SmartString::help();                          // displays this help text (works on values too: $str->help())
 
-// Advanced: For direct instantiation with a specific type:
-// $html = SmartArrayHtml::new($data);   // Direct creation of HTML-safe SmartArray
-// $raw  = SmartArray::new($data);       // Direct creation of raw-value SmartArray
+Type Conversion
+----------------
+Return the value as a plain PHP type and end the chain.
 
-Value access
--------------
-$str->value()              // Access original value and type
-$str->rawHtml()            // Alias for ->value(), useful for making it clear you're outputting trusted HTML content
-"{$str->value()}"          // Output original value in string context
-"{$str->rawHtml()}"        // Output original value in string context
-print_r($str)              // show object value in a readable debug format (for developers)
-
-Automatic HTML-encoding in string contexts
--------------------------------------------
-$str = SmartString::new("It's easy!<hr>");
-echo $str;                 // "It&apos;s easy!&lt;hr&gt;"
-print $str;                // "It&apos;s easy!&lt;hr&gt;"
-(string) $str;             // "It&apos;s easy!&lt;hr&gt;"
-$new = $str."\n";          // "It&apos;s easy!&lt;hr&gt;\n"
-echo $str->value();        // "It's easy!<hr>" (original value)
-
-Type conversion (returns value)
---------------------------------
-->string()                 Returns value as string (doesn't HTML-encode, use ->htmlEncode() for HTML-encoded string)
+->value()                  Returns the original, unencoded value in its original type
+->string()                 Returns value as string (original value, not HTML-encoded)
 ->int()                    Returns value as integer
-->bool()                   Returns value as boolean
 ->float()                  Returns value as float
+->bool()                   Returns value as boolean
+SmartString::getRawValue() Returns original value from Smart* objects, other types pass through unchanged
 
-Encoding methods (returns value)
----------------------------------
+Encoding
+---------
+Return the encoded value as a plain string and end the chain. Missing values (null or "") return "".
+
+->htmlEncode()             Returns HTML-encoded string (same as automatic encoding, for non-string contexts)
 ->urlEncode()              Returns URL-encoded string, example: "?user={$user->name->urlEncode()}"
-->jsonEncode()             Returns JSON-encoded value, example: "let user={$user->name->jsonEncode()}" (malformed UTF-8 becomes �)
-->htmlEncode()             Returns HTML-encoded string (same as automatic encoding, for readability and non-string contexts)
+->jsonEncode()             Returns JSON-encoded string, example: "let user={$user->name->jsonEncode()}" (malformed UTF-8 becomes �)
 ->nl2br()                  HTML-encodes special chars, then converts newlines to <br> tags
-->appendHtml('<br>')       HTML-encodes value then appends trusted markup as-is, missing values return ""
-->wrapHtml('<h2>','</h2>') HTML-encodes value then wraps in trusted markup as-is, whole wrapper vanishes when missing
+->appendHtml('<br>')       HTML-encodes the value, then appends your trusted markup as-is
+->wrapHtml('<h2>','</h2>') HTML-encodes the value, then wraps it in your trusted markup as-is
+->rawHtml()                Alias for ->value(), reads clearly when outputting trusted HTML on purpose
 
-String Manipulation (returns object, chainable)
-------------------------------------------------
-->textOnly()               Remove HTML tags, decode HTML entities, and trims whitespace
-->trim(...)                Trim leading and trailing whitespace, supports same parameters as trim()
-->maxWords($max)           Limit words to $max, if truncated adds ... (override with second parameter)
-->maxChars($max)           Limit chars to $max, if truncated adds ... (override with second parameter)
-->pregReplace($pattern, $replacement)  Replace text matching a regex pattern
+String Manipulation
+--------------------
+Return a new SmartString, so you can keep chaining. Missing values (null or "") come through
+unchanged, so a later ->or() fallback still works.
 
-Formatting (returns object, chainable)
----------------------------------------
-->numberFormat(...)        Format number, args: $decimals = 0
-->dateFormat(...)          Format date in default format or date() format (e.g., "Y-m-d")
-->dateTimeFormat(...)      Format date/time in default format or date() format (e.g., "Y-m-d H:i:s")
-->phoneFormat()            Format phone number in your default format
+->append(' items')                      Adds text to the end of the value (zero counts as present)
+->prepend('Tel: ')                      Adds text to the beginning of the value
+->wrap('(', ')')                        Wraps the value; pass "" for a side you don't want
+->textOnly()                            Removes HTML tags, decodes entities, and trims whitespace
+->trim(...)                             Trims whitespace, supports the same parameters as PHP trim()
+->maxWords($max, $ellipsis = '...')     Limits value to $max words, adds $ellipsis if cut
+->maxChars($max, $ellipsis = '...')     Limits value to $max characters, adds $ellipsis if cut
+->pregReplace($pattern, $replacement)   Replaces text matching a regex pattern
 
-Numeric Operations (returns object, chainable)
------------------------------------------------
-->percent($decimals, $ifZero)        Returns value as a percentage, e.g. 0.5 becomes 50% ($ifZero is returned for zero)
-->percentOf($total, $decimals)       Returns value as a percentage of $total, e.g., 24 of 100 becomes 24%
-->add($value)                        Returns value plus $value
-->subtract($value)                   Returns value minus $value
-->divide($value)                     Returns value divided by $value
-->multiply($value)                   Returns value multiplied by $value
+Dates & Numbers
+----------------
+Return a new SmartString, so you can keep chaining. Missing or invalid input returns null -
+add ->or() after to show a fallback.
 
-Note: Null and non-numeric values always become null in numeric operations; results are floats.
+->dateFormat(...)                       Formats as a date, using the format you pass or the default, e.g. dateFormat('M j, Y')
+->numberFormat($decimals)               Formats as a number with thousands separators, e.g. numberFormat(2)
+->percent($decimals, $ifZero)           Converts a decimal to a percentage, e.g. 0.5 becomes 50% ($ifZero shown for zero)
+->percentOf($total, $decimals)          What percentage the value is of $total, e.g. 24 of 100 is 24%
+->add($value)                           Adds $value
+->subtract($value)                      Subtracts $value
+->multiply($value)                      Multiplies by $value
+->divide($divisor)                      Divides by $divisor
 
-Attach (returns object, chainable)
------------------------------------
-->append('suffix')         Appends value if present (not null or ""), zero is considered present
-->prepend('prefix')        Prepends value if present (not null or ""), zero is considered present
-->wrap('(', ')')           Wraps value if present, whole wrapper vanishes when missing; pass "" for a side you don't want
+Conditional Replacement
+------------------------
+Return a new SmartString. Each swaps in a replacement value when its condition matches.
 
-Conditional Replacement (returns object, chainable)
-----------------------------------------------------
-->or('replacement')        Replaces value if missing (null or ""), zero is not considered missing
-->ifNull('replacement')    Replaces value only if it's null or undefined
-->ifZero('replacement')    Replaces value only if it's zero (0, 0.0, "0", or "0.0")
-->ifEquals($match, $new)   Replaces value when it loosely equals $match (==, "5" matches 5; use ifNull for null)
-->ifTrue($condition, $new) Replaces value when $condition is truthy (replaces the value only, doesn't gate the chain)
-->set($value)              Sets to $value (accepts expression, e.g., match($itemCount->int()) { 0 => "No items", ... })
+->or('replacement')                     Replaces missing values (null or ""); zero counts as present
+->ifNull('replacement')                 Replaces null
+->ifZero('replacement')                 Replaces zero (0, 0.0, "0", or "0.0")
+->ifTrue($condition, $newValue)         Replaces the value when your condition is truthy
+->ifEquals($match, $newValue)           Replaces the value when it loosely equals $match (==, "5" matches 5)
+->set($newValue)                        Replaces the value unconditionally, useful for match() results or calculations
 
-Validation (returns true/false)
------------------------------
+Require a Value
+----------------
+Use these for values that must exist, like a record ID from the URL. If the value is missing
+(null or "") they stop the page; otherwise they do nothing and the chain continues.
+Zero counts as present. Text is HTML-encoded automatically before being output or thrown.
+
+->orDie('text')            Outputs the message and exits
+->or404('text')            Outputs a 404 header and the message, then exits
+->orThrow('text')          Throws an Exception with the message
+->orRedirect('url')        Redirects to the URL and exits
+
+Value Checks
+-------------
+Return a plain true or false, typically used in if statements.
+
 ->isEmpty()                Returns true if the value is empty ("", null, false, 0, "0"), uses PHP empty()
-->isNotEmpty()             Returns true if the value is NOT empty ("", null, false, 0, "0"), uses PHP !empty()
-->isMissing()              Returns true if the value is missing (null or ""), zero is not considered missing
+->isNotEmpty()             Returns true if the value has content - the exact opposite of isEmpty()
+->isMissing()              Returns true if the value is missing (null or ""); zero counts as present
                            (zero: isEmpty() true, isMissing() false - use isMissing() when a real 0 must count as present)
 ->isNull()                 Returns true if the value is null
 
-Error Checking
---------------
-->or404('message')         Sends 404 header and exits if the value is missing (null or ""), zero is not considered missing
-->orDie('message')         Outputs message and exits if the value is missing (null or ""), zero is not considered missing
-->orThrow('message')       Throws Exception with message if the value is missing (null or ""), zero is not considered missing
-->orRedirect('url')        Redirects to URL if the value is missing (null or ""), zero is not considered missing
-
-Note: Messages are HTML-encoded automatically before being output or thrown.
-
-Miscellaneous
---------------
-->map()                    Call a function on the value, e.g. ->map('strtoupper') (always runs, null included)
-->help()                   Displays this help text, works as $str->help() or SmartString::help()
-SmartString::getRawValue() Returns original value from Smart* objects while leaving other types unchanged, useful for working with mixed types
-
-Working with arrays
---------------------
-$user = ['id' => 42, 'name' => "John O'Reilly", "lastLogin" => "2024-09-10 14:30:00"];
-$u    = SmartArray::new($user)->asHtml();            // SmartArray of SmartStrings
-"Hello, $u->name"                                    // "Hello, John O&apos;Reilly"
-"Hello, {$u->name->value()}"                         // Returns "Hello, John O'Reilly"
-"Last login: {$u->lastLogin->dateFormat('M j, Y')}"  // "Last login: Sep 10, 2024"
+Custom Functions
+-----------------
+->map($func, ...$args)     Calls your function with the original value and returns the result
+                           as a new SmartString - runs even when the value is null
 
 Setting defaults (at the top of your script or in an init file)
 ----------------------------------------------------------------
 SmartString::$numberFormatDecimal   = '.';             // Default decimal separator
 SmartString::$numberFormatThousands = ',';             // Default thousands separator
 SmartString::$dateFormat            = 'Y-m-d';         // Default dateFormat() format
-SmartString::$dateTimeFormat        = 'Y-m-d H:i:s';   // Default dateTimeFormat() format
-SmartString::$phoneFormat           = [                // Default phone number formats
-    ['digits' => 10, 'format' => '(###) ###-####'],
-    ['digits' => 11, 'format' => '# (###) ###-####'],
-];
+
+Working with arrays? SmartArray is the companion library that handles arrays (like database
+rows) as collections of SmartStrings: $user = SmartArrayHtml::new($record);
+It has its own help: SmartArrayHtml::new([])->help()

@@ -36,14 +36,9 @@ class SmartString implements JsonSerializable
     //region Global Settings
 
     // default formats
-    public static string $numberFormatDecimal   = '.';                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        // numberFormat() default decimal separator
-    public static string $numberFormatThousands = ',';                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       // numberFormat() default thousands separator
-    public static string $dateFormat            = 'Y-m-d';                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   // dateFormat() default format (for PHP date())
-    public static string $dateTimeFormat        = 'Y-m-d H:i:s';                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             // dateTimeFormat() default format (for PHP date())
-    public static array  $phoneFormat           = [
-        ['digits' => 10, 'format' => '(###) ###-####'],
-        ['digits' => 11, 'format' => '# (###) ###-####'],
-    ];
+    public static string $numberFormatDecimal   = '.';            // numberFormat() default decimal separator
+    public static string $numberFormatThousands = ',';            // numberFormat() default thousands separator
+    public static string $dateFormat            = 'Y-m-d';        // dateFormat() default format (for PHP date())
 
     //endregion
     //region Core
@@ -370,21 +365,6 @@ class SmartString implements JsonSerializable
     }
 
     /**
-     * Format date by $dateTimeFormat or specified format. Returns null on failure.
-     *
-     * @param string|null $format Date format (default: SmartString::$dateTimeFormat)
-     * @return SmartString Formatted date or null on failure
-     *
-     * @example $date = SmartString::new('2023-05-15');
-     *          echo $date->dateTimeFormat();                  // "2023-05-15 00:00:00" (using default format)
-     *          echo $date->dateTimeFormat('Y-m-d H:i:s T');   // "2023-05-15 00:00:00 MST"
-     */
-    public function dateTimeFormat(?string $format = null): SmartString
-    {
-        return $this->dateFormat($format ?? self::$dateTimeFormat);
-    }
-
-    /**
      * Formats a numeric value using number_format() function with configurable decimal places.
      * Uses the static properties $numberFormatDecimal and $numberFormatThousands for formatting.
      * Returns null if the value is not numeric.
@@ -402,42 +382,6 @@ class SmartString implements JsonSerializable
             !is_numeric($this->rawData) => null,
             default                     => number_format((float)$this->rawData, $decimals, self::$numberFormatDecimal, self::$numberFormatThousands),
         };
-        return new self($newValue);
-    }
-
-    /**
-     * Formats a phone number according to the configuration in SmartString::$phoneFormat.
-     * The format is chosen based on the number of digits in the input.
-     * Non-digit characters in the input are stripped before formatting.
-     * Returns null if the input contains an unsupported number of digits.
-     *
-     * @return SmartString The formatted phone number or null if input is invalid
-     *
-     * @example $phone = SmartString::new('2345678901');
-     *          echo $phone->phoneFormat();                // "(234) 567-8901" (using default format for 10 digits)
-     *
-     *          // With custom format (after setting SmartString::$phoneFormat)
-     *          // SmartString::$phoneFormat = [['digits' => 10, 'format' => '###.###.####']];
-     *          echo $phone->phoneFormat();                // "234.567.8901"
-     */
-    public function phoneFormat(): SmartString
-    {
-        $newValue = null;
-
-        // get array of digits only ('' check: str_split('') returns [''] on PHP 8.1 but [] on 8.2+)
-        $digitsOnly = preg_replace('/\D/', '', (string)$this->rawData);
-        $digits     = $digitsOnly === '' ? [] : str_split($digitsOnly);
-
-        // get phone format by number of digits, e.g., 10 => '(###) ###-####'
-        $phoneFormatByDigits = array_column(self::$phoneFormat, 'format', 'digits');
-        $phoneFormat         = $phoneFormatByDigits[count($digits)] ?? null;
-
-        // Replace # with digits
-        if ($phoneFormat) {
-            $format   = str_replace('#', '%s', $phoneFormat);
-            $newValue = sprintf($format, ...$digits);
-        }
-
         return new self($newValue);
     }
 
@@ -616,16 +560,16 @@ class SmartString implements JsonSerializable
     }
 
     /**
-     * Replaces the value with $valueIfTrue when $condition is truthy
+     * Replaces the value with $newValue when $condition is truthy
      *
      * The condition is a plain value you computed, not a callback. This replaces the
      * VALUE only - it does not gate the rest of the chain.
      *
      *     $eggs->ifTrue($eggs->int() >= 12, 'Full Carton');
      */
-    public function ifTrue(string|int|float|bool|null|SmartString|SmartNull $condition, string|int|float|bool|null|SmartString|SmartNull $valueIfTrue): SmartString
+    public function ifTrue(string|int|float|bool|null|SmartString|SmartNull $condition, string|int|float|bool|null|SmartString|SmartNull $newValue): SmartString
     {
-        $newValue = self::getRawValue($condition) ? self::getRawValue($valueIfTrue) : $this->rawData;
+        $newValue = self::getRawValue($condition) ? self::getRawValue($newValue) : $this->rawData;
         return new self($newValue);
     }
 
@@ -1002,8 +946,7 @@ class SmartString implements JsonSerializable
             'append'         => ['concat', 'suffix'],
             'appendHtml'     => ['andhtml', 'addhtml', 'suffixhtml'],
             'bool'           => ['tobool', 'getbool', 'boolean'],
-            'dateFormat'     => ['formatdate', 'todate', 'date_format', 'date'],
-            'dateTimeFormat' => ['formatdatetime', 'todatetime', 'datetime'],
+            'dateFormat'     => ['formatdate', 'todate', 'date_format', 'date', 'formatdatetime', 'todatetime', 'datetime'],
             'divide'         => ['div', 'divideby'],
             'float'          => ['tofloat', 'getfloat'],
             'htmlEncode'     => ['escapehtml', 'encodehtml', 'e', 'encode', 'escape', 'html_encode'],
@@ -1021,7 +964,6 @@ class SmartString implements JsonSerializable
             'nl2br'          => ['tohtml', 'text2html'],
             'numberFormat'   => ['formatnumber', 'number_format', 'format'],
             'or'             => ['default', 'ifmissing', 'fallback', 'else'],
-            'phoneFormat'    => ['formatphone', 'phone', 'phone_format'],
             'prepend'        => ['prefix'],
             'rawHtml'        => ['unsafe', 'unescaped', 'trusted', 'trustedhtml', 'unsafehtml', 'raw', 'html'],
             'set'            => ['setvalue', 'replace'],

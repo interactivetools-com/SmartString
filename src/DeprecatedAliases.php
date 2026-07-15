@@ -7,7 +7,7 @@ use Itools\SmartArray\SmartNull;
 use JetBrains\PhpStorm\Deprecated;
 
 /**
- * Old method names, kept working forever as silent one-line stubs.
+ * Old method names and retired methods, kept working forever.
  *
  * No runtime notices: the #[Deprecated] attribute gives PHPStorm a strikethrough
  * and a one-click rewrite to the new name, and static analyzers report usages via
@@ -16,6 +16,18 @@ use JetBrains\PhpStorm\Deprecated;
  */
 trait DeprecatedAliases
 {
+    /**
+     * Default format for dateTimeFormat() (for PHP date()).
+     */
+    public static string $dateTimeFormat = 'Y-m-d H:i:s';
+
+    /**
+     * Format rules for phoneFormat(), keyed by digit count.
+     */
+    public static array $phoneFormat = [
+        ['digits' => 10, 'format' => '(###) ###-####'],
+        ['digits' => 11, 'format' => '# (###) ###-####'],
+    ];
 
     /**
      * @deprecated Use append() - same behavior, new name
@@ -45,6 +57,22 @@ trait DeprecatedAliases
     }
 
     /**
+     * Same as dateFormat() except the default format comes from
+     * SmartString::$dateTimeFormat instead of SmartString::$dateFormat.
+     *
+     * Retired: still supported, no longer documented. Pass the format to
+     * dateFormat() instead - inline or as an app-wide constant, e.g.
+     * ->dateFormat('Y-m-d H:i:s') or ->dateFormat(DATETIME_FORMAT).
+     *
+     * @deprecated Retired in v3.0 - use dateFormat() and pass the format
+     */
+    #[Deprecated(reason: 'retired in v3.0 - use dateFormat() and pass the format')]
+    public function dateTimeFormat(?string $format = null): SmartString
+    {
+        return $this->dateFormat($format ?? self::$dateTimeFormat);
+    }
+
+    /**
      * @deprecated Use ifTrue() - same behavior, new name
      */
     #[Deprecated(reason: 'renamed to ifTrue() in v3.0', replacement: '%class%->ifTrue(%parametersList%)')]
@@ -66,6 +94,40 @@ trait DeprecatedAliases
     public function ifBlank(int|float|string|bool|null|SmartString|SmartNull $fallback): SmartString
     {
         $newValue = $this->rawData === "" ? SmartString::getRawValue($fallback) : $this->rawData;
+        return new SmartString($newValue);
+    }
+
+    /**
+     * Formats phone numbers using the SmartString::$phoneFormat rules, chosen by
+     * digit count (defaults cover North-America 10 and 11 digit numbers). Non-digits
+     * are stripped first; unsupported digit counts return null.
+     *
+     * Retired: still supported, no longer documented. Digit count is the only rule
+     * selector, so formats that vary within one digit count (UK groupings differ by
+     * area code) can only be approximated; pregReplace() covers custom needs, e.g.
+     * ->pregReplace('/\D/', '') for tel: links.
+     *
+     * @deprecated Retired in v3.0 - still works; see pregReplace() for custom formatting
+     */
+    #[Deprecated(reason: 'retired in v3.0 - still supported, no longer documented')]
+    public function phoneFormat(): SmartString
+    {
+        $newValue = null;
+
+        // get array of digits only ('' check: str_split('') returns [''] on PHP 8.1 but [] on 8.2+)
+        $digitsOnly = preg_replace('/\D/', '', (string)$this->rawData);
+        $digits     = $digitsOnly === '' ? [] : str_split($digitsOnly);
+
+        // get phone format by number of digits, e.g., 10 => '(###) ###-####'
+        $phoneFormatByDigits = array_column(self::$phoneFormat, 'format', 'digits');
+        $phoneFormat         = $phoneFormatByDigits[count($digits)] ?? null;
+
+        // Replace # with digits
+        if ($phoneFormat) {
+            $format   = str_replace('#', '%s', $phoneFormat);
+            $newValue = sprintf($format, ...$digits);
+        }
+
         return new SmartString($newValue);
     }
 

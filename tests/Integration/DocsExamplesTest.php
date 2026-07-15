@@ -139,17 +139,13 @@ class DocsExamplesTest extends SmartStringTestCase
     public function testDateFormatting(): void
     {
         date_default_timezone_set('America/Phoenix');
-        SmartString::$dateFormat     = 'F jS, Y';
-        SmartString::$dateTimeFormat = 'F jS, Y g:i A';
+        SmartString::$dateFormat = 'F jS, Y';
 
         $date = SmartString::new('2024-05-15 14:30:00');
         $this->assertSame('May 15th, 2024', (string)$date->dateFormat());
 
-        $dateTime = SmartString::new('2024-06-21 17:30:59');
-        $this->assertSame('June 21st, 2024 5:30 PM', (string)$dateTime->dateTimeFormat());
-
         $this->assertSame('May 15, 2024', (string)$date->dateFormat('F j, Y'));
-        $this->assertSame('Friday, June 21, 2024 5:30 PM', (string)$dateTime->dateTimeFormat('l, F j, Y g:i A'));
+        $this->assertSame('Wednesday, May 15, 2024 2:30 PM', (string)$date->dateFormat('l, F j, Y g:i A'));
 
         $invalid = SmartString::new('not a date');
         $this->assertSame('Invalid date', (string)$invalid->dateFormat()->or('Invalid date'));
@@ -157,24 +153,6 @@ class DocsExamplesTest extends SmartStringTestCase
 
         $timestamp = SmartString::new(1684159800);
         $this->assertSame('2023-05-15', (string)$timestamp->dateFormat('Y-m-d'));
-    }
-
-    //endregion
-    //region README: Phone Number Formatting
-
-    public function testPhoneNumberFormatting(): void
-    {
-        SmartString::$phoneFormat = [
-            ['digits' => 10, 'format' => '1.###.###.####'],
-            ['digits' => 11, 'format' => '#.###.###.####'],
-        ];
-
-        $this->assertSame('1.234.567.8901', (string)SmartString::new('(234)567-8901')->phoneFormat());
-        $this->assertSame('1.888.123.4567', (string)SmartString::new('1-888-123-4567')->phoneFormat());
-
-        $phone = SmartString::new('123');
-        $this->assertSame('Invalid phone', (string)$phone->phoneFormat()->or('Invalid phone'));
-        $this->assertSame('123', (string)$phone->phoneFormat()->or($phone));
     }
 
     //endregion
@@ -304,19 +282,6 @@ class DocsExamplesTest extends SmartStringTestCase
         // only the always-present parts are asserted here
         $this->assertStringContainsString('rawData:private', $output);
         $this->assertStringContainsString('"John O\'Reilly"', $output);
-    }
-
-    //endregion
-    //region help.txt: Working with Arrays
-
-    public function testHelpTxtWorkingWithArrays(): void
-    {
-        $user = ['id' => 42, 'name' => "John O'Reilly", 'lastLogin' => '2024-09-10 14:30:00'];
-        $u    = SmartArray::new($user)->asHtml();
-
-        $this->assertSame('Hello, John O&apos;Reilly', "Hello, $u->name");
-        $this->assertSame("Hello, John O'Reilly", "Hello, {$u->name->value()}");
-        $this->assertSame('Last login: Sep 10, 2024', "Last login: {$u->lastLogin->dateFormat('M j, Y')}");
     }
 
     //endregion

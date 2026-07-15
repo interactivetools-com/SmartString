@@ -22,10 +22,10 @@ class HelpTest extends SmartStringTestCase
         $this->assertNull($result);
         $this->assertStringStartsWith("\n<xmp>\n", $output);
         $this->assertStringEndsWith("\n</xmp>\n", $output);
-        $this->assertStringContainsString('SmartString: Enhanced Strings', $output);
-        $this->assertStringContainsString('Creating SmartStrings', $output);
-        $this->assertStringContainsString('Type conversion', $output);
-        $this->assertStringContainsString('Encoding methods', $output);
+        $this->assertStringContainsString('SmartString: XSS-Safe Strings', $output);
+        $this->assertStringContainsString('Basics', $output);
+        $this->assertStringContainsString('Type Conversion', $output);
+        $this->assertStringContainsString('Dates & Numbers', $output);
     }
 
     public function testHelpReturnsValuePassthrough(): void
@@ -42,7 +42,7 @@ class HelpTest extends SmartStringTestCase
         [$result, $output] = $this->captureOutput(fn() => SmartString::help('passthrough'));
 
         $this->assertSame('passthrough', $result);
-        $this->assertStringContainsString('SmartString: Enhanced Strings', $output);
+        $this->assertStringContainsString('SmartString: XSS-Safe Strings', $output);
     }
 
     public function testHelpInstanceAndStaticOutputMatch(): void

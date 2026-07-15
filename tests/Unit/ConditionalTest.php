@@ -159,9 +159,14 @@ class ConditionalTest extends SmartStringTestCase
     //region ifTrue() / ifEquals() / set()
 
     #[DataProvider('ifTrueProvider')]
-    public function testIfTrue($value, $condition, $valueIfTrue, $expected): void
+    public function testIfTrue($value, $condition, $newValue, $expected): void
     {
-        $this->assertSmartString($expected, SmartString::new($value)->ifTrue($condition, $valueIfTrue));
+        $this->assertSmartString($expected, SmartString::new($value)->ifTrue($condition, $newValue));
+    }
+
+    public function testIfTrueNamedArgument(): void
+    {
+        $this->assertSmartString(10, SmartString::new(5)->ifTrue(condition: true, newValue: 10));
     }
 
     public static function ifTrueProvider(): array
@@ -175,7 +180,7 @@ class ConditionalTest extends SmartStringTestCase
             'string condition false'  => [5, '0', 10, 5],
             'SmartNull condition'     => [5, new SmartNull(), 99, 5], // falsy, no TypeError
             'SmartString condition'   => [5, SmartString::new('x'), 10, 10],
-            'SmartString valueIfTrue' => [5, true, new SmartString('replaced'), 'replaced'],
+            'SmartString newValue'    => [5, true, new SmartString('replaced'), 'replaced'],
         ];
     }
 

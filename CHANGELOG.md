@@ -2,116 +2,113 @@
 
 ## [3.0.0] - [UNRELEASED]
 
+Upgrading? See [UPGRADING.md](UPGRADING.md) for the checks that matter, per version.
+
 ### Added
-- `wrap($before, $after)` - wraps the value only when present (not null or ""), so the whole
-  wrapper vanishes for missing values. Both sides required; pass "" for a side you don't want
-- `ifEquals($match, $newValue)` - replaces the value when it loosely equals `$match` (`==`,
-  so `"5"` matches `5`). Made for sentinel data: `->ifEquals('0000-00-00', null)`,
-  `->ifEquals(-1, 'Unlimited')`. Use `ifNull()` for null (in PHP, `null == 0` is true)
-- `appendHtml($html)` and `wrapHtml($before, $after)` - HTML-encode the value, then attach
-  your trusted markup as-is, returning a finished string (same terminal shape as `nl2br()`).
-  Missing values return "", so `->wrapHtml('<h2>', '</h2>')` replaces the isNotEmpty-guard
-  template idiom and `->appendHtml(',<br>')` covers conditional line breaks. The markup
-  arguments are trusted: only pass literals you wrote, never user input
 
-### Security
-- `jsonEncode()` now substitutes malformed UTF-8 bytes with � (U+FFFD) instead of throwing JsonException, so one corrupt byte in a value no longer breaks the whole page
-- `jsonEncode()` now re-escapes invisible Unicode (zero-width chars, bidi controls, Unicode tag chars, variation selectors) as visible \uXXXX escapes so nothing can hide in page source. Lossless: each escape decodes back to the identical character, so the value JavaScript sees never changes
-- `json_encode($smartString)` now also substitutes malformed UTF-8 with � instead of returning false, matching `jsonEncode()`
+| Method                        | Returns     | Description                                                                                                                                                               |
+|-------------------------------|-------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `appendHtml($html)`           | string      | Adds HTML after the value; missing values (null or "") return ""                                                                                                          |
+| `ifEquals($match, $newValue)` | SmartString | Replaces the value on a loose match (`==`), for placeholder values: `->ifEquals('0000-00-00', null)`, `->ifEquals(-1, 'Unlimited')`                                       |
+| `wrap($before, $after)`       | SmartString | Wraps the value only when present; missing (null or "") skips the wrapper. Both sides required; pass "" for a side you don't want                                         |
+| `wrapHtml($before, $after)`   | string      | Like `appendHtml()` but adds HTML on both sides: `->wrapHtml('<h2>', '</h2>')` prints nothing when the value is missing, so you don't need an `if` around optional fields |
 
-### Changed
-- `and()` renamed to `append()` and `andPrefix()` renamed to `prepend()` - plain verbs; the
-  "applies only when a value is present" behavior is unchanged and is now the stated rule:
-  missing values (null or "") pass through the attach, formatting, and math methods, and
-  `or()`/`ifNull()` and the or404/orDie/orThrow/orRedirect guards are the rescue points
-- `if()` renamed to `ifTrue()` - it replaces the value when your condition is truthy, and the
-  old name read like it might gate the rest of the chain
-- `apply()` renamed to `map()` - same name and contract as `SmartArray::map()` and
-  `array_map()`: the callback always runs and receives the raw value, null included. Chain
-  `->ifNull('')` first when using built-ins that require a string
-- `ifBlank()` retired (undocumented, keeps working) - it fired only on "" and never on null,
-  a distinction with no observed use; `or()` covers the usual intent
-- Old names keep working forever as silent aliases (`and()`, `andPrefix()`, `apply()`, `if()`,
-  `ifBlank()`, `textToHtml()`, collected in one DeprecatedAliases trait): no runtime notices;
-  PHPStorm shows them struck through with a one-click rewrite to the new name
-- `nl2br()` is back as the primary name for "HTML-encode, then convert newlines to `<br>`".
-  Same behavior and string return `textToHtml()` had; renamed because `textToHtml` never
-  read clearly at call sites. Unlike PHP's `nl2br()`, output is XSS-safe: text is encoded
-  first, so the only tags in the result are the `<br>` tags the method adds.
-- `textToHtml()` joins the silent aliases. With no arguments it returns the same string as
-  `nl2br()`; `keepBr: true` instead preserves existing `<br>` tags and stays available only
-  on `textToHtml()`.
-- Calling `->nl2br()` no longer logs a deprecation warning. It now returns an HTML-safe
-  string instead of a SmartString object: echoing the result directly now works (the old
-  shim double-encoded the `<br>` tags at output), and code that chained after `->nl2br()`
-  (e.g. `->nl2br()->value()`) now fails loudly.
-- Math and conditional methods accept any value type: literal `null`, `bool`, and `SmartNull`
-  arguments no longer throw TypeError (previously math methods rejected `null` while
-  conditional methods rejected `SmartNull` - same fix for `ifTrue()`'s condition)
-- Math after a fallback works again: `->add(5)->or(10)->add(5)` returns 15 instead of null.
-  The internal numeric-error flag is gone; a null value already carries the error state
-- `percent()` and `percentOf()` now use `$numberFormatDecimal`/`$numberFormatThousands`
-  like `numberFormat()` (previously always used '.' and ',')
-- `dateFormat()`/`dateTimeFormat()` on boolean values return null like other unformattable
-  input (previously threw TypeError from strtotime)
-- `pregReplace()` throws InvalidArgumentException on an invalid pattern instead of emitting
-  a PHP warning and continuing with a null value
-- `help()` is now static, so `SmartString::help()` (the documented form) and `$str->help()`
-  both work (previously the static call was a fatal error)
-- `or404()`, `orDie()`, `orThrow()` message parameter renamed to `$text` and documented as
-  HTML-encoded before output
-- `percent()` second parameter renamed from `$zeroFallback` to `$ifZero` - same name as the
-  chain method, one vocabulary for the concept: `->percent(2, ifZero: "None")`
-- `orDie()` exits with code 1 so CLI and cron callers see a failure exit code
+### Renamed
+
+These renames give the library one consistent naming pattern (matching
+SmartArray where methods overlap). Old names keep working - nothing to update.
+IDEs like PHPStorm show them in strikethrough and offer a one-click rename.
+
+| Old                        | New                        | Notes                                                                    |
+|----------------------------|----------------------------|--------------------------------------------------------------------------|
+| `and()`                    | `append()`                 |                                                                          |
+| `andPrefix()`              | `prepend()`                |                                                                          |
+| `apply()`                  | `map()`                    | matches `array_map()` and `SmartArray::map()`                            |
+| `if()`                     | `ifTrue()`                 |                                                                          |
+| `textToHtml()`             | `nl2br()`                  |                                                                          |
+| `textToHtml(keepBr: true)` | none - keeps working as-is | preserves `<br>` tags already in the value; `nl2br()` takes no arguments |
+
+### Deprecated
+
+These still work, they're just no longer featured in the docs - no changes required.
+
+- `dateTimeFormat()` - same as `dateFormat()` with a different default; pass the format instead
+- `ifBlank()` - use `or()`, which also covers null
+- `phoneFormat()` - North-America formats by default; `pregReplace()` covers custom needs
 
 ### Removed
-- `SmartString` constructor and `new()` no longer accept a `$properties` array - it only
-  carried the internal numeric-error flag, and nothing outside the class used it
+
+- Constructor/`new()` no longer accept a `$properties` array (carried an internal
+  flag only; nothing outside the class used it)
+
+### Behavior changes
+
+- Math: a failed step (missing value, non-numeric input, divide by zero) returns
+  null, and a fallback like `or()` now fully recovers the chain - previously any
+  math after the fallback still returned null:
+  - `SmartString::new(null)->add(5)->or(10)->add(5)` returns 15 (was null)
+  - `null`, `bool`, and `SmartNull` arguments no longer throw TypeError (same
+    fix for the conditional methods)
+  - `percent()` and `percentOf()` now format with your `$numberFormatDecimal`
+    and `$numberFormatThousands` settings, same as `numberFormat()` (was
+    hardcoded '.' and ',')
+- `nl2br()` ends the chain - it returns a string now, so echo it directly;
+  anything chained after it (`->nl2br()->value()`) is an error - move those
+  calls before it
+- `jsonEncode()` hardening:
+  - malformed UTF-8 bytes become � instead of throwing - one corrupt byte no
+    longer breaks the page (same fix for `json_encode($smartString)`, which
+    returned false)
+  - invisible Unicode (zero-width, bidi, tag chars) is re-escaped as visible
+    `\uXXXX` so nothing can hide in page source - lossless, JavaScript sees
+    the identical value
+- `pregReplace()` throws on a bad pattern - was a PHP warning and a null result;
+  now an InvalidArgumentException that names the pattern
+- `dateFormat()` on booleans returns null - like any other value that isn't a date
+- `orDie()` exits with code 1 - CLI and cron scripts see the failure
+- Parameter renames - these only matter if you use named arguments,
+  e.g. `->percent(2, ifZero: '-')`:
+  - `percent(ifZero:)` was `zeroFallback:`
+  - `ifTrue(newValue:)` was `valueIfTrue:`
+  - `or404()`/`orDie()`/`orThrow()` take `text:` (was `message:`)
 
 ### Fixed
-- `getRawValue()` now unwraps `SmartArrayHtml` (previously threw "Unsupported value type" -
-  the instanceof check predated the SmartArray/SmartArrayHtml class split)
-- `phoneFormat()` on an empty value now behaves the same on PHP 8.1 and 8.2+ (str_split('')
-  changed between versions)
-- README: removed stale "null values are treated as zero" claim from Numeric Operations
-  (null propagation shipped in v2.6.3), replaced `SmartArrayRaw::new()` references with
-  `SmartArray::new()`, added missing method-table rows (`ifTrue()`, `set()`)
 
-### Migration Tips
-1. **`and()` → `append()`, `andPrefix()` → `prepend()`, `apply()` → `map()`, `if()` →
-   `ifTrue()`** - Drop-in renames, and the old names keep working silently; rename at your
-   own pace (PHPStorm offers a one-click fix).
-2. **`textToHtml()` → `nl2br()`** - Drop-in rename; both return the same string. `keepBr: true`
-   stays available on `textToHtml()` only.
-3. **Pre-2.6 `->nl2br()` chains** - `->nl2br()->value()` and similar now fail with "call to a
-   member function on string". Move chained methods before `->nl2br()`; it is a terminal call.
+- `SmartString::help()` works as a static call (the documented form was a fatal error)
+- `getRawValue()` unwraps `SmartArrayHtml` (previously "Unsupported value type")
 
 ## [2.6.3] - 2026-04-27
+
 > **Bundled with CMS Builder v3.83**
 > Roll-up release - every change from **v2.2.1 → v2.6.3** is now part of this version.
 
 ### Added
+
 - `pregReplace()` - Apply regex search-and-replace, returning a new SmartString
 - `textToHtml()` - Encodes special chars and converts newlines to `<br>` tags in one step
-  - `textToHtml(keepBr: true)` preserves existing `<br>` tags (for CMS text fields that already store them)
+    - `textToHtml(keepBr: true)` preserves existing `<br>` tags (for CMS text fields that already store them)
 - `apply()` now validates callback return types (must be scalar or null)
 - Unknown-method errors now suggest the correct method when a common alias is used (e.g., `->truncate()` suggests `->maxChars()`, `->fallback()` suggests `->or()`)
 
 ### Changed
+
 - `htmlEncode()` now encodes all tags including `<br>` (previously preserved `<br>` tags)
 - Numeric operations now accept `string` type parameters for convenience
 - Deprecation warnings now always trigger via `@trigger_error()`, controlled by PHP's `display_errors`
 - Error and deprecation messages now show the actual calling file:line instead of the library internals
 
 ### Deprecated
+
 - `nl2br()` - use `textToHtml()` instead (still works, logs deprecation warning)
 - `SmartString::new($array)` - use `SmartArray::new($array)->asHtml()` instead
 
 ### Removed
+
 - `SmartString::$treatNullAsZero` setting (null always stays null in numeric operations)
 - `SmartString::$logDeprecations` setting (use PHP's native error handling instead)
 
 ### Fixed
+
 - `dateFormat()` now formats timestamp `0` as a real date instead of returning null
 - `maxWords()` no longer strips trailing punctuation when text isn't actually truncated
 - `getRawValue()` missing match arm for `is_scalar()`
@@ -124,6 +121,7 @@
 - `or()`, `and()`, `andPrefix()`, `ifBlank()`, `ifNull()`, and `ifZero()` now accept `null` and `bool` fallbacks (previously TypeErrored under strict types)
 
 ### Migration Tips
+
 1. **`nl2br()` → `textToHtml()`** - The new method encodes *and* converts newlines. If you were chaining `->nl2br()` after manual encoding, you can simplify to just `->textToHtml()`.
 2. **`htmlEncode()` and `<br>` tags** - If you relied on `htmlEncode()` preserving `<br>` tags, switch to `textToHtml(keepBr: true)`.
 3. **`$treatNullAsZero` removed** - Null always stays null now. If you need zero, use `->ifNull(0)` before arithmetic.
@@ -131,21 +129,26 @@
 ---
 
 ## [2.2.0] - 2025-09-21
+
 > **Bundled with CMS Builder v3.80**
 
 ### Added
+
 - `orRedirect($url)` - Redirects to a URL if value is missing (null or ""), uses HTTP 302 Temporary Redirect
 
 ### Changed
+
 - Minimum PHP version raised to 8.1 (from 8.0)
 
 ---
 
 ## [2.1.2] - 2025-04-29
+
 > **Bundled with CMS Builder v3.76**
 > Roll-up release - every change from **v2.0.2 → v2.1.1** is now part of this version.
 
 ### Added
+
 - `and()`, `andPrefix()` - conditional append / prepend
 - `orDie()`, `or404()`, `orThrow()` - fail-fast helpers (die, 404 page, exception)
 - `isEmpty()`, `isNotEmpty()`, `isNull()`, `isMissing()` - value-inspection helpers
@@ -156,6 +159,7 @@
 - Inline "Did you mean...?" hints for mistyped methods
 
 ### Changed
+
 - `or*()` / `and*()` treat only `null` or empty string `""` as missing; `false` and `0` count as valid data
 - `percent()` now defaults to **0** decimal places and accepts an optional `$zeroFallback`
 - `or404()` now returns a full HTML 404 template (previously was plain text)
@@ -163,33 +167,40 @@
 - Deprecated `noEncode()` in favor of `rawHtml()`
 
 ### Fixed
+
 - Arithmetic functions now accept SmartNull (treated as null)
 - Fixed typo: `isZero()` → `ifZero()`
 
 ### Migration Tips
+
 1. **`percent()` precision** - now 0 decimal places by default; call `->percent(2)` for decimals
 2. **Missing-value helpers** - if you previously treated `false` as "missing", update your checks or handle `false` explicitly
 
 ---
 
 ## [2.0.1] - 2024-12-09
+
 > **Bundled with CMS Builder v3.75**
 > Roll-up release - every change from **v1.3.1 → v2.0.1** is now part of this version.
 
 ### Added
+
 - `rawValue()` static method for consistently extracting values from object or raw types
 
 ### Changed
+
 - Updated all numeric operations to use `rawValue()` for consistent value extraction
 - Merged all code into one file for easier inclusion in projects
 - Switched SmartArray to a suggested dependency
 
 ### Deprecated
+
 - `SmartString::new($array)` - use `SmartArray::new($array)->withSmartStrings()` instead
 - `SmartString::fromArray()` - use `SmartArray::new($array)->withSmartStrings()` instead
 - `stripTags()` - use `textOnly()` instead
 
 ### Fixed
+
 - `dateTimeFormat()` now properly uses the `dateFormat` value
 - Fixed `jsEscape()` double escaping issue
 - Improved error reporting messages
@@ -197,41 +208,51 @@
 ---
 
 ## [1.3.0] - 2024-10-29
+
 > **Bundled with CMS Builder v3.74**
 
 ### Added
+
 - SmartArray class for handling arrays of SmartStrings
 
 ### Changed
+
 - Refactored code and merged files for simplicity
 
 ### Deprecated
+
 - `SmartString::new($array)` - use `SmartArray::new($array)` instead
 - `SmartString::fromArray()` - use `SmartArray::new($array)` instead
 
 ---
 
 ## [1.2.1] - 2024-09-16
+
 > **Bundled with CMS Builder v3.72**
 > Roll-up release - every change from **v1.0.0 → v1.2.1** is now part of this version.
 
 ### Added
+
 - `SmartString::fromArray()` - Convert arrays to ArrayObjects of SmartStrings
 - New chainable methods: `if()`, `set()`, `add()`, `multiply()`, `textOnly()`, `maxWords()`, `maxChars()`, `dateTimeFormat()`, `phoneFormat()`
 - Customizable defaults for date formats, number formats, and phone formats
 - Numeric methods now accept null inputs, returning null instead of throwing errors
 
 ### Changed
+
 - `dateFormat()` now defaults to date-only format when no format specified
 - `numberFormat()` now uses default thousands separator and decimal
 
 ### Deprecated
+
 - `stripTags()` - use `textOnly()` instead
 
 ### Fixed
+
 - `SmartString::$phoneFormat` - fixed hard coded 1 in default 11-digit format
 
 ---
 
 ## [1.0.0] - 2024-08-27
+
 - Initial release
