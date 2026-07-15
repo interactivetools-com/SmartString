@@ -14,8 +14,10 @@ Full lists of what changed per release: [CHANGELOG.md](CHANGELOG.md).
 
 ### `<br>` tags encode like any other tag
 
-> Changed in v2.6.3; affects code written for v2.2.x or earlier. `<br>` in
-> method arguments or data prints as literal text. Swaps:
+> Changed in v2.6; affects code written for v2.2.x or earlier. `<br>` in
+> method arguments or data prints as literal text. This is the only rendering
+> change (verified byte-for-byte against v2.2.0) - all other output is
+> identical, so these swaps are the complete check. Swaps:
 >
 > | Before                                  | After                                   |
 > |-----------------------------------------|-----------------------------------------|
@@ -23,7 +25,10 @@ Full lists of what changed per release: [CHANGELOG.md](CHANGELOG.md).
 > | `->andPrefix("<br>Tel: ")`              | `->wrapHtml('<br>Tel: ', '')`           |
 > | `echo $field` where the data has `<br>` | `echo $field->textToHtml(keepBr: true)` |
 >
-> Search: `rg -n "->\w+\(['\"][^'\"]*<br" --type php`
+> Search code: `rg -n "->\w+\(['\"][^'\"]*<br" --type php`
+>
+> Data with stored `<br>` (the third swap) won't show in a code search - scan
+> text columns instead: `SELECT ... WHERE col LIKE '%<br%'`
 
 ### Chains after `->nl2br()`
 
@@ -57,6 +62,10 @@ Full lists of what changed per release: [CHANGELOG.md](CHANGELOG.md).
 
 ### Minor changes
 
+> - `percent()` and `percentOf()` now use your `$numberFormatDecimal` and
+    > `$numberFormatThousands` settings like `numberFormat()` does - if you
+    > customize those, percentages change format too (previously always
+    > hardcoded '.' and ',')
 > - `pregReplace()` with an invalid pattern now throws InvalidArgumentException
     > (was a PHP warning and a null result)
 > - `orDie()` exits with code 1 (was 0) - cron and CLI wrappers that check exit
