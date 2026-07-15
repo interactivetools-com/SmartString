@@ -4,7 +4,6 @@ declare(strict_types=1);
 namespace Itools\SmartString;
 
 use Error;
-use InvalidArgumentException;
 use Itools\SmartArray\SmartArray;
 use Itools\SmartArray\SmartArrayBase;
 use Itools\SmartArray\SmartArrayHtml;
@@ -96,7 +95,7 @@ class SmartString implements JsonSerializable
             is_scalar($value)            => $value,
             is_null($value)              => $value,
             is_array($value)             => array_map([self::class, 'getRawValue'], $value), // for manually passed in arrays
-            default                      => throw new InvalidArgumentException("Unsupported value type: " . get_debug_type($value)),
+            default                      => throw new CallerException("Unsupported value type: " . get_debug_type($value)),
         };
     }
 
@@ -772,12 +771,12 @@ class SmartString implements JsonSerializable
     public function map(callable|string $func, mixed ...$args): SmartString
     {
         if (!is_callable($func)) {
-            throw new InvalidArgumentException("Function '$func' is not callable");
+            throw new CallerException("Function '$func' is not callable");
         }
 
         $newValue = $func($this->rawData, ...$args);
         if (!is_null($newValue) && !is_scalar($newValue)) {
-            throw new InvalidArgumentException("map() callback must return a scalar value (string, int, float, bool, or null), got " . get_debug_type($newValue));
+            throw new CallerException("map() callback must return a scalar value (string, int, float, bool, or null), got " . get_debug_type($newValue));
         }
         return new self($newValue);
     }
@@ -792,7 +791,7 @@ class SmartString implements JsonSerializable
      * @param string $pattern Regex pattern
      * @param string $replacement Replacement string (supports backreferences)
      * @return SmartString A new SmartString with the replaced value
-     * @throws InvalidArgumentException If the pattern is invalid or matching fails
+     * @throws CallerException If the pattern is invalid or matching fails (an InvalidArgumentException that reports your file:line)
      */
     public function pregReplace(string $pattern, string $replacement): SmartString
     {
@@ -804,7 +803,7 @@ class SmartString implements JsonSerializable
         $newValue = @preg_replace($pattern, $replacement, (string)$this->rawData); // @: PHP warning becomes the exception below
         if (is_null($newValue)) {
             $reason = error_get_last()['message'] ?? preg_last_error_msg();
-            throw new InvalidArgumentException("pregReplace(): $reason");
+            throw new CallerException("pregReplace(): $reason");
         }
         return new self($newValue);
     }

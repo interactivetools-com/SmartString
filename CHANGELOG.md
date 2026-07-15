@@ -64,6 +64,11 @@ These still work, they're just no longer featured in the docs - no changes requi
     the identical value
 - `pregReplace()` throws on a bad pattern - was a PHP warning and a null result;
   now an InvalidArgumentException that includes PHP's compile error
+- Developer-mistake exceptions report your file:line instead of the library's:
+  `pregReplace()` (bad pattern), `map()` (bad callback or return type), and
+  `getRawValue()` (unsupported type) throw CallerException, an
+  InvalidArgumentException subclass - existing catch blocks still work, and the
+  library's throw site stays available in `$e->thrownInFile`/`$e->thrownInLine`
 - `dateFormat()` on booleans returns null - like any other value that isn't a date
 - `orDie()` exits with code 1 - CLI and cron scripts see the failure
 - Parameter renames - these only matter if you use named arguments,
