@@ -54,7 +54,7 @@ Dates & Numbers
 Return a new SmartString, so you can keep chaining. Missing or invalid input returns null -
 add ->or() after to show a fallback.
 
-->dateFormat(...)                       Formats as a date, using the format you pass or the default, e.g. dateFormat('M j, Y')
+->dateFormat(...)                       Formats as a date or datetime, e.g. dateFormat('Y-m-d H:i:s'); default: SmartString::$dateFormat
 ->numberFormat($decimals)               Formats as a number with thousands separators, e.g. numberFormat(2)
 ->percent($decimals, $ifZero)           Converts a decimal to a percentage, e.g. 0.5 becomes 50% ($ifZero shown for zero)
 ->percentOf($total, $decimals)          What percentage the value is of $total, e.g. 24 of 100 is 24%

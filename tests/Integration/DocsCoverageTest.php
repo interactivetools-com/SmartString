@@ -15,9 +15,9 @@ use Tests\Support\SmartStringTestCase;
  *
  * Exemptions:
  * - magic methods and jsonSerialize(): interface plumbing, never called directly
- * - the DeprecatedAliases trait (and, andPrefix, textToHtml): silent
- *   compatibility aliases, kept undocumented by design - docs show only the
- *   new names
+ * - everything in the DeprecatedAliases trait: renamed and retired methods
+ *   keep working but stay out of the docs by design - docs show only the
+ *   current names
  */
 class DocsCoverageTest extends SmartStringTestCase
 {

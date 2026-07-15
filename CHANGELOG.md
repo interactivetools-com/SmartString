@@ -26,7 +26,7 @@ IDEs like PHPStorm show them in strikethrough and offer a one-click rename.
 | `apply()`                  | `map()`                    | matches `array_map()` and `SmartArray::map()`                            |
 | `if()`                     | `ifTrue()`                 |                                                                          |
 | `textToHtml()`             | `nl2br()`                  |                                                                          |
-| `textToHtml(keepBr: true)` | none - keeps working as-is | preserves `<br>` tags already in the value; `nl2br()` takes no arguments |
+| `textToHtml(keepBr: true)` | (no new name - keep as-is) | preserves `<br>` tags already in the value; `nl2br()` takes no arguments |
 
 ### Deprecated
 
@@ -49,9 +49,9 @@ These still work, they're just no longer featured in the docs - no changes requi
   - `SmartString::new(null)->add(5)->or(10)->add(5)` returns 15 (was null)
   - `null`, `bool`, and `SmartNull` arguments no longer throw TypeError (same
     fix for the conditional methods)
-  - `percent()` and `percentOf()` now format with your `$numberFormatDecimal`
-    and `$numberFormatThousands` settings, same as `numberFormat()` (was
-    hardcoded '.' and ',')
+- `percent()` and `percentOf()` format with your `$numberFormatDecimal` and
+  `$numberFormatThousands` settings, same as `numberFormat()` - previously
+  hardcoded '.' and ','
 - `nl2br()` ends the chain - it returns a string now, so echo it directly;
   anything chained after it (`->nl2br()->value()`) is an error - move those
   calls before it
@@ -63,7 +63,7 @@ These still work, they're just no longer featured in the docs - no changes requi
     `\uXXXX` so nothing can hide in page source - lossless, JavaScript sees
     the identical value
 - `pregReplace()` throws on a bad pattern - was a PHP warning and a null result;
-  now an InvalidArgumentException that names the pattern
+  now an InvalidArgumentException that includes PHP's compile error
 - `dateFormat()` on booleans returns null - like any other value that isn't a date
 - `orDie()` exits with code 1 - CLI and cron scripts see the failure
 - Parameter renames - these only matter if you use named arguments,

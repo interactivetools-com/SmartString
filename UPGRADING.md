@@ -1,8 +1,8 @@
 # Upgrading SmartString
 
-The checks that matter when upgrading. Renamed and
-retired methods never need action: they keep working as silent aliases, and
-IDEs like PHPStorm show old names in strikethrough with a one-click rename.
+The checks that matter when upgrading. Renamed and retired methods don't need
+any changes - old names keep working, and IDEs like PHPStorm show them in
+strikethrough (renames also get a one-click fix).
 
 Full lists of what changed per release: [CHANGELOG.md](CHANGELOG.md).
 

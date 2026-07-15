@@ -18,12 +18,18 @@ trait DeprecatedAliases
 {
     /**
      * Default format for dateTimeFormat() (for PHP date()).
+     *
+     * @deprecated Retired in v3.0 with dateTimeFormat() - still supported, no longer documented
      */
+    #[Deprecated(reason: 'retired in v3.0 with dateTimeFormat() - still supported, no longer documented')]
     public static string $dateTimeFormat = 'Y-m-d H:i:s';
 
     /**
      * Format rules for phoneFormat(), keyed by digit count.
+     *
+     * @deprecated Retired in v3.0 with phoneFormat() - still supported, no longer documented
      */
+    #[Deprecated(reason: 'retired in v3.0 with phoneFormat() - still supported, no longer documented')]
     public static array $phoneFormat = [
         ['digits' => 10, 'format' => '(###) ###-####'],
         ['digits' => 11, 'format' => '# (###) ###-####'],
@@ -63,6 +69,9 @@ trait DeprecatedAliases
      * Retired: still supported, no longer documented. Pass the format to
      * dateFormat() instead - inline or as an app-wide constant, e.g.
      * ->dateFormat('Y-m-d H:i:s') or ->dateFormat(DATETIME_FORMAT).
+     *
+     * @param string|null $format PHP date() format; null uses SmartString::$dateTimeFormat
+     * @return SmartString
      *
      * @deprecated Retired in v3.0 - use dateFormat() and pass the format
      */
@@ -107,7 +116,9 @@ trait DeprecatedAliases
      * area code) can only be approximated; pregReplace() covers custom needs, e.g.
      * ->pregReplace('/\D/', '') for tel: links.
      *
-     * @deprecated Retired in v3.0 - still works; see pregReplace() for custom formatting
+     * @return SmartString Formatted number, or a null SmartString when no rule matches the digit count
+     *
+     * @deprecated Retired in v3.0 - still supported, no longer documented
      */
     #[Deprecated(reason: 'retired in v3.0 - still supported, no longer documented')]
     public function phoneFormat(): SmartString
