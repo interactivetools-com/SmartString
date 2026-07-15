@@ -1,3 +1,5 @@
+<!-- Example output like &apos; includes a zero-width space (U+200B) after the "&" so PHPStorm's Markdown preview displays it correctly instead of decoding it. -->
+
 # SmartString: Secure and Simple String Handling for PHP
 
 SmartString is a PHP string handling library that lets you write cleaner, simpler, more secure code faster and with less
@@ -7,9 +9,9 @@ Instead of writing code like this:
 
 ```php
 echo "<h1>" . htmlspecialchars($article['title'], ENT_QUOTES|ENT_SUBSTITUTE|ENT_HTML5, 'UTF-8') . "</h1>";
-$summary = strip_tags($article['content']); // remove tags
-$summary = html_entity_decode($summary, ENT_QUOTES|ENT_SUBSTITUTE|ENT_HTML5, 'UTF-8'); // decode entities
-$summary = substr($summary, 0, 120); // limit to 120 characters
+$summary = strip_tags($article['content']);                                             // remove tags
+$summary = html_entity_decode($summary, ENT_QUOTES|ENT_SUBSTITUTE|ENT_HTML5, 'UTF-8');  // decode entities
+$summary = substr($summary, 0, 120);                                                    // limit to 120 characters
 echo "Summary: " . htmlspecialchars($summary, ENT_QUOTES|ENT_SUBSTITUTE|ENT_HTML5, 'UTF-8') . "...";
 ```
 
@@ -80,7 +82,7 @@ $request = SmartArray::new($_REQUEST)->asHtml();
 // $data = SmartArray::new($rawData);  // For raw values without SmartStrings
 
 // Use in string contexts for automatic HTML encoding
-echo "Hello, $user->name!"; // Output: Hello, John O&apos;Reilly!
+echo "Hello, $user->name!"; // Output: Hello, John O&​apos;Reilly!
 
 // Chain methods
 echo $request->message->trim()->maxWords(50, '...');
@@ -129,7 +131,7 @@ foreach (SmartArray::new($articles)->asHtml() as $article) {
 }
 
 // Usage
-echo $name;               // John O&apos;Reilly
+echo $name;               // John O&​apos;Reilly
 echo $user->age;          // 25
 echo $request->username;  // html-encoded $_REQUEST['username']
 ```
@@ -176,10 +178,10 @@ Whenever you use a SmartString object in a string context, it automatically HTML
 $str = SmartString::new("It's easy!<hr>");
 
 // SmartStrings return HTML-encoded output in string contexts
-echo $str;             // "It&apos;s easy!&lt;hr&gt;"
-print $str;            // "It&apos;s easy!&lt;hr&gt;"
-(string) $str;         // "It&apos;s easy!&lt;hr&gt;"
-$new = $str."\n";      // "It&apos;s easy!&lt;hr&gt;\n"
+echo $str;         // "It&​apos;s easy!&​lt;hr&​gt;"
+print $str;        // "It&​apos;s easy!&​lt;hr&​gt;"
+(string) $str;     // "It&​apos;s easy!&​lt;hr&​gt;"
+$new = $str."\n";  // "It&​apos;s easy!&​lt;hr&​gt;\n"
 ```
 
 ### Accessing Values
@@ -252,7 +254,7 @@ $title = SmartString::new('<10% OFF "SALE"');
 echo $title->value();       // '<10% OFF "SALE"'
 
 // HTML Encode (default) - can be called explicitly for readability
-echo $title->htmlEncode();  // "&lt;10% OFF &quot;SALE&quot;"
+echo $title->htmlEncode();  // "&​lt;10% OFF &​quot;SALE&​quot;"
 
 // URL encode
 echo "add.php?title={$title->urlEncode()}"; // add.php?title=%3C10%25+OFF+%22SALE%22
@@ -346,13 +348,13 @@ $date = SmartString::new("2024-05-15 14:30:00");
 echo $date->dateFormat(); // "May 15th, 2024"
 
 // Custom formats
-echo $date->dateFormat('F j, Y');            // "May 15, 2024"
-echo $date->dateFormat('l, F j, Y g:i A');   // "Wednesday, May 15, 2024 2:30 PM"
+echo $date->dateFormat('F j, Y');           // "May 15, 2024"
+echo $date->dateFormat('l, F j, Y g:i A');  // "Wednesday, May 15, 2024 2:30 PM"
 
 // Handling invalid dates - returns null
 $invalid = SmartString::new("not a date");
-echo $invalid->dateFormat()->or("Invalid date"); // "Invalid date"
-echo $invalid->dateFormat()->or($invalid);       // "not a date"
+echo $invalid->dateFormat()->or("Invalid date");  // "Invalid date"
+echo $invalid->dateFormat()->or($invalid);        // "not a date"
 
 // Numeric values are treated as unix timestamps, everything else is parsed with strtotime()
 $timestamp = SmartString::new(1684159800);
@@ -360,7 +362,7 @@ echo $timestamp->dateFormat('Y-m-d'); // "2023-05-15"
 ```
 
 You can find a list of available date formats in the PHP documentation:
-https://www.php.net/manual/en/datetime.format.php
+https://www.php.net/manual/en/datetime.format.php#refsect1-datetime.format-parameters
 
 ### Numeric Operations
 
@@ -388,9 +390,9 @@ echo $base->add(50); // 150
 
 // Null propagates through math - rescue with or() or ifNull() at the end
 $value = SmartString::new(null);
-echo $value->add(50);              // "" (null result, blank output)
-echo $value->add(50)->or('n/a');   // "n/a"
-echo $value->ifNull(0)->add(50);   // 50 (replace null BEFORE math to treat it as zero)
+echo $value->add(50);             // "" (null result, blank output)
+echo $value->add(50)->or('n/a');  // "n/a"
+echo $value->ifNull(0)->add(50);  // 50 (replace null BEFORE math to treat it as zero)
 
 // or() placement changes meaning: before formatting supplies a number, after supplies display text
 echo $value->or(0)->numberFormat(2);      // "0.00" - fallback number, then formatted
@@ -436,8 +438,8 @@ echo $value->or('Default'); // "Default"
 
 // append($value): Append a value if the value is present (not "" or null). Zero is considered present.
 $city = SmartString::new('Vancouver');
-echo $city->append(', ');                    // "Vancouver, "
-echo SmartString::new(null)->append(', ');   // "" - nothing to append to, nothing appended
+echo $city->append(', ');                   // "Vancouver, "
+echo SmartString::new(null)->append(', ');  // "" - nothing to append to, nothing appended
 
 // prepend($value): Prepend a value if the value is present (not "" or null). Zero is considered present.
 echo $record->phone->prepend("Phone: ");
@@ -467,8 +469,8 @@ echo $maxUsers->ifEquals(-1, 'Unlimited'); // "Unlimited"
 
 // set($newValue): Assign a new value or expression result to the current object
 $price = SmartString::new(19.99);
-echo $price->set('24.99'); // 24.99
-echo $price->set($price->value() < 20 ? "Under 20" : "Over 20"); // "Under 20"
+echo $price->set('24.99');                                        // 24.99
+echo $price->set($price->value() < 20 ? "Under 20" : "Over 20");  // "Under 20"
 
 // Or more complex operations using PHP match() expressions
 $eggs = SmartString::new(12);
@@ -511,7 +513,7 @@ if ($value->isMissing()) {
 ```
 
 **Zero:** `isEmpty()` is true for 0 (PHP `empty()` rules) but `isMissing()` is false - `or()`,
-the attach methods (append/prepend/wrap), and the or404/orDie/orThrow guards all treat 0 as
+the `append()`/`prepend()`/`wrap()` methods, and the or404/orDie/orThrow guards all treat 0 as
 a real value. Use `isMissing()` when a legitimate zero must count as present.
 
 ### Error Checking
@@ -521,14 +523,14 @@ Zero is not considered missing.
 
 ```php
 // Terminate with 404 if record not found
-$article = DB::get('articles', 123);        // Assume SmartArray returned
-$article->id->or404("Article not found");   // Sends 404 header and terminate script
+$article = DB::get('articles', 123);       // Assume SmartArray returned
+$article->id->or404("Article not found");  // Sends 404 header and terminate script
 
 // Terminate with custom message if value missing
-$article = DB::get('articles', 123);           // Assume SmartArray returned
-$article->id->orDie("Article not found");      // Output message and terminate script
-$article->id->orThrow("Article not found");    // Throws Exception with error message
-$article->id->orRedirect("/articles/list");    // Redirect to listing page if missing
+$article = DB::get('articles', 123);         // Assume SmartArray returned
+$article->id->orDie("Article not found");    // Output message and terminate script
+$article->id->orThrow("Article not found");  // Throws Exception with error message
+$article->id->orRedirect("/articles/list");  // Redirect to listing page if missing
 ```
 
 **Note:** Messages are HTML-encoded automatically - they often interpolate user input
@@ -567,9 +569,9 @@ $uppercase = $name->map('strtoupper');  // returns "JOHN DOE"
 $paddedValue = $name->map('str_pad', 15, '.'); // returns "John Doe......."
 
 // Writing your own custom function
-$spacesToUnderscores = function($str) { return str_replace(' ', '_', $str); }; // anonymous function
+$spacesToUnderscores = function($str) { return str_replace(' ', '_', $str); };  // anonymous function
 $spacesToUnderscores = fn($str) => str_replace(' ', '_', $str);                 // arrow function (PHP 7.4+)
-$urlSlug = $name->map($spacesToUnderscores);   // returns "John_Doe"
+$urlSlug = $name->map($spacesToUnderscores);                                    // returns "John_Doe"
 
 // Applying inline arrow functions
 $boldName = $name->map(fn($val) => "<b>$val</b>"); // returns "<b>John Doe</b>"
@@ -605,7 +607,7 @@ Creating SmartStrings
 \$req = SmartArray::new(\$_REQUEST)->asHtml();  // SmartArray of SmartStrings
 
 Automatic HTML-encoding in string contexts:
-echo \$str;             // "It&apos;s easy!&lt;hr&gt;"
+echo \$str;             // "It&​apos;s easy!&​lt;hr&​gt;"
 
 // ... continues with a list of available methods and examples
 ```
@@ -615,9 +617,9 @@ echo \$str;             // "It&apos;s easy!&lt;hr&gt;"
 You can customize the defaults by adding the following to the top of your script or in an init file:
 
 ```php
-SmartString::$numberFormatDecimal   = '.';             // Default decimal separator
-SmartString::$numberFormatThousands = ',';             // Default thousands separator
-SmartString::$dateFormat            = 'Y-m-d';         // Default dateFormat() format
+SmartString::$numberFormatDecimal   = '.';      // Default decimal separator
+SmartString::$numberFormatThousands = ',';      // Default thousands separator
+SmartString::$dateFormat            = 'Y-m-d';  // Default dateFormat() format
 ```
 
 ## Method Reference
@@ -627,11 +629,11 @@ SmartString::$dateFormat            = 'Y-m-d';         // Default dateFormat() f
 ```php
 $str = SmartString::new("It's easy!<hr>");
 
-echo $str;             // It&apos;s easy!&lt;hr&gt; (HTML-encoded automatically)
-echo $str->value();    // It's easy!<hr> (the original value)
+echo $str;           // It&​apos;s easy!&​lt;hr&​gt; (HTML-encoded automatically)
+echo $str->value();  // It's easy!<hr> (the original value)
 
-echo $str->trim()->maxChars(60)->or('None');   // methods chain left to right
-SmartString::help();   // print a quick reference of all methods (works on values too: $str->help())
+echo $str->trim()->maxChars(60)->or('None');  // methods chain left to right
+SmartString::help();                          // print a quick reference of all methods (works on values too: $str->help())
 ```
 
 Here `$str` is an object, not a string. Whenever PHP needs it as a string (echo, print,

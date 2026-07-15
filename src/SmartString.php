@@ -237,10 +237,11 @@ class SmartString implements JsonSerializable
     /**
      * Safely encodes the data as a JSON string with specific flags for secure and accurate JavaScript embedding.
      *
-     * Escapes " ' < > & as \uXXXX so values can't break out of a <script> block or JS string, substitutes
-     * malformed UTF-8 with � (U+FFFD) instead of throwing, and re-escapes invisible Unicode (zero-width
-     * chars, bidi controls, variation selectors) as visible \uXXXX escapes so nothing can hide in page
-     * source. INF, NAN, and recursion still throw JsonException - those are always code bugs.
+     * - Escapes " ' < > & as \uXXXX so values can't break out of a <script> block or JS string
+     * - Substitutes malformed UTF-8 with � (U+FFFD) instead of throwing
+     * - Re-escapes invisible Unicode (zero-width chars, bidi controls, variation selectors) as
+     *   visible \uXXXX escapes so nothing can hide in page source
+     * - INF, NAN, and recursion still throw JsonException - those are always code bugs
      *
      * Example Usage:
      * `<script>var jsonString = <?php echo $var->jsonEncode() ?>;</script>`
@@ -342,7 +343,7 @@ class SmartString implements JsonSerializable
     /**
      * Formats a date using default or specified format.  Returns null on failure.
      *
-     * Numeric values are treated as unix timestamps (so '2024' formats as epoch + 2024
+     * Numeric values are treated as Unix timestamps (so '2024' formats as epoch + 2024
      * seconds, not as a year); everything else is parsed with strtotime().
      *
      * @param string|null $format Date format (default: SmartString::$dateFormat)
@@ -604,8 +605,8 @@ class SmartString implements JsonSerializable
     /**
      * Returns true if the value is empty ("", null, false, 0, "0"), uses PHP empty()
      *
-     * Zero IS empty here but is NOT missing to isMissing(), or(), and the attach
-     * methods - use isMissing() when a legitimate 0 must count as present.
+     * Zero IS empty here but is NOT missing to isMissing(), or(), append(),
+     * prepend(), and wrap() - use isMissing() when a legitimate 0 must count as present.
      *
      * This is useful for conditionally showing blocks of HTML:
      * if ($value->isEmpty()) { echo "<p>No data available</p>"; }
@@ -630,8 +631,8 @@ class SmartString implements JsonSerializable
      * Checks if the current value is missing (null or "")
      *
      * Zero is NOT missing here (it's a real value) but IS empty to isEmpty() -
-     * or(), the attach methods (append/prepend/wrap), and the or404/orDie/orThrow
-     * guards all use this definition.
+     * or(), append(), prepend(), wrap(), and the or404/orDie/orThrow guards
+     * all use this definition.
      *
      * @return bool True if the value is missing (null or "")
      */
