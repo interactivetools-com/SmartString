@@ -177,6 +177,10 @@ echo "Last login: {$user->lastLogin->dateFormat('F j, Y')}";
 $request = SmartArrayHtml::new($_REQUEST);   // request values work the same way
 ```
 
+Field access interpolates without curly braces or quotes; the plain-array
+version of that first echo would be
+`"Hello, {$user['name']} from {$user['city']}!"`.
+
 With [ZenDB](https://github.com/interactivetools-com/ZenDB) this happens
 automatically: every query returns SmartArrays of SmartStrings, so you may
 never call `SmartString::new()` at all:

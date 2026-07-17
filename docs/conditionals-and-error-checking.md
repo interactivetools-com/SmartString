@@ -98,6 +98,9 @@ $qty = SmartString::new(150);
 echo $qty->ifTrue($qty->int() > 99, '99+');  // 99+
 ```
 
+There is no else parameter: when both branches need a value, write a
+ternary and pass it to `set()` (below).
+
 The `set()` method replaces the value unconditionally, putting the result
 of any PHP expression back into a chain. Its best trick is inside heredocs
 and double-quoted strings: PHP won't interpolate a `match` or a ternary
@@ -105,6 +108,9 @@ directly, but it will call a method:
 
 ```php
 // set($newValue)
+echo "Gift wrap: {$order->giftWrap->set($order->giftWrap->bool() ? 'Yes' : 'No')}";
+// Gift wrap: Yes
+
 echo <<<__HTML__
     <span class="badge">{$order->status->set(match($order->status->string()) {
         'P'     => 'Pending',

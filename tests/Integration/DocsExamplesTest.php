@@ -405,7 +405,9 @@ class DocsExamplesTest extends SmartStringTestCase
 
     public function testTargetedReplacementSet(): void
     {
-        $order = SmartArrayHtml::new(['status' => 'S']);
+        $order = SmartArrayHtml::new(['status' => 'S', 'giftWrap' => 1]);
+
+        $this->assertSame('Gift wrap: Yes', "Gift wrap: {$order->giftWrap->set($order->giftWrap->bool() ? 'Yes' : 'No')}");
 
         $html = <<<__HTML__
             <span class="badge">{$order->status->set(match($order->status->string()) {

@@ -747,7 +747,7 @@ class SmartString implements JsonSerializable
     /**
      * Redirects to a URL if the current value is missing (null or ""), zero is not considered missing
      *
-     * Uses a simple Location header redirect (HTTP 302 Found).
+     * Uses a simple Location header redirect (HTTP 302, a temporary redirect).
      * If headers have already been sent, this method throws - even when the value is
      * present - so misuse fails on the first request instead of only on empty values.
      *

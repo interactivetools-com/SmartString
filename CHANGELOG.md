@@ -1,8 +1,10 @@
 # SmartString Changelog
 
-## [3.0.0] - [UNRELEASED]
+> **Upgrading?** See [UPGRADING.md](UPGRADING.md) for the checks that matter,
+> per version - tagged releases roll up every change since the previous tag.
+> Versions bundled with CMS Builder are marked on their sections.
 
-Upgrading? See [UPGRADING.md](UPGRADING.md) for the checks that matter, per version.
+## [3.0.0] - [UNRELEASED]
 
 ### Added
 
@@ -62,6 +64,9 @@ These still work, they're just no longer featured in the docs - no changes requi
   - invisible Unicode (zero-width, bidi, tag chars) is re-escaped as visible
     `\uXXXX` so nothing can hide in page source - lossless, JavaScript sees
     the identical value
+- `pregReplace()` passes `""` through unchanged, like null - previously an
+  empty-matching pattern could turn a missing value into content, defeating a
+  later `or()` fallback
 - `pregReplace()` throws on a bad pattern - was a PHP warning and a null result;
   now an InvalidArgumentException that includes PHP's compile error
 - Developer-mistake exceptions report your file:line instead of the library's:
@@ -85,7 +90,6 @@ These still work, they're just no longer featured in the docs - no changes requi
 ## [2.6.3] - 2026-04-27
 
 > **Bundled with CMS Builder v3.83**
-> Roll-up release - every change from **v2.2.1 → v2.6.3** is now part of this version.
 
 ### Added
 
@@ -120,18 +124,10 @@ These still work, they're just no longer featured in the docs - no changes requi
 - Error messages now show the short class name (`SmartString->foo()`) on Linux instead of the full namespace
 - `SmartString::fromArray()` deprecation shim now returns HTML-safe values matching the documented migration target
 - `SmartString::rawvalue()` static alias now logs a deprecation warning
-- `pregReplace()` now preserves missing input (null or `""`), matching other string-manipulation methods
+- `pregReplace()` now preserves null input, matching other string-manipulation methods
 - `numberFormat()`, `percent()`, and `percentOf()` now require `int $decimals` (passing null previously crashed inside `number_format()`)
 - `dateTimeFormat()` no longer double-wraps the result of `dateFormat()`
 - `or()`, `and()`, `andPrefix()`, `ifBlank()`, `ifNull()`, and `ifZero()` now accept `null` and `bool` fallbacks (previously TypeErrored under strict types)
-
-### Migration Tips
-
-1. **`nl2br()` → `textToHtml()`** - The new method encodes *and* converts newlines. If you were chaining `->nl2br()` after manual encoding, you can simplify to just `->textToHtml()`.
-2. **`htmlEncode()` and `<br>` tags** - If you relied on `htmlEncode()` preserving `<br>` tags, switch to `textToHtml(keepBr: true)`.
-3. **`$treatNullAsZero` removed** - Null always stays null now. If you need zero, use `->ifNull(0)` before arithmetic.
-
----
 
 ## [2.2.0] - 2025-09-21
 
@@ -139,18 +135,15 @@ These still work, they're just no longer featured in the docs - no changes requi
 
 ### Added
 
-- `orRedirect($url)` - Redirects to a URL if value is missing (null or ""), uses HTTP 302 Temporary Redirect
+- `orRedirect($url)` - Redirects to a URL if value is missing (null or ""), uses a temporary (HTTP 302) redirect
 
 ### Changed
 
 - Minimum PHP version raised to 8.1 (from 8.0)
 
----
-
 ## [2.1.2] - 2025-04-29
 
 > **Bundled with CMS Builder v3.76**
-> Roll-up release - every change from **v2.0.2 → v2.1.1** is now part of this version.
 
 ### Added
 
@@ -176,17 +169,9 @@ These still work, they're just no longer featured in the docs - no changes requi
 - Arithmetic functions now accept SmartNull (treated as null)
 - Fixed typo: `isZero()` → `ifZero()`
 
-### Migration Tips
-
-1. **`percent()` precision** - now 0 decimal places by default; call `->percent(2)` for decimals
-2. **Missing-value helpers** - if you previously treated `false` as "missing", update your checks or handle `false` explicitly
-
----
-
 ## [2.0.1] - 2024-12-09
 
 > **Bundled with CMS Builder v3.75**
-> Roll-up release - every change from **v1.3.1 → v2.0.1** is now part of this version.
 
 ### Added
 
@@ -210,8 +195,6 @@ These still work, they're just no longer featured in the docs - no changes requi
 - Fixed `jsEscape()` double escaping issue
 - Improved error reporting messages
 
----
-
 ## [1.3.0] - 2024-10-29
 
 > **Bundled with CMS Builder v3.74**
@@ -229,12 +212,9 @@ These still work, they're just no longer featured in the docs - no changes requi
 - `SmartString::new($array)` - use `SmartArray::new($array)` instead
 - `SmartString::fromArray()` - use `SmartArray::new($array)` instead
 
----
-
 ## [1.2.1] - 2024-09-16
 
 > **Bundled with CMS Builder v3.72**
-> Roll-up release - every change from **v1.0.0 → v1.2.1** is now part of this version.
 
 ### Added
 
@@ -255,8 +235,6 @@ These still work, they're just no longer featured in the docs - no changes requi
 ### Fixed
 
 - `SmartString::$phoneFormat` - fixed hard coded 1 in default 11-digit format
-
----
 
 ## [1.0.0] - 2024-08-27
 
