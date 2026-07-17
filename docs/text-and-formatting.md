@@ -13,7 +13,9 @@ Two group contracts to know up front:
 
 - **String manipulation** (`textOnly`, `trim`, `maxWords`, `maxChars`,
   `pregReplace`, `append`, `prepend`, `wrap`): missing values (null or `""`)
-  come through unchanged, so a later `or()` fallback still works.
+  come through unchanged, so a later
+  [or()](conditionals-and-error-checking.md#fallbacks---or) fallback still
+  works.
 - **Dates, numbers, and math** (`dateFormat`, `numberFormat`, `percent`,
   `percentOf`, `add`, `subtract`, `multiply`, `divide`): missing or invalid
   input makes the result null; add `or()` after to show a fallback.
@@ -69,6 +71,10 @@ output. Chain `textOnly()` first:
 ```php
 echo $article->content->textOnly()->maxChars(120);  // safe text preview
 ```
+
+Examples like `$article->content` are fields from a wrapped database record
+([Getting Started](getting-started.md#working-with-smartarray-and-zendb));
+each field is a SmartString.
 
 ## Adding Text Around Values - `append()`, `prepend()`, and `wrap()`
 
@@ -253,7 +259,9 @@ echo $value->add(50)->multiply(2)->or('n/a');  // n/a (one or() covers the whole
 ```
 
 SmartString never silently coerces null to zero. When null should mean
-zero, say so explicitly, before the math:
+zero, say so explicitly with
+[ifNull()](conditionals-and-error-checking.md#targeted-replacements---ifnull-ifzero-ifequals-iftrue-set),
+before the math:
 
 ```php
 echo $value->ifNull(0)->add(50);  // 50
@@ -302,8 +310,8 @@ echo $name->map(fn($v) => str_replace(' ', '_', $v));  // John_Doe
 
 The callback always runs and receives the raw value, null included, matching
 `array_map()` and `SmartArray::map()`. PHP built-ins that require a string
-will complain about null, so chain `ifNull('')` first when the value can be
-missing:
+raise a deprecation notice on null, so chain `ifNull('')` first when the
+value can be missing:
 
 ```php
 echo $user->nickname->ifNull('')->map('ucwords');
@@ -314,8 +322,10 @@ throws, with the error reporting your file and line.
 
 ## Putting It Together
 
-A product listing that combines methods from this page. Every value
-auto-encodes; there is no `htmlspecialchars()` anywhere:
+A product listing that combines methods from this page. `SmartArrayHtml::new()`
+wraps the array so every field comes back as a SmartString
+([Getting Started](getting-started.md#working-with-smartarray-and-zendb)).
+Every value auto-encodes; there is no `htmlspecialchars()` anywhere:
 
 ```php
 $taxRate = 1.13;  // 13% sales tax
@@ -348,8 +358,8 @@ Output:
 ```
 
 - The `&` in the name encodes automatically in the heading
-- `textOnly()->maxChars(40)` turns the HTML description into a text preview
-- `multiply($taxRate)->numberFormat(2)` adds 13% tax and formats in one chain
+- The `textOnly()->maxChars(40)` chain turns the HTML description into a text preview
+- The `multiply($taxRate)->numberFormat(2)` chain adds 13% tax and formats in one step
 
 ---
 

@@ -55,6 +55,9 @@ Key definitions used throughout:
   `isEmpty()`, `isNotEmpty()`.
 - **numeric** = PHP `is_numeric()`. `"1,234"` (comma) and formatted output
   like `"0.00%"` are NOT numeric.
+- **SmartNull** = SmartArray's placeholder for a missing field (so chained
+  calls on `$row->missingField` don't fatal). SmartString methods accept it
+  anywhere a plain value is accepted and treat it as null.
 
 ## Creating Values
 
@@ -162,9 +165,9 @@ null (echoes as `""`); add `or()` for a fallback. All formatting uses
 | `percentOf($total, int $decimals = 0): SmartString` | value / `$total` * 100 + `%`. Null when either non-numeric or `$total` is 0 |
 | `add($value)` / `subtract($value)` / `multiply($value)` / `divide($value)` | Float arithmetic. Null when either side non-numeric; `divide` also null on zero divisor. Args accept plain values or SmartString/SmartNull |
 
-Null propagation: null flows through subsequent operations, but is NOT
-sticky poison; a mid-chain `ifNull(0)` fully recovers the chain.
-SmartString never coerces null to zero implicitly.
+Null propagation: null carries through subsequent operations but is not
+permanent; a mid-chain `ifNull(0)` replaces it and later methods run on the
+new value. SmartString never coerces null to zero implicitly.
 
 ```php
 echo $price->multiply(1.13)->divide(2)->numberFormat(2);   // 56.50
@@ -219,7 +222,7 @@ HTML-encoded automatically (messages often interpolate user input).
 
 ```php
 $article->num->or404("Article not found");
-$row->orThrow("no row")->memberId->orThrow("row found but memberId empty")->int();  // two-stage guard
+$row->orThrow("no row")->memberId->orThrow("row found but memberId empty")->int();  // two-stage guard ($row is a SmartArrayHtml row; its orThrow() works the same way)
 ```
 
 ## Value Checks
@@ -290,26 +293,27 @@ print_r($str);        // shows rawData (original value) + one-time help() hint
 
 - Wrapping output in `htmlspecialchars()` double-encodes (`&amp;apos;` in
   output = encoding twice). SmartString already encodes.
-- `"$str->method()"` without curly braces is parsed by PHP as property
-  access + literal `()`; write `"{$str->method()}"`.
+- Writing `"$str->method()"` without curly braces is parsed by PHP as
+  property access + literal `()`; write `"{$str->method()}"`.
 - Comparisons need `->value()`; `(string)$str` compares the ENCODED value.
 - Encoding methods return plain strings; chaining after them is a PHP Error
   ("Call to a member function ... on string"). Conditionals first, encode
   last.
-- `"1,234"` and other formatted numbers are non-numeric → math/format
-  returns null. Store plain numbers, format at output.
-- `string()`/`value()`/`rawHtml()` return RAW (unencoded) data. `string()`
-  is not the encoded output; that is `htmlEncode()`.
+- Formatted numbers like `"1,234"` are non-numeric → math/format returns
+  null. Store plain numbers, format at output.
+- The `string()`/`value()`/`rawHtml()` methods return RAW (unencoded) data.
+  `string()` is not the encoded output; that is `htmlEncode()`.
 - Markup through `append()`/`wrap()` gets encoded (prints as text); use
   `appendHtml()`/`wrapHtml()` for markup. Their markup args are trusted:
   literals only, never user input.
-- `ifEquals(null, ...)` matches 0, "", and false too (loose ==); use
+- Calling `ifEquals(null, ...)` matches 0, "", and false too (loose ==); use
   `ifNull()`.
-- Zero is present to `or()`/`isMissing()`/guards but empty to `isEmpty()`.
+- Zero counts as present to `or()`/`isMissing()`/guards but empty to
+  `isEmpty()`.
 - Null through `int()`/`float()`/`bool()`/`string()` becomes 0/0.0/false/"";
   use `value()` or `isNull()` when null must be distinguishable.
-- `dateFormat()` treats numeric strings as unix timestamps (`"2026"` is
-  epoch + 2026 seconds, not a year).
+- The `dateFormat()` method treats numeric strings as unix timestamps
+  (`"2026"` is epoch + 2026 seconds, not a year).
 
 ---
 

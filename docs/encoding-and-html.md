@@ -83,7 +83,8 @@ echo $title;                // same output - echo already encodes
 
 Returns the value URL-encoded for use in query strings. HTML encoding is the
 wrong encoding inside an `href` query parameter; use `urlEncode()` for the
-value and let the rest of the URL auto-encode:
+query value - the rest of the URL is literal text you typed, which needs no
+encoding:
 
 ```php
 $title = SmartString::new('<10% OFF "SALE"');
@@ -145,7 +146,9 @@ echo $comment->nl2br();
 
 Some fields legitimately contain HTML, most commonly WYSIWYG editor content.
 For those, `rawHtml()` returns the original value unencoded. It behaves the
-same as `value()`; the different name signals intent to other developers:
+same as `value()`, the raw-value escape hatch from
+[Getting Started](getting-started.md#converting-to-plain-php-types); the
+different name signals intent to other developers:
 "I know this is unencoded, and that is deliberate."
 
 ```php

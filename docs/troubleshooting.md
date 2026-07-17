@@ -77,9 +77,9 @@ matter; the defaults leave `&apos;` behind).
 
 ### or() kept my zero / isEmpty() lost my zero
 
-Working as designed, in both directions: `or()` treats zero as a present
-value, and `isEmpty()` follows PHP's `empty()`, which treats `0`, `"0"`, and
-`false` as empty. Pick the method that treats zero the way you want; the
+Working as designed, in both directions: `or()` treats zero as a real
+value, not a missing one, and `isEmpty()` follows PHP's `empty()`, which
+treats `0`, `"0"`, and `false` as empty. Pick the method that treats zero the way you want; the
 [truth table](conditionals-and-error-checking.md#what-missing-means) shows
 every combination.
 
@@ -128,7 +128,8 @@ echo SmartString::new(100)->divide(0);    // "" - division by zero
 **Fix:** Decide what null should mean and say so: `->ifNull(0)` before the
 math to treat missing as zero, or `->or('n/a')` at the end to show a
 fallback. For pre-formatted strings like `"1,234"`, store plain numbers and
-format on output instead.
+format on output instead; when the stored data isn't yours to change, strip
+the formatting in the chain first: `->pregReplace('/[^0-9.-]/', '')->add(50)`.
 
 ### "Call to a member function *methodName*() on string"
 
@@ -164,9 +165,10 @@ See [Run Conditionals Before Formatting](conditionals-and-error-checking.md#run-
 
 ### "orRedirect(): headers already sent in /path/to/file.php on line 12"
 
-**What happened:** Redirects only work before any output has been sent,
-and this page had already sent some. The check runs even when the value is
-present, so the mistake shows up on the first request instead of waiting
+**What happened:** `orRedirect()` redirects when the value is missing (null
+or `""`), and redirects only work before any output has been sent - this
+page had already sent some. The headers-sent check runs even when the value
+is present, so the mistake shows up on the first request instead of waiting
 for a missing value.
 
 **Fix:** Move the guard above any output. The message names the file and

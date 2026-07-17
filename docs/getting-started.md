@@ -122,8 +122,8 @@ $name = SmartString::new(null);
 echo "Hello, {$name->or('Guest')}!";  // Hello, Guest!
 ```
 
-Zero survives `or()` because zero is not missing; a price of $0.00 is real
-data, not an absent value:
+Zero comes through `or()` unchanged because zero is not missing; a price of
+zero (what your template shows as $0.00) is real data, not a missing value:
 
 ```php
 $price = SmartString::new(0);
@@ -134,12 +134,18 @@ For values that must exist, like a record ID from the URL, `or404()` stops
 the page with a 404 instead of substituting a default:
 
 ```php
+$articleNum = (int)($_GET['num'] ?? 0);
+
 $article = DB::selectOne('articles', ['num' => $articleNum]);
 $article->num->or404("Article not found");
 
 // past this line, $article is a real record
 echo "<h1>$article->title</h1>";
 ```
+
+A missing record comes back as an empty row, not null, so `$article->num` is
+safe to call; the field simply reads as missing, which is what triggers the
+guard.
 
 The full family (`or()`, `ifNull()`, `ifZero()`, `or404()`, `orDie()`,
 `orThrow()`, `orRedirect()`, and the true/false checks) is covered in
@@ -149,8 +155,9 @@ The full family (`or()`, `ifNull()`, `ifZero()`, `or404()`, `orDie()`,
 
 In practice, you rarely create SmartStrings one at a time. Database rows and
 request data arrive as arrays, and
-[SmartArray](https://github.com/interactivetools-com/SmartArray) wraps a
-whole array so every value comes back as a SmartString:
+[SmartArray](https://github.com/interactivetools-com/SmartArray)'s
+`SmartArrayHtml` class wraps a whole array so every value comes back as a
+SmartString:
 
 ```php
 use Itools\SmartArray\SmartArrayHtml;
@@ -252,8 +259,8 @@ quick reference of every method with examples, grouped the same way as the
 
 ## What SmartString Guarantees
 
-1. **Every string context produces HTML-encoded output.** `echo`, `print`,
-   interpolation, concatenation, and `(string)` casts all encode.
+1. **Every string context produces HTML-encoded output.** All of `echo`,
+   `print`, interpolation, concatenation, and `(string)` casts encode.
 2. **Your original value is preserved and accessible via `value()`.**
    Nothing is lost or altered by wrapping it.
 3. **Type is maintained.** An `int` goes in and `value()` returns an `int`;

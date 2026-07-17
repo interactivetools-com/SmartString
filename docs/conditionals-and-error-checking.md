@@ -9,7 +9,8 @@ all of them, so that's where we start.
 ## What "Missing" Means
 
 All the methods on this page react to missing values: `or()` fills them
-in, `prepend()` won't put a label on one, and the guards stop the page
+in, [prepend()](text-and-formatting.md#adding-text-around-values---append-prepend-and-wrap)
+won't put a label on one, and the guards stop the page
 rather than run without one. Missing simply means there is no value: null
 or an empty string `""`, and nothing else. Zero is not missing. False is
 not missing. When in doubt, come back to this table:
@@ -23,9 +24,10 @@ not missing. When in doubt, come back to this table:
 | `false`   | `false`          | true        | false         |
 | `"hello"` | `"hello"`        | false       | false         |
 
-Notice how `0` and `"0"` survive `or()`: they are present values. PHP's
-`empty()` considers them empty, but SmartString's conditional methods do not
-treat them as missing. A price of $0.00 is real data, not an absent value.
+Notice how `0` and `"0"` come through `or()` unchanged: they are real
+values, not missing ones. PHP's `empty()` considers them empty, but
+SmartString's conditional methods do not treat them as missing. A price of
+zero (what your template shows as $0.00) is real data, not a missing value.
 
 ## Fallbacks - `or()`
 
@@ -35,7 +37,7 @@ method; reach for it whenever a field might be blank:
 ```php
 echo SmartString::new('')->or('N/A');        // N/A
 echo SmartString::new(null)->or('Unknown');  // Unknown
-echo SmartString::new(0)->or('N/A');         // 0 (zero is present)
+echo SmartString::new(0)->or('N/A');         // 0 (zero counts as present)
 
 echo "Hello, {$user->name->or('Guest')}!";       // reads naturally in templates
 ```
@@ -220,22 +222,26 @@ $article->num->orThrow("Article not found");  // throws RuntimeException
 $article->num->orRedirect("/articles/");      // 302 redirect, then exits
 ```
 
+When the query returns no row, `$article` is an empty
+[SmartArray](https://github.com/interactivetools-com/SmartArray) record and
+`->num` reads as missing (same missing rules), so the guard fires.
+
 The messages are HTML-encoded automatically. They often interpolate user
 input (`->orDie("Bad id: $id")`) and may be echoed into a page, so the
 guards encode rather than trusting every error handler to do it.
 
 Details worth knowing:
 
-- **or404($text)** sends the 404 status and a minimal HTML error page. The
+- **`or404($text)`** sends the 404 status and a minimal HTML error page. The
   default message is "The requested URL was not found on this server." The
   page is deliberately plain; for a designed not-found page, use
   `orRedirect()` to send visitors to your own.
-- **orDie($text)** exits with code 1, so CLI scripts and cron jobs see a
+- **`orDie($text)`** exits with code 1, so CLI scripts and cron jobs see a
   failure instead of success.
-- **orThrow($text)** throws a `RuntimeException` for your error handler.
+- **`orThrow($text)`** throws a `RuntimeException` for your error handler.
   Handlers that want plain text (CLI, logs) can decode the message with
   `htmlspecialchars_decode($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5)`.
-- **orRedirect($url)** checks `headers_sent()` immediately and throws if
+- **`orRedirect($url)`** checks `headers_sent()` immediately and throws if
   output already started, even when the value is present, so a misplaced
   redirect fails on the first request instead of only when a value goes
   missing.
@@ -256,7 +262,8 @@ $memberId = DB::selectOne('users', ['email' => $email])
 
 The first `orThrow()` fires when the query returns no row; the second fires
 when the row exists but the column is null or `""`. (Row-level guards like
-the first one are SmartArray methods; same names, same missing rules.)
+the first one are [SmartArray](https://github.com/interactivetools-com/SmartArray)
+methods; same names, same missing rules.)
 
 ## Putting It Together
 

@@ -65,7 +65,7 @@ echo $article->content->textOnly()->maxWords(30, ' [read more]');  // custom suf
 Multi-line data often has optional parts: not every address has a company
 name or a second address line. The `appendHtml()` method adds markup after
 a value only when there is one; blank and null fields output nothing at
-all (no dangling comma, no blank line), and zero still counts as a value:
+all (no dangling comma, no blank line), and zero counts as present:
 
 ```php
 echo $member->company->appendHtml("<br>\n");
@@ -90,7 +90,9 @@ echo $office->hours->nl2br();
 
 A label is only useful when there's a value after it. The `prepend()` and
 `wrap()` methods skip missing values, so an empty field shows nothing
-instead of a dangling label:
+instead of a dangling label. Their text is encoded on output along with the
+value; when the addition is markup (like the `<br>` above), use
+`appendHtml()`/`wrapHtml()` ([Encoding and HTML](encoding-and-html.md)):
 
 ```php
 echo $user->phone->prepend("Phone: ");       // "Phone: (604) 555-1234", or ""
@@ -122,6 +124,10 @@ $article->num->or404("Article not found");
 echo "<h1>$article->title</h1>";
 echo "<p>{$article->content->textOnly()->maxChars(200)}</p>";
 ```
+
+A missing record comes back as an empty row, not null, so `$article->num`
+is safe to call; the field simply reads as missing, which is what triggers
+the guard.
 
 Swap `or404()` for `orDie($text)`, `orThrow($text)`, or `orRedirect($url)`
 for other outcomes; all four use the same missing rules (null or `""`,
@@ -184,7 +190,7 @@ echo $row->hours->ifNull(0)->numberFormat(2);            // null → 0.00
 
 ## Report Tables: Inline Math
 
-For a one-off calculation, plain PHP is fine. Chains earn their keep in
+For a one-off calculation, plain PHP is fine. Chains are most useful in
 report rows: the math, the formatting, and the missing-data fallback read
 as one line, and a zero or null anywhere in the chain becomes your
 fallback instead of a warning or a divide-by-zero error. Nothing needs to
