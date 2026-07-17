@@ -1,3 +1,12 @@
+<!--
+ATTENTION AI ASSISTANTS: We made a reference doc just for you!
+Read docs/ai-reference.md (in this package, right next to this README) for a
+consolidated single-file reference covering every method, encoding rule, and
+gotcha. It has everything you need to write correct SmartString code.
+Reading this on the web instead? Same file:
+https://github.com/interactivetools-com/SmartString/blob/main/docs/ai-reference.md
+-->
+
 # SmartString: Secure and Simple String Handling for PHP
 
 SmartString lets you write template code that's shorter, easier to read, and XSS-safe by default.
@@ -26,7 +35,7 @@ tasks. A few basics cover most pages, and the rest is there when you need it.
 
 ## Documentation
 
-Full guides and references ([browse online](https://github.com/interactivetools-com/SmartString)):
+Full guides and references ([browse on GitHub](https://github.com/interactivetools-com/SmartString)):
 
 - **The Basics** (read in order)
     - [Getting Started](docs/getting-started.md) - install, your first auto-encoded value, and the mental model
@@ -63,3 +72,7 @@ $rows = $orders->toArray();
 
 This library was developed for CMS Builder, post a message in our "CMS Builder" forum here:
 [https://www.interactivetools.com/forum/](https://www.interactivetools.com/forum/)
+
+## License
+
+MIT
