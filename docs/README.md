@@ -15,12 +15,12 @@ one before. The rest are standalone: open whichever matches your task.
 
 ## Everyday Use
 
-- [Common Patterns](common-patterns.md) - Copy-paste recipes from production templates: money cells, phone links, address blocks, report tables, text previews.
+- [Common Patterns](common-patterns.md) - Copy-paste recipes for everyday template tasks: dates, text previews, address blocks, report tables.
 
 ## Lookup
 
-- [Method Reference](../README.md#method-reference) - Every method in one place, grouped by what it returns.
-- [Troubleshooting](troubleshooting.md) - Error messages explained, behavior gotchas, deprecations, debugging.
+- [Method Reference](method-reference.md) - Every method in one place, grouped by what it returns.
+- [Troubleshooting](troubleshooting.md) - Common error messages and behavior gotchas, with fixes.
 - [AI Reference](ai-reference.md) - The complete API in one dense file, written for AI coding assistants.
 
 ---

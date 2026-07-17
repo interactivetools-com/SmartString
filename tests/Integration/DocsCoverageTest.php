@@ -10,7 +10,7 @@ use ReflectionMethod;
 use Tests\Support\SmartStringTestCase;
 
 /**
- * Every public method must appear in the README method reference and in
+ * Every public method must appear in the docs method reference and in
  * help.txt, so new methods can't ship undocumented.
  *
  * Exemptions:
@@ -24,12 +24,12 @@ class DocsCoverageTest extends SmartStringTestCase
     private const EXEMPT = ['and', 'andPrefix', 'apply', 'dateTimeFormat', 'if', 'ifBlank', 'phoneFormat', 'textToHtml', 'jsonSerialize'];
 
     #[DataProvider('publicMethodsProvider')]
-    public function testMethodIsInReadme(string $method): void
+    public function testMethodIsInMethodReference(string $method): void
     {
-        $readme = file_get_contents(dirname(__DIR__, 2) . '/README.md');
+        $reference = file_get_contents(dirname(__DIR__, 2) . '/docs/method-reference.md');
         $this->assertTrue(
-            str_contains($readme, "->$method(") || str_contains($readme, "::$method("),
-            "Public method $method() is not mentioned in README.md"
+            str_contains($reference, "->$method(") || str_contains($reference, "::$method("),
+            "Public method $method() is not mentioned in docs/method-reference.md"
         );
     }
 

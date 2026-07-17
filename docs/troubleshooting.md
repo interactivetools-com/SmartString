@@ -2,120 +2,54 @@
 
 # Troubleshooting
 
-The error messages SmartString produces and what each one means, plus the
-behavior gotchas that don't produce an error at all: double encoding,
-vanishing math results, and markup that prints as text. Headings quote the
-message or symptom so you can find them by search.
+Common error messages and how to fix them, plus the gotchas that don't
+produce an error at all: double encoding, vanishing math results, and
+markup that prints as text. Headings quote the message or symptom so you
+can find them by search.
 
-## Error Messages
+## Most Common Issues
 
-### "Method ->trim needs brackets() everywhere and {curly braces} in strings"
+### Comparisons and if() checks don't work as expected
 
-**What happened:** A method was accessed like a property (no parentheses),
-or called inside a double-quoted string without curly braces. PHP parses
-`"$name->trim()"` as the property `$name->trim` followed by a literal `()`,
-so SmartString sees a property access either way:
-
-```php
-echo $name->trim;            // missing parentheses
-echo "Hello $name->trim()";  // missing curly braces in string
-```
-
-**Fix:** Parentheses for direct calls, curly braces around method calls in
-strings:
+A SmartString is an object wrapping your value, and PHP's native checks
+look at the object, not the value inside. Casts and comparisons see the
+encoded text, and an object is always truthy and never `empty()`, even
+when the value inside is null:
 
 ```php
-echo $name->trim();
-echo "Hello {$name->trim()}";
+$status  = SmartString::new("it's active");
+$missing = SmartString::new(null);
+
+// none of these work the way they read
+if ($status == "it's active") { }           // WRONG - false: compares the encoded text
+if ((string)$status === "it's active") { }  // WRONG - false: the cast encodes too
+if ($missing === null) { }                  // WRONG - false: the object itself isn't null
+if (empty($missing)) { }                    // WRONG - false: objects are never empty
+if ($missing) { }                           // WRONG - true: objects are always truthy
+
+// check the value instead
+if ($status->value() === "it's active") { }  // RIGHT
+if ($missing->isMissing()) { }               // RIGHT - true for null or ""
+if ($missing->isEmpty()) { }                 // RIGHT - true for null, "", and zeros
 ```
 
-The warning includes all four forms with checkmarks. It is a PHP warning
-(the page keeps running and the expression evaluates as an empty value),
-so check your error log if output looks blank where a chain should be.
+Loose `==` is the sneaky one: it passes for plain words like `"active"`
+(nothing to encode) and fails the moment the value contains a quote or
+an ampersand, so it can survive testing and break on real data.
 
-### "Undefined property: ..."
+### HTML tags print as text: the page shows a literal &lt;br&gt;
 
-**What happened:** A property name that isn't a SmartString method.
-SmartString has no public properties; everything is a method call.
-
-**Fix:** Check the spelling, or call `$str->help()` to list every method.
-
-### "Call to undefined method SmartString->truncate(), did you mean ->maxChars()?"
-
-**What happened:** The method doesn't exist, but the name matches a common
-alias from another library (or another memory), so the error suggests the
-SmartString name. A few of the recognized aliases:
-
-| You wrote                          | Suggestion       |
-|------------------------------------|------------------|
-| `->truncate()`, `->limit()`        | `->maxChars()`   |
-| `->default()`, `->fallback()`      | `->or()`         |
-| `->escapeHtml()`, `->e()`          | `->htmlEncode()` |
-| `->plainText()`, `->strip()`       | `->textOnly()`   |
-| `->raw()`, `->unsafe()`            | `->rawHtml()`    |
-| `->plus()`, `->minus()`            | `->add()`, `->subtract()` |
-
-Dozens more are recognized. When no alias matches, the error says
-"call ->help() for available methods." instead. Either way it throws a PHP
-`Error`, matching PHP's native behavior for undefined methods.
-
-### "Call to a member function or() on string"
-
-**What happened:** Chaining after a terminal method. The encoding methods
-(`htmlEncode()`, `urlEncode()`, `jsonEncode()`, `nl2br()`, `appendHtml()`,
-`wrapHtml()`) return plain strings, not SmartStrings, so nothing can chain
-after them; that is what makes double encoding impossible.
+Markup passed through a regular (encoding) method gets encoded like any
+other value:
 
 ```php
-echo $bio->nl2br()->or('No bio');   // throws - nl2br() returned a string
+echo $address->append("<br>");      // WRONG - prints "12 High St<br>" as visible text
+echo $address->appendHtml("<br>");  // RIGHT - markup stays markup
 ```
 
-**Fix:** Do the conditional work first, encode last:
-
-```php
-echo $bio->or('No bio')->nl2br();
-```
-
-### "pregReplace(): No ending delimiter '/' found"
-
-**What happened:** The regex pattern passed to `pregReplace()` is invalid
-(this example is missing its closing delimiter). The exception reports the
-file and line of *your* call, not the library's internals; see
-[CallerException](#callerexception-the-error-points-at-my-file) below.
-
-**Fix:** Correct the pattern at the reported line. The message quotes PHP's
-own description of what is wrong with it.
-
-### "orRedirect(): headers already sent in /path/to/file.php on line 12"
-
-**What happened:** Output had already been sent when `orRedirect()` was
-called, so a `Location` header could no longer work. The check runs
-immediately, even when the value is present, so the mistake surfaces on the
-first request instead of only when a value goes missing.
-
-**Fix:** Move the guard above any output. The message names the file and
-line where output started; common culprits are `echo` statements, whitespace
-before `<?php`, and a UTF-8 BOM.
-
-### CallerException: the error points at my file
-
-**What happened:** Nothing wrong; this is on purpose. Developer-mistake
-exceptions (bad regex in `pregReplace()`, a `map()` callback that isn't
-callable or returns a non-scalar, an unsupported type in `getRawValue()`)
-throw `CallerException`, which reports the file and line of the code that
-called SmartString instead of the library's internal throw site:
-
-```
-Uncaught CallerException: pregReplace(): No ending delimiter '/' found
-in /var/www/templates/race.php:345
-```
-
-The named line is the one to fix. It is a normal
-`InvalidArgumentException` subclass, so existing catch blocks work, and the
-library's own throw site is preserved in `$e->thrownInFile` and
-`$e->thrownInLine` if you need it.
-
-## Behavior Gotchas
+Markup goes through the HTML-aware methods (`appendHtml()`, `wrapHtml()`,
+`nl2br()`, `rawHtml()`); everything else treats it as text to encode. See
+[Encoding and HTML](encoding-and-html.md).
 
 ### Output shows &amp;amp; or &amp;apos; - encoded twice
 
@@ -134,31 +68,51 @@ This is the most common mistake when adopting SmartString: delete the
 `htmlspecialchars()` call. If some other encoder genuinely needs the value,
 give it the raw one: `htmlspecialchars($name->value())`.
 
-### Markup prints as text: the page shows a literal &lt;br&gt;
+The other cause is a database that already contains encoded text, usually
+from a form handler that encoded values before saving them. Whatever is
+stored encoded gets encoded again on output. Save the raw text instead,
+then clean up the existing rows with a one-time
+`htmlspecialchars_decode($value, ENT_QUOTES | ENT_HTML5)` (the flags
+matter; the defaults leave `&apos;` behind).
 
-Markup passed through a regular (encoding) method gets encoded like any
-other value:
+### or() kept my zero / isEmpty() lost my zero
+
+Working as designed, in both directions: `or()` treats zero as a present
+value, and `isEmpty()` follows PHP's `empty()`, which treats `0`, `"0"`, and
+`false` as empty. Pick the method that treats zero the way you want; the
+[truth table](conditionals-and-error-checking.md#what-missing-means) shows
+every combination.
+
+## Other Issues
+
+### "Method ->*methodName* needs brackets() everywhere and {curly braces} in strings"
+
+**What happened:** A method was written like a field: brackets missing, or
+a call inside a double-quoted string without curly braces. It's a PHP
+warning, not an error: the page keeps running and the expression outputs
+nothing, so it usually shows up as a blank spot where a chain should be.
+When output goes blank, check the error log.
+
+**Fix:** Fields never take brackets and work anywhere, strings included.
+Methods always take brackets, plus curly braces around the call inside a
+string; chains (more than one `->`) need the braces too:
 
 ```php
-echo $address->append("<br>");      // WRONG - prints "12 High St<br>" as visible text
-echo $address->appendHtml("<br>");  // RIGHT - markup stays markup
+// fields - no brackets, work anywhere
+echo $user->name;
+echo "Hello $user->name";
+
+// methods and chains - brackets everywhere, curly braces in strings
+echo $name->trim();                  // works
+echo "Hello {$name->trim()}";        // works
+echo "Hello {$user->name->trim()}";  // works
+echo $name->trim;                    // WRONG - written like a field, logs this warning
+echo "Hello $name->trim()";          // WRONG - prints "Hello ()", logs this warning
+echo "Hello $user->name->trim()";    // WRONG - prints "Hello Jean->trim()"
 ```
 
-Markup goes through the HTML-aware methods (`appendHtml()`, `wrapHtml()`,
-`nl2br()`, `rawHtml()`); everything else treats it as text to encode. See
-[Encoding and HTML](encoding-and-html.md).
-
-### Comparison never matches
-
-String context encodes, so comparing against `(string)$status` compares the
-encoded value. Compare raw values instead:
-
-```php
-$status = SmartString::new("it's active");
-
-if ((string)$status === "it's active") { }   // WRONG - never true (left side is encoded)
-if ($status->value() === "it's active") { }  // RIGHT
-```
+When in doubt, add the braces: `{$...}` works around anything in a string,
+plain fields included.
 
 ### Math chain outputs nothing
 
@@ -176,6 +130,25 @@ math to treat missing as zero, or `->or('n/a')` at the end to show a
 fallback. For pre-formatted strings like `"1,234"`, store plain numbers and
 format on output instead.
 
+### "Call to a member function *methodName*() on string"
+
+**What happened:** Something was chained after a method that ends the
+chain. The encoding methods (`htmlEncode()`, `urlEncode()`, `jsonEncode()`,
+`nl2br()`, `appendHtml()`, `wrapHtml()`) return a plain string rather than
+another SmartString, so nothing can chain after them. That's on purpose:
+once a value is encoded it's finished, which is what makes double encoding
+impossible.
+
+```php
+echo $bio->nl2br()->or('No bio');   // throws - nl2br() returned a string
+```
+
+**Fix:** Do the conditional work first, encode last:
+
+```php
+echo $bio->or('No bio')->nl2br();
+```
+
 ### ifZero() after percent() or numberFormat() never fires
 
 Formatters return display text, and `ifZero()` only recognizes numeric
@@ -189,47 +162,24 @@ echo $price->numberFormat(2)->prepend('$')->ifEquals('$0.00', 'Free!');  // matc
 
 See [Run Conditionals Before Formatting](conditionals-and-error-checking.md#run-conditionals-before-formatting).
 
-### or() kept my zero / isEmpty() lost my zero
+### "orRedirect(): headers already sent in /path/to/file.php on line 12"
 
-Working as designed, in both directions: `or()` treats zero as a present
-value, and `isEmpty()` follows PHP's `empty()`, which treats `0`, `"0"`, and
-`false` as empty. Pick the method that treats zero the way you want; the
-[truth table](conditionals-and-error-checking.md#what-missing-means) shows
-every combination.
+**What happened:** Redirects only work before any output has been sent,
+and this page had already sent some. The check runs even when the value is
+present, so the mistake shows up on the first request instead of waiting
+for a missing value.
 
-## Deprecations
+**Fix:** Move the guard above any output. The message names the file and
+line where output started; the usual culprits are `echo` statements and
+whitespace before `<?php`.
 
-### Strikethrough method names in PHPStorm
+### CallerException Errors
 
-The v3.0 renames keep the old names working forever, but PHPStorm shows them
-struck through and offers a one-click rewrite to the new name:
-
-| Old name         | New name    |
-|------------------|-------------|
-| `->and()`        | `->append()`  |
-| `->andPrefix()`  | `->prepend()` |
-| `->apply()`      | `->map()`     |
-| `->if()`         | `->ifTrue()`  |
-| `->textToHtml()` | `->nl2br()`   |
-
-A few retired methods also still work but are no longer documented
-(`ifBlank()`, `phoneFormat()`, `dateTimeFormat()`); their docblocks name the
-replacement pattern.
-
-### Deprecation notices in the error log
-
-The oldest legacy names log an `E_USER_DEPRECATED` notice naming the
-replacement when called, and keep working:
-
-```
-Replace ->noEncode() with ->rawHtml() in /var/www/templates/page.php:12
-```
-
-The notices cover `noEncode()`, `toString()`, `jsEncode()`, `stripTags()`,
-`SmartString::fromArray()`, and passing an array to `SmartString::new()`.
-Each message names its replacement; `jsEncode()` is the one to review by
-hand, since `jsonEncode()` produces different output (a complete JSON
-value, not backslash-escaped text).
+**What happened:** A developer mistake, like a bad regex in
+`pregReplace()`. The message says what's wrong, and the file and line
+point at your call site rather than the library's internals, so the named
+line is the one to fix. It's a normal `InvalidArgumentException` subclass,
+so existing catch blocks work.
 
 ## Debugging
 
@@ -246,4 +196,4 @@ link of it; chains are just objects.
 
 ---
 
-[← Documentation Index](README.md) | [← Prev: Common Patterns](common-patterns.md) | [Next: AI Reference →](ai-reference.md)
+[← Documentation Index](README.md) | [← Prev: Method Reference](method-reference.md) | [Next: AI Reference →](ai-reference.md)
