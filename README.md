@@ -21,14 +21,8 @@ echo "<h1>$article->title</h1>";
 echo "Summary: {$article->content->textOnly()->maxChars(120, '...')}\n";
 ```
 
-SmartString handles HTML encoding automatically and provides utility functions for common tasks.
-This makes your code cleaner, more readable, and inherently more secure.
-
-> **Requirements:** PHP 8.1 or higher with mbstring extension
-
-```bash
-composer require itools/smartstring
-```
+SmartString encodes HTML output automatically and includes utility functions for common template
+tasks. A few basics cover most pages, and the rest is there when you need it.
 
 ## Documentation
 
@@ -48,18 +42,21 @@ Full guides and references are in [docs/](docs/README.md):
 
 ## You're Never Locked In
 
-When you're outputting HTML, SmartString makes your code simpler: shorter, easier to read, and
-XSS-safe by default. For everything else (calculations, business logic, or anywhere you just prefer
-plain PHP), call `value()` and you have the original value back, in its original type:
+SmartString is built for outputting HTML. For everything else (calculations, business logic, or
+anywhere you just prefer plain PHP), call `value()` and you have the original value back, in its
+original type:
 
 ```php
-$name = $user->name->value();  // the original value, in its original type
-$rows = $orders->toArray();    // SmartArray → plain nested array
+// SmartString: ->value() returns the original value, in its original type
+$name = $user->name->value();
+
+// SmartArray (companion library): ->toArray() returns a plain nested array
+$rows = $orders->toArray();
 ```
 
 ## Related Libraries
 
-- [SmartArray](https://github.com/interactivetools-com/SmartArray) - arrays as collections of SmartStrings; `SmartArray::new($array)->asHtml()` in the examples above comes from it.
+- [SmartArray](https://github.com/interactivetools-com/SmartArray) - arrays as collections of SmartStrings, with chainable methods for filtering, sorting, and grouping.
 - [ZenDB](https://github.com/interactivetools-com/ZenDB) - database library that returns query results as SmartArrays of SmartStrings, so fields arrive HTML-safe.
 
 ## Questions?
