@@ -320,7 +320,7 @@ class DocsExamplesTest extends SmartStringTestCase
         $product = SmartArrayHtml::new([
             'name'        => 'Widget & Sons Deluxe Kit',
             'description' => '<p>Our <b>best-selling</b> kit, now with more widgets.</p>',
-            'price'       => 149.5,
+            'price'       => 149.99,
             'updatedAt'   => '2026-09-10 14:30:00',
         ]);
 
@@ -338,7 +338,7 @@ class DocsExamplesTest extends SmartStringTestCase
                 <h2>Widget &amp; Sons Deluxe Kit</h2>
                 <time>Sep 10th, 2026</time>
                 <p>Our best-selling kit, now with more...</p>
-                <span class="price">\$168.94 (tax included)</span>
+                <span class="price">\$169.49 (tax included)</span>
             </article>
             __EXPECTED__;
 
