@@ -248,7 +248,7 @@ print_r($name);
 
 Call `SmartString::help()` (or `$name->help()` on any instance) to print a
 quick reference of every method with examples, grouped the same way as the
-[Method Reference](../README.md#method-reference).
+[Method Reference](method-reference.md).
 
 ## What SmartString Guarantees
 

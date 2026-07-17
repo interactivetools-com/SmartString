@@ -21,19 +21,20 @@ Return the value as a plain PHP type and end the chain.
 ->int()                    Returns value as integer
 ->float()                  Returns value as float
 ->bool()                   Returns value as boolean
-SmartString::getRawValue() Returns original value from Smart* objects, other types pass through unchanged
+SmartString::getRawValue() Returns original value from Smart* objects, plain values pass through unchanged
 
 Encoding
 ---------
-Return the encoded value as a plain string and end the chain. Missing values (null or "") return "".
+Return the encoded value as a plain string and end the chain. Missing values (null or "") return "",
+except where noted below.
 
 ->htmlEncode()             Returns HTML-encoded string (same as automatic encoding, for non-string contexts)
 ->urlEncode()              Returns URL-encoded string, example: "?user={$user->name->urlEncode()}"
-->jsonEncode()             Returns JSON-encoded string, example: "let user={$user->name->jsonEncode()}" (malformed UTF-8 becomes �)
+->jsonEncode()             Returns JSON-encoded string, example: "let user={$user->name->jsonEncode()}" (missing values stay valid JSON: null/"")
 ->nl2br()                  HTML-encodes special chars, then converts newlines to <br> tags
 ->appendHtml('<br>')       HTML-encodes the value, then appends your trusted markup as-is
 ->wrapHtml('<h2>','</h2>') HTML-encodes the value, then wraps it in your trusted markup as-is
-->rawHtml()                Alias for ->value(), reads clearly when outputting trusted HTML on purpose
+->rawHtml()                Alias for ->value(), reads clearly when outputting trusted HTML on purpose (null stays null)
 
 String Manipulation
 --------------------
@@ -61,7 +62,7 @@ add ->or() after to show a fallback.
 ->add($value)                           Adds $value
 ->subtract($value)                      Subtracts $value
 ->multiply($value)                      Multiplies by $value
-->divide($divisor)                      Divides by $divisor
+->divide($value)                        Divides by $value
 
 Conditional Replacement
 ------------------------
@@ -69,7 +70,7 @@ Return a new SmartString. Each swaps in a replacement value when its condition m
 
 ->or('replacement')                     Replaces missing values (null or ""); zero counts as present
 ->ifNull('replacement')                 Replaces null
-->ifZero('replacement')                 Replaces zero (0, 0.0, "0", or "0.0")
+->ifZero('replacement')                 Replaces numeric zero (0, 0.0, "0", "0.00", "-0")
 ->ifTrue($condition, $newValue)         Replaces the value when your condition is truthy
 ->ifEquals($match, $newValue)           Replaces the value when it loosely equals $match (==, "5" matches 5)
 ->set($newValue)                        Replaces the value unconditionally, useful for match() results or calculations

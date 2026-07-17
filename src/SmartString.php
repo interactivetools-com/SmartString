@@ -45,9 +45,9 @@ class SmartString implements JsonSerializable
     /**
      * Initializes a new SmartString object with the given value.
      *
-     * @param string|int|float|bool|null $value The value to store
+     *     $value = new SmartString('<b>Hello World!</b>');
      *
-     * @example $value = new SmartString('<b>Hello World!</b>');
+     * @param string|int|float|bool|null $value The value to store
      */
     public function __construct(string|int|float|bool|null $value)
     {
@@ -57,8 +57,8 @@ class SmartString implements JsonSerializable
     /**
      * Returns a SmartString object for a value.
      *
-     * @example $str  = SmartString::new("Hello, World!");                  // Single value as SmartString
-     *          $rows = SmartArray::new($resultSet)->asHtml();              // SmartArray of SmartStrings
+     *     $str  = SmartString::new("Hello, World!");   // single value as SmartString
+     *     $user = SmartArrayHtml::new($record);        // whole array as SmartStrings (companion library)
      *
      * @param string|int|float|bool|array|null $value
      * @return SmartArrayHtml|SmartString The newly created SmartString object.
@@ -66,7 +66,7 @@ class SmartString implements JsonSerializable
     public static function new(string|int|float|bool|null|array $value): SmartArrayHtml|SmartString
     {
         if (is_array($value)) {
-            self::logDeprecation("Replace SmartString::new(\$array) with SmartArray::new(\$array)->asHtml()");
+            self::logDeprecation("Replace SmartString::new(\$array) with SmartArrayHtml::new(\$array)");
             return new SmartArrayHtml($value);
         }
         return new self($value);
@@ -83,8 +83,9 @@ class SmartString implements JsonSerializable
     }
 
     /**
-     * Converts Smart* objects to their original values while leaving other types unchanged,
-     * useful if you don't know the type but want the original value.
+     * Converts Smart* objects to their original values, recursing into arrays; scalars and
+     * null pass through unchanged. Useful if you don't know the type but want the original
+     * value. Any other type (objects, resources) throws CallerException.
      */
     public static function getRawValue(mixed $value): mixed
     {
@@ -149,7 +150,7 @@ class SmartString implements JsonSerializable
     //region Encoding
 
     /**
-     * HTML encodes a given input for safe output in an HTML context.
+     * HTML-encodes the current value for safe output in an HTML context.
      *
      * @return string Html-encoded output
      */
@@ -219,10 +220,9 @@ class SmartString implements JsonSerializable
     }
 
     /**
-     * URL encodes a string for safe use within URLs.
+     * URL encodes the current value for safe use within URLs.
      *
-     * Example Output: "Save 10%+ off" becomes "Save+10%25%2B+off"
-     * Example Usage: echo "?company=$company&offer=$offer"; // encode url parameter values only
+     *     echo "?offer={$offer->urlEncode()}";  // "Save 10%+ off" → "?offer=Save+10%25%2B+off"
      *
      * Invalid UTF-8 bytes are percent-encoded as-is (not substituted with � like
      * htmlEncode/jsonEncode) - urlencode() is byte-level by design.
@@ -243,9 +243,7 @@ class SmartString implements JsonSerializable
      *   visible \uXXXX escapes so nothing can hide in page source
      * - INF, NAN, and recursion still throw JsonException - those are always code bugs
      *
-     * Example Usage:
-     * `<script>var jsonString = <?php echo $var->jsonEncode() ?>;</script>`
-     * `echo "<script>var data = {$this->jsonEncode()};</script>";`
+     *     echo "<script>let title = {$title->jsonEncode()};</script>";
      *
      * @return string The encoded JSON string, safely formatted for embedding in JavaScript.
      */
@@ -271,7 +269,8 @@ class SmartString implements JsonSerializable
     //region String Manipulation
 
     /**
-     * Remove HTML tags, decode HTML entities, and trims whitespace
+     * Decodes HTML entities, removes tags, and trims whitespace. Entities are decoded
+     * first so entity-encoded tags (&lt;script&gt;) are removed too.
      */
     public function textOnly(): SmartString
     {
@@ -315,7 +314,8 @@ class SmartString implements JsonSerializable
     }
 
     /**
-     * Limit chars to $max, if truncated adds ... (override with second parameter)
+     * Limit chars to $max breaking at the last whole word, if truncated adds ... (override
+     * with second parameter). Whitespace runs collapse to single spaces before measuring.
      */
     public function maxChars(int $max, string $ellipsis = "..."): SmartString
     {
@@ -436,45 +436,45 @@ class SmartString implements JsonSerializable
     }
 
     /**
-     * Adds $addend to the current value. Returns null if either value is non-numeric. Result is a float.
+     * Adds $value to the current value. Returns null if either side is non-numeric. Result is a float.
      */
-    public function add(int|float|string|bool|null|SmartString|SmartNull $addend): SmartString
+    public function add(int|float|string|bool|null|SmartString|SmartNull $value): SmartString
     {
         $left     = self::getFloatOrNull($this->rawData);
-        $right    = self::getFloatOrNull($addend);
+        $right    = self::getFloatOrNull($value);
         $newValue = (is_null($left) || is_null($right)) ? null : $left + $right;
         return new self($newValue);
     }
 
     /**
-     * Subtracts $subtrahend from the current value. Returns null if either value is non-numeric. Result is a float.
+     * Subtracts $value from the current value. Returns null if either side is non-numeric. Result is a float.
      */
-    public function subtract(int|float|string|bool|null|SmartString|SmartNull $subtrahend): SmartString
+    public function subtract(int|float|string|bool|null|SmartString|SmartNull $value): SmartString
     {
         $left     = self::getFloatOrNull($this->rawData);
-        $right    = self::getFloatOrNull($subtrahend);
+        $right    = self::getFloatOrNull($value);
         $newValue = (is_null($left) || is_null($right)) ? null : $left - $right;
         return new self($newValue);
     }
 
     /**
-     * Multiplies the current value by $multiplier. Returns null if either value is non-numeric. Result is a float.
+     * Multiplies the current value by $value. Returns null if either side is non-numeric. Result is a float.
      */
-    public function multiply(int|float|string|bool|null|SmartString|SmartNull $multiplier): SmartString
+    public function multiply(int|float|string|bool|null|SmartString|SmartNull $value): SmartString
     {
         $left     = self::getFloatOrNull($this->rawData);
-        $right    = self::getFloatOrNull($multiplier);
+        $right    = self::getFloatOrNull($value);
         $newValue = (is_null($left) || is_null($right)) ? null : $left * $right;
         return new self($newValue);
     }
 
     /**
-     * Divides the current value by $divisor. Returns null if either value is non-numeric or the divisor is zero. Result is a float.
+     * Divides the current value by $value. Returns null if either side is non-numeric or $value is zero. Result is a float.
      */
-    public function divide(int|float|string|bool|null|SmartString|SmartNull $divisor): SmartString
+    public function divide(int|float|string|bool|null|SmartString|SmartNull $value): SmartString
     {
         $left     = self::getFloatOrNull($this->rawData);
-        $right    = self::getFloatOrNull($divisor);
+        $right    = self::getFloatOrNull($value);
         $newValue = (is_null($left) || is_null($right) || $right === 0.0) ? null : $left / $right;
         return new self($newValue);
     }
@@ -507,16 +507,16 @@ class SmartString implements JsonSerializable
     }
 
     /**
-     * Prepends $prefix if present (not null or ""), zero is considered present
+     * Prepends $value if present (not null or ""), zero is considered present
      *
      * Missing values pass through unchanged, so nothing is prepended to nothing.
      * false also counts as present but converts to "", so only the prepended value appears.
      */
-    public function prepend(int|float|string|bool|null|SmartString|SmartNull $prefix): SmartString
+    public function prepend(int|float|string|bool|null|SmartString|SmartNull $value): SmartString
     {
         $newValue = $this->rawData;
         if (!$this->isMissing()) {
-            $newValue = self::getRawValue($prefix) . $newValue;
+            $newValue = self::getRawValue($value) . $newValue;
         }
         return new self($newValue);
     }
@@ -550,7 +550,8 @@ class SmartString implements JsonSerializable
     }
 
     /**
-     * Replaces value only if it's zero (0, 0.0, "0", or "0.0")
+     * Replaces value only if it's numeric zero (0, 0.0, "0", "0.00", "-0" - any is_numeric zero);
+     * non-numeric values never match
      */
     public function ifZero(int|float|string|bool|null|SmartString|SmartNull $fallback): SmartString
     {
@@ -591,7 +592,9 @@ class SmartString implements JsonSerializable
     }
 
     /**
-     * Sets to $value (accepts expression, e.g., match($itemCount->int()) { 0 => "No items", ... })
+     * Replaces the value with $newValue, useful for storing an expression result.
+     *
+     *     $label = $count->set(match($count->int()) { 0 => "No items", default => "$count items" });
      */
     public function set(string|int|float|bool|null|SmartString|SmartNull $newValue): SmartString
     {
@@ -609,7 +612,10 @@ class SmartString implements JsonSerializable
      * prepend(), and wrap() - use isMissing() when a legitimate 0 must count as present.
      *
      * This is useful for conditionally showing blocks of HTML:
-     * if ($value->isEmpty()) { echo "<p>No data available</p>"; }
+     *
+     *     if ($value->isEmpty()) {
+     *         echo "<p>No data available</p>";
+     *     }
      */
     public function isEmpty(): bool
     {
@@ -617,10 +623,14 @@ class SmartString implements JsonSerializable
     }
 
     /**
-     * Returns true if the value is not empty ("", null, false, 0, "0"), uses PHP empty()
+     * Returns true if the value has content - the exact opposite of isEmpty(), which
+     * treats "", null, false, 0, and "0" as empty (PHP empty() semantics)
      *
      * This is useful for conditionally showing blocks of HTML:
-     * if ($value->isNotEmpty()) { echo "<p>Value: $value</p>"; }
+     *
+     *     if ($value->isNotEmpty()) {
+     *         echo "<p>Value: $value</p>";
+     *     }
      */
     public function isNotEmpty(): bool
     {
@@ -631,8 +641,8 @@ class SmartString implements JsonSerializable
      * Checks if the current value is missing (null or "")
      *
      * Zero is NOT missing here (it's a real value) but IS empty to isEmpty() -
-     * or(), append(), prepend(), wrap(), and the or404/orDie/orThrow guards
-     * all use this definition.
+     * or(), append(), prepend(), wrap(), and the or404/orDie/orThrow/orRedirect
+     * guards all use this definition.
      *
      * @return bool True if the value is missing (null or "")
      */
@@ -645,7 +655,10 @@ class SmartString implements JsonSerializable
      * Returns true if the value is null
      *
      * This is useful for checking if a value is specifically null rather than just empty:
-     * if ($value->isNull()) { echo "<p>Value is specifically NULL</p>"; }
+     *
+     *     if ($value->isNull()) {
+     *         echo "<p>Value is specifically NULL</p>";
+     *     }
      *
      * @return bool True if the value is null
      */
@@ -709,7 +722,7 @@ class SmartString implements JsonSerializable
     }
 
     /**
-     * Throws Exception with message if the current value is missing (null or ""), zero is not considered missing
+     * Throws RuntimeException with message if the current value is missing (null or ""), zero is not considered missing
      *
      * SECURITY: The message is intentionally HTML-encoded: exception handlers often echo messages into
      * a page, and messages often interpolate user input (e.g. ->orThrow("Bad id: $id")). Encoding at
@@ -719,7 +732,8 @@ class SmartString implements JsonSerializable
      *
      * Pass those exact flags - the ENT_HTML401 default doesn't decode the &apos; this encoding produces.
      *
-     * @param string $text Plain-text message; HTML-encoded automatically before output.
+     * @param string $text Plain-text message; HTML-encoded automatically before being used as the exception message.
+     * @throws RuntimeException If the value is missing (null or "")
      */
     public function orThrow(string $text): self
     {
@@ -733,7 +747,7 @@ class SmartString implements JsonSerializable
     /**
      * Redirects to a URL if the current value is missing (null or ""), zero is not considered missing
      *
-     * Uses a simple Location header redirect (HTTP 302 Temporary Redirect).
+     * Uses a simple Location header redirect (HTTP 302 Found).
      * If headers have already been sent, this method throws - even when the value is
      * present - so misuse fails on the first request instead of only on empty values.
      *
@@ -785,6 +799,8 @@ class SmartString implements JsonSerializable
     /**
      * Apply preg_replace to the value, returning a new SmartString.
      *
+     * Missing values (null or "") pass through unchanged, so a later or() fallback still works.
+     *
      *     $digits = $phone->pregReplace('/\D/', '');           // "5551234567"
      *     $clean  = $text->pregReplace('/\s+/', ' ');          // normalize whitespace
      *     $wrap   = $slug->pregReplace('/(.+)/', 'pre-$1');    // add prefix via backreference
@@ -796,8 +812,8 @@ class SmartString implements JsonSerializable
      */
     public function pregReplace(string $pattern, string $replacement): SmartString
     {
-        if (is_null($this->rawData)) {
-            return new self(null);
+        if ($this->isMissing()) {
+            return new self($this->rawData);
         }
 
         error_clear_last();
@@ -816,6 +832,9 @@ class SmartString implements JsonSerializable
      * Displays helpful documentation about SmartString methods and functionality.
      *
      * Static so both documented call forms work: SmartString::help() and $str->help().
+     *
+     * @param mixed $value Optional value to pass through
+     * @return mixed $value, unchanged - so help() can be dropped into an expression without changing the result
      */
     public static function help(mixed $value = null): mixed
     {
@@ -994,7 +1013,8 @@ class SmartString implements JsonSerializable
     }
 
     /**
-     * Show a helpful error message when an unknown method is called.
+     * Routes the deprecated static shims (fromArray, rawValue) to their replacements with an
+     * E_USER_DEPRECATED notice, and throws a helpful Error for any other unknown static method.
      * @noinspection SpellCheckingInspection // ignore all lowercase method names
      */
     public static function __callStatic($method, $args): mixed
@@ -1003,7 +1023,7 @@ class SmartString implements JsonSerializable
 
         // deprecated methods, log and return new method (these may be removed in the future)
         if ($methodLc === 'fromarray') {
-            self::logDeprecation("Replace SmartString::$method() with SmartArray::new(\$array)->asHtml()");
+            self::logDeprecation("Replace SmartString::$method() with SmartArrayHtml::new(\$array)");
             return SmartArray::new(...$args)->asHtml();
         }
         if ($methodLc === 'rawvalue') {

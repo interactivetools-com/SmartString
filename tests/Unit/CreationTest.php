@@ -65,7 +65,7 @@ class CreationTest extends SmartStringTestCase
 
         $result = $this->expectDeprecationMessage(
             fn() => SmartString::new($rows),
-            'Replace SmartString::new($array) with SmartArray::new($array)->asHtml()'
+            'Replace SmartString::new($array) with SmartArrayHtml::new($array)'
         );
 
         $this->assertInstanceOf(SmartArrayHtml::class, $result);

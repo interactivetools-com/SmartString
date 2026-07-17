@@ -35,7 +35,7 @@ trait ErrorHelpersTrait
      * Walks the debug backtrace to find the first frame that isn't in the same
      * directory as the current file, giving us the actual calling code location.
      *
-     * @return array{file: string, line: string, function: string}
+     * @return array{file: string, line: int|string, function: string}
      */
     private static function getExternalCaller(): array
     {

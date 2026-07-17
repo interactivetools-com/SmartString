@@ -175,7 +175,7 @@ class MagicMethodsTest extends SmartStringTestCase
     {
         $result = $this->expectDeprecationMessage(
             fn() => SmartString::fromArray(['a' => 1]),
-            'Replace SmartString::fromArray() with SmartArray::new($array)->asHtml()'
+            'Replace SmartString::fromArray() with SmartArrayHtml::new($array)'
         );
         $this->assertInstanceOf(SmartArrayHtml::class, $result);
         $this->assertSame(['a' => 1], $result->toArray());

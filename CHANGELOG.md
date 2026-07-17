@@ -120,7 +120,7 @@ These still work, they're just no longer featured in the docs - no changes requi
 - Error messages now show the short class name (`SmartString->foo()`) on Linux instead of the full namespace
 - `SmartString::fromArray()` deprecation shim now returns HTML-safe values matching the documented migration target
 - `SmartString::rawvalue()` static alias now logs a deprecation warning
-- `pregReplace()` now preserves null input, matching other string-manipulation methods
+- `pregReplace()` now preserves missing input (null or `""`), matching other string-manipulation methods
 - `numberFormat()`, `percent()`, and `percentOf()` now require `int $decimals` (passing null previously crashed inside `number_format()`)
 - `dateTimeFormat()` no longer double-wraps the result of `dateFormat()`
 - `or()`, `and()`, `andPrefix()`, `ifBlank()`, `ifNull()`, and `ifZero()` now accept `null` and `bool` fallbacks (previously TypeErrored under strict types)

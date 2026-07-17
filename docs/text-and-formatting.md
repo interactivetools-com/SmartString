@@ -77,7 +77,7 @@ or `""`); missing values pass through unchanged, so no stray labels or
 separators appear. Zero counts as present:
 
 ```php
-// append($value), prepend($prefix), wrap($before, $after)
+// append($value), prepend($value), wrap($before, $after)
 echo $office->city->append(', ');            // "Vancouver, ", or "" when missing
 echo $user->phone->prepend('Phone: ');       // "Phone: (604) 555-1234", or "" when missing
 echo $user->extension->wrap('(ext. ', ')');  // "(ext. 204)", or "" when missing

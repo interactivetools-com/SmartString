@@ -23,7 +23,6 @@ Contents:
 - Static Configuration
 - Debugging - help(), print_r()
 - Errors and Exceptions
-- Deprecated and Legacy Names
 - Gotchas Quick Reference
 
 ---
@@ -138,12 +137,12 @@ through unchanged, so a later `or()` still works.
 | Method | Behavior |
 |--------|----------|
 | `append($value): SmartString` | Adds `$value` to the end, only when present (zero counts as present; missing passes through) |
-| `prepend($prefix): SmartString` | Adds `$prefix` to the beginning, only when present |
+| `prepend($value): SmartString` | Adds `$value` to the beginning, only when present |
 | `wrap($before, $after): SmartString` | Wraps when present; both args required, pass `""` for an unwanted side |
 | `textOnly(): SmartString` | `html_entity_decode` → `strip_tags` → `trim` (entities decoded first so `&lt;script&gt;` can't survive as a tag) |
 | `trim(...$args): SmartString` | PHP `trim()` semantics incl. custom char list |
 | `maxWords(int $max, string $ellipsis = '...'): SmartString` | Word limit; `$ellipsis` only if cut; trailing punctuation stripped before ellipsis |
-| `maxChars(int $max, string $ellipsis = '...'): SmartString` | Char limit breaking at last whole word; whitespace runs collapse to single spaces |
+| `maxChars(int $max, string $ellipsis = '...'): SmartString` | Char limit breaking at last whole word; whitespace runs collapse to single spaces; trailing punctuation stripped before ellipsis |
 | `pregReplace(string $pattern, string $replacement): SmartString` | `preg_replace()`; invalid pattern throws CallerException |
 
 Arguments to `append`/`prepend`/`wrap` accept
@@ -161,7 +160,7 @@ null (echoes as `""`); add `or()` for a fallback. All formatting uses
 | `numberFormat(int $decimals = 0): SmartString` | `number_format()` with configured separators; non-numeric → null |
 | `percent(int $decimals = 0, string\|int\|float\|null $ifZero = null): SmartString` | value * 100 + `%` (0.24 → `24%`). Zero with `$ifZero` set returns `$ifZero` (parameter exists because a chained ifZero can't see zero inside `"0.00%"`). Non-numeric → null |
 | `percentOf($total, int $decimals = 0): SmartString` | value / `$total` * 100 + `%`. Null when either non-numeric or `$total` is 0 |
-| `add($addend)` / `subtract($subtrahend)` / `multiply($multiplier)` / `divide($divisor)` | Float arithmetic. Null when either side non-numeric; `divide` also null on zero divisor. Args accept plain values or SmartString/SmartNull |
+| `add($value)` / `subtract($value)` / `multiply($value)` / `divide($value)` | Float arithmetic. Null when either side non-numeric; `divide` also null on zero divisor. Args accept plain values or SmartString/SmartNull |
 
 Null propagation: null flows through subsequent operations, but is NOT
 sticky poison; a mid-chain `ifNull(0)` fully recovers the chain.
@@ -286,28 +285,6 @@ print_r($str);        // shows rawData (original value) + one-time help() hint
 - **E_USER_WARNING**: method accessed without parentheses or without curly
   braces in a string (`$str->trim`, `"$str->trim()"`). Page continues;
   expression yields an empty SmartString.
-
-## Deprecated and Legacy Names
-
-All keep working; do not use in new code. IDE strikethrough + one-click
-rename via `#[Deprecated]`:
-
-| Deprecated | Use instead |
-|------------|-------------|
-| `->and($v)` | `->append($v)` |
-| `->andPrefix($v)` | `->prepend($v)` |
-| `->apply($fn, ...)` | `->map($fn, ...)` |
-| `->if($cond, $v)` | `->ifTrue($cond, $v)` |
-| `->textToHtml()` | `->nl2br()` (`textToHtml(keepBr: true)` has no nl2br equivalent and stays available) |
-| `->ifBlank($v)` (retired) | `->or($v)`, or `->ifEquals('', $v)` for `""` only |
-| `->phoneFormat()` (retired) | `->pregReplace()` custom formatting; `SmartString::$phoneFormat` rules still honored |
-| `->dateTimeFormat()` (retired) | `->dateFormat('Y-m-d H:i:s')` (pass the format) |
-
-Runtime `E_USER_DEPRECATED` notices (oldest names): `noEncode()` →
-`rawHtml()`, `toString()` → `htmlEncode()`/`string()`, `jsEncode()` →
-`jsonEncode()` (different output, review needed), `stripTags()` →
-`textOnly()`, `SmartString::fromArray()` / `SmartString::new($array)` →
-`SmartArrayHtml::new($array)`.
 
 ## Gotchas Quick Reference
 

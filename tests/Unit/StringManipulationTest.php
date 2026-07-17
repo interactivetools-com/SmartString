@@ -182,6 +182,8 @@ class StringManipulationTest extends SmartStringTestCase
             'no match (unchanged)' => ['hello', '/\d+/', 'X', 'hello'],
             'empty string input'   => ['', '/./', 'X', ''],
             'null input'           => [null, '/./', 'X', null],
+            'empty skips regex'    => ['', '/^\d*/', 'ID-', ''],   // "" is missing: the regex never runs, or() fallbacks still fire
+            'null skips regex'     => [null, '/^$/', 'X', null],
             'html in raw value'    => ['<b>bold</b>', '/<[^>]+>/', '', 'bold'],
             'integer input'        => [12345, '/(\d{3})(\d+)/', '$1-$2', '123-45'],
         ];
