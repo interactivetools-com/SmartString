@@ -109,3 +109,5 @@ SmartString::$dateFormat            = 'Y-m-d';         // Default dateFormat() f
 Working with arrays? SmartArray is the companion library that handles arrays (like database
 rows) as collections of SmartStrings: $user = SmartArrayHtml::new($record);
 It has its own help: SmartArrayHtml::new([])->help()
+
+Full documentation: https://github.com/interactivetools-com/SmartString

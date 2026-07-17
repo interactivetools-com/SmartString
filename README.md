@@ -26,7 +26,7 @@ tasks. A few basics cover most pages, and the rest is there when you need it.
 
 ## Documentation
 
-Full guides and references are in [docs/](docs/README.md):
+Full guides and references ([browse online](https://github.com/interactivetools-com/SmartString)):
 
 - **The Basics** (read in order)
     - [Getting Started](docs/getting-started.md) - install, your first auto-encoded value, and the mental model
