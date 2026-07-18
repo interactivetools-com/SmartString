@@ -276,11 +276,13 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      *
      * Only "<" followed by a letter, "/", "!", or "?" counts as a tag (the same rule
      * browsers use), so prose like "Kids <12 eat free" or "I <3 PHP" keeps its "<".
+     *
+     * Missing values (null or "") pass through unchanged.
      */
     public function textOnly(): SmartString
     {
-        if (is_null($this->rawData)) {
-            return new self(null);
+        if ($this->isMissing()) {
+            return new self($this->rawData);
         }
 
         $prose = "\xEE\x80\x80"; // U+E000 (private use), restored to "<" after strip_tags
@@ -294,32 +296,37 @@ final class SmartString implements JsonSerializable, IteratorAggregate
 
     /**
      * Trim leading and trailing whitespace, supports same parameters as PHP trim()
+     *
+     * Missing values (null or "") pass through unchanged.
      */
     public function trim(...$args): SmartString
     {
-        $args     = array_map(self::getRawValue(...), $args); // accept a SmartString char list, like every other value parameter
-        $newValue = match (true) {
-            is_null($this->rawData) => null,
-            default                 => trim((string)$this->rawData, ...$args),
-        };
-        return new self($newValue);
+        if ($this->isMissing()) {
+            return new self($this->rawData);
+        }
+
+        $args = array_map(self::getRawValue(...), $args); // accept a SmartString char list, like every other value parameter
+        return new self(trim((string)$this->rawData, ...$args));
     }
 
     /**
      * Limit words to $max, if truncated adds ... (override with second parameter).
      * Invalid UTF-8 bytes are substituted with � (like htmlEncode/jsonEncode).
+     *
+     * Missing values (null or "") pass through unchanged.
      */
     public function maxWords(int $max, string $ellipsis = "..."): SmartString
     {
-        $newValue = null;
-        if (!is_null($this->rawData)) {
-            $text     = trim(self::substituteInvalidUtf8((string)$this->rawData));
-            $words    = preg_split('/\s+/u', $text);
-            $newValue = implode(' ', array_slice($words, 0, $max));
-            if (count($words) > $max) {
-                $newValue = preg_replace('/\p{P}+$/u', '', $newValue); // Strip trailing Unicode punctuation before ellipsis
-                $newValue .= $ellipsis;
-            }
+        if ($this->isMissing()) {
+            return new self($this->rawData);
+        }
+
+        $text     = trim(self::substituteInvalidUtf8((string)$this->rawData));
+        $words    = preg_split('/\s+/u', $text);
+        $newValue = implode(' ', array_slice($words, 0, $max));
+        if (count($words) > $max) {
+            $newValue = preg_replace('/\p{P}+$/u', '', $newValue); // Strip trailing Unicode punctuation before ellipsis
+            $newValue .= $ellipsis;
         }
 
         return new self($newValue);
@@ -329,22 +336,25 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      * Limit chars to $max breaking at the last whole word, if truncated adds ... (override
      * with second parameter). Whitespace runs collapse to single spaces before measuring.
      * Invalid UTF-8 bytes are substituted with � (like htmlEncode/jsonEncode).
+     *
+     * Missing values (null or "") pass through unchanged.
      */
     public function maxChars(int $max, string $ellipsis = "..."): SmartString
     {
-        $newValue = null;
-        if (!is_null($this->rawData)) {
-            $text = preg_replace('/\s+/u', ' ', trim(self::substituteInvalidUtf8((string)$this->rawData)));
+        if ($this->isMissing()) {
+            return new self($this->rawData);
+        }
 
-            if (mb_strlen($text, 'UTF-8') <= $max) {
-                $newValue = $text;
-            } elseif ($max > 0 && preg_match("/^.{1,$max}(?=\s|$)/u", $text, $matches)) {
-                $newValue = $matches[0];
-                $newValue = preg_replace('/\p{P}+$/u', '', $newValue); // Strip trailing Unicode punctuation before ellipsis
-                $newValue .= $ellipsis;
-            } else {
-                $newValue = mb_substr($text, 0, $max, 'UTF-8') . $ellipsis;
-            }
+        $text = preg_replace('/\s+/u', ' ', trim(self::substituteInvalidUtf8((string)$this->rawData)));
+
+        if (mb_strlen($text, 'UTF-8') <= $max) {
+            $newValue = $text;
+        } elseif ($max > 0 && preg_match("/^.{1,$max}(?=\s|$)/u", $text, $matches)) {
+            $newValue = $matches[0];
+            $newValue = preg_replace('/\p{P}+$/u', '', $newValue); // Strip trailing Unicode punctuation before ellipsis
+            $newValue .= $ellipsis;
+        } else {
+            $newValue = mb_substr($text, 0, $max, 'UTF-8') . $ellipsis;
         }
 
         return new self($newValue);
