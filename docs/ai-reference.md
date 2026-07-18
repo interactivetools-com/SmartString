@@ -1,4 +1,8 @@
-<!-- Example output like &apos; includes a zero-width space (U+200B) after the "&" so PHPStorm's Markdown preview displays it correctly instead of decoding it. -->
+<!-- DIFFERENT FROM THE OTHER DOC PAGES: this file contains no zero-width spaces.
+     The human doc pages insert a U+200B after "&" in example output like &apos; so
+     PHPStorm's Markdown preview shows the entity instead of decoding it. This file
+     is read by AI assistants as raw bytes, so it stays byte-exact: everything here
+     is safe to copy into code and test assertions. Never add U+200B to this file. -->
 
 # SmartString AI Reference
 
@@ -40,7 +44,7 @@ PHP types and end the chain.
 use Itools\SmartString\SmartString;
 
 $str = SmartString::new("It's easy!<hr>");
-echo $str;                                    // It&​apos;s easy!&​lt;hr&​gt;
+echo $str;                                    // It&apos;s easy!&lt;hr&gt;
 echo $str->value();                           // It's easy!<hr>
 echo $str->trim()->maxChars(60)->or('None');  // chains left to right
 ```
@@ -75,7 +79,7 @@ already SmartArrays of SmartStrings:
 ```php
 use Itools\SmartArray\SmartArrayHtml;
 $user = SmartArrayHtml::new(['name' => "Jean O'Brien", 'age' => 25]);
-echo $user->name;         // Jean O&​apos;Brien
+echo $user->name;         // Jean O&apos;Brien
 $request = SmartArrayHtml::new($_REQUEST);
 ```
 
@@ -99,14 +103,14 @@ script-safe embedding use the `jsonEncode()` method instead.
 
 Terminal methods; they return plain PHP values and end the chain.
 
-| Method                                  | Returns                                    | Null input |
-|-----------------------------------------|--------------------------------------------|------------|
-| `value(): string\|int\|float\|bool\|null` | Original value, original type            | null       |
-| `int(): int`                            | `(int)` cast                               | 0          |
-| `float(): float`                        | `(float)` cast                             | 0.0        |
-| `bool(): bool`                          | `(bool)` cast                              | false      |
-| `string(): string`                      | `(string)` cast, NOT HTML-encoded          | ""         |
-| `SmartString::getRawValue(mixed): mixed` (static) | Unwraps SmartString → value, SmartArray → array, SmartNull → null; scalars/null/arrays pass through (arrays unwrapped recursively); other objects throw CallerException | null |
+| Method                                            | Returns                                                                                                                                                                 | Null input |
+|---------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|
+| `value(): string\|int\|float\|bool\|null`         | Original value, original type                                                                                                                                           | null       |
+| `int(): int`                                      | `(int)` cast                                                                                                                                                            | 0          |
+| `float(): float`                                  | `(float)` cast                                                                                                                                                          | 0.0        |
+| `bool(): bool`                                    | `(bool)` cast                                                                                                                                                           | false      |
+| `string(): string`                                | `(string)` cast, NOT HTML-encoded                                                                                                                                       | ""         |
+| `SmartString::getRawValue(mixed): mixed` (static) | Unwraps SmartString → value, SmartArray → array, SmartNull → null; scalars/null/arrays pass through (arrays unwrapped recursively); other objects throw CallerException | null       |
 
 ## Encoding Methods
 
@@ -114,18 +118,18 @@ Terminal: all return plain `string` and end the chain (nothing downstream
 can double-encode). Missing values (null or `""`) return `""` for all of
 these except where noted.
 
-| Method | Behavior |
-|--------|----------|
-| `htmlEncode(): string` | Same encoding as echo, as an explicit call |
-| `urlEncode(): string` | PHP `urlencode()`; use for query-string values |
-| `jsonEncode(): string` | JSON with `JSON_HEX_TAG\|HEX_APOS\|HEX_QUOT\|HEX_AMP\|UNESCAPED_SLASHES\|UNESCAPED_UNICODE\|INVALID_UTF8_SUBSTITUTE\|THROW_ON_ERROR`. Always a valid JS expression: null → `null`, 123 → `123`. Malformed UTF-8 → �. Invisible Unicode (zero-width, bidi controls, variation selectors) re-escaped as `\uXXXX`. |
-| `nl2br(): string` | HTML-encodes FIRST, then converts newlines to `<br>`; only tags in output are the added `<br>` tags |
-| `rawHtml(): string\|int\|float\|bool\|null` | Alias for `value()`; signals intentional raw HTML output. Null stays null (does not return `""`) |
-| `appendHtml(string $html): string` | Encoded value + `$html` appended AS-IS (trusted, never user input). Missing → `""` (markup suppressed too) |
-| `wrapHtml(string $before, string $after): string` | `$before` + encoded value + `$after`, markup as-is. Missing → `""` (whole wrapper vanishes). Both args required |
+| Method                                            | Behavior                                                                                                                                                                                                                                                                                                        |
+|---------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `htmlEncode(): string`                            | Same encoding as echo, as an explicit call                                                                                                                                                                                                                                                                      |
+| `urlEncode(): string`                             | PHP `urlencode()`; use for query-string values                                                                                                                                                                                                                                                                  |
+| `jsonEncode(): string`                            | JSON with `JSON_HEX_TAG\|HEX_APOS\|HEX_QUOT\|HEX_AMP\|UNESCAPED_SLASHES\|UNESCAPED_UNICODE\|INVALID_UTF8_SUBSTITUTE\|THROW_ON_ERROR`. Always a valid JS expression: null → `null`, 123 → `123`. Malformed UTF-8 → �. Invisible Unicode (zero-width, bidi controls, variation selectors) re-escaped as `\uXXXX`. |
+| `nl2br(): string`                                 | HTML-encodes FIRST, then converts newlines to `<br>`; only tags in output are the added `<br>` tags                                                                                                                                                                                                             |
+| `rawHtml(): string\|int\|float\|bool\|null`       | Alias for `value()`; signals intentional raw HTML output. Null stays null (does not return `""`)                                                                                                                                                                                                                |
+| `appendHtml(string $html): string`                | Encoded value + `$html` appended AS-IS (trusted, never user input). Missing → `""` (markup suppressed too)                                                                                                                                                                                                      |
+| `wrapHtml(string $before, string $after): string` | `$before` + encoded value + `$after`, markup as-is. Missing → `""` (whole wrapper vanishes). Both args required                                                                                                                                                                                                 |
 
 ```php
-echo $text->nl2br();                    // "Bob & Sons\nSuite 5" → "Bob &​amp; Sons<br>\nSuite 5"
+echo $text->nl2br();                    // "Bob & Sons\nSuite 5" → "Bob &amp; Sons<br>\nSuite 5"
 echo $addr->appendHtml(",<br>\n");      // "12 High St,<br>\n" or "" when missing
 echo $head->wrapHtml('<h2>', '</h2>');  // "<h2>Our Story</h2>" or ""
 echo "?q={$title->urlEncode()}";        // %3C10%25+OFF...
@@ -137,16 +141,16 @@ echo "<script>let t = {$title->jsonEncode()};</script>";
 Chainable: return a new SmartString. Missing values (null or `""`) pass
 through unchanged, so a later `or()` still works.
 
-| Method | Behavior |
-|--------|----------|
-| `append($value): SmartString` | Adds `$value` to the end, only when present (zero counts as present; missing passes through) |
-| `prepend($value): SmartString` | Adds `$value` to the beginning, only when present |
-| `wrap($before, $after): SmartString` | Wraps when present; both args required, pass `""` for an unwanted side |
-| `textOnly(): SmartString` | `html_entity_decode` → `strip_tags` → `trim` (entities decoded first so `&lt;script&gt;` can't survive as a tag) |
-| `trim(...$args): SmartString` | PHP `trim()` semantics incl. custom char list |
-| `maxWords(int $max, string $ellipsis = '...'): SmartString` | Word limit; `$ellipsis` only if cut; trailing punctuation stripped before ellipsis |
-| `maxChars(int $max, string $ellipsis = '...'): SmartString` | Char limit breaking at last whole word; whitespace runs collapse to single spaces; trailing punctuation stripped before ellipsis |
-| `pregReplace(string $pattern, string $replacement): SmartString` | `preg_replace()`; invalid pattern throws CallerException |
+| Method                                                           | Behavior                                                                                                                         |
+|------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------|
+| `append($value): SmartString`                                    | Adds `$value` to the end, only when present (zero counts as present; missing passes through)                                     |
+| `prepend($value): SmartString`                                   | Adds `$value` to the beginning, only when present                                                                                |
+| `wrap($before, $after): SmartString`                             | Wraps when present; both args required, pass `""` for an unwanted side                                                           |
+| `textOnly(): SmartString`                                        | `html_entity_decode` → `strip_tags` → `trim` (entities decoded first so `&lt;script&gt;` can't survive as a tag)                 |
+| `trim(...$args): SmartString`                                    | PHP `trim()` semantics incl. custom char list (a SmartString char list unwraps)                                                  |
+| `maxWords(int $max, string $ellipsis = '...'): SmartString`      | Word limit; `$ellipsis` only if cut; trailing punctuation stripped before ellipsis                                               |
+| `maxChars(int $max, string $ellipsis = '...'): SmartString`      | Char limit breaking at last whole word; whitespace runs collapse to single spaces; trailing punctuation stripped before ellipsis |
+| `pregReplace(string $pattern, string $replacement): SmartString` | `preg_replace()`; invalid pattern throws CallerException                                                                         |
 
 Arguments to `append`/`prepend`/`wrap` accept
 `int|float|string|bool|null|SmartString|SmartNull`.
@@ -157,13 +161,13 @@ Chainable: return a new SmartString. Missing or invalid input → result is
 null (echoes as `""`); add `or()` for a fallback. All formatting uses
 `SmartString::$numberFormatDecimal`/`$numberFormatThousands`.
 
-| Method | Behavior |
-|--------|----------|
-| `dateFormat(?string $format = null): SmartString` | PHP `date()` format; null format uses `SmartString::$dateFormat` (default `'Y-m-d'`). Numeric input = unix timestamp; strings parsed with `strtotime()`; invalid/bool/null → null. One method for dates and datetimes |
-| `numberFormat(int $decimals = 0): SmartString` | `number_format()` with configured separators; non-numeric → null |
-| `percent(int $decimals = 0, string\|int\|float\|null $ifZero = null): SmartString` | value * 100 + `%` (0.24 → `24%`). Zero with `$ifZero` set returns `$ifZero` (parameter exists because a chained ifZero can't see zero inside `"0.00%"`). Non-numeric → null |
-| `percentOf($total, int $decimals = 0): SmartString` | value / `$total` * 100 + `%`. Null when either non-numeric or `$total` is 0 |
-| `add($value)` / `subtract($value)` / `multiply($value)` / `divide($value)` | Float arithmetic. Null when either side non-numeric; `divide` also null on zero divisor. Args accept plain values or SmartString/SmartNull |
+| Method                                                                     | Behavior                                                                                                                                                                                                                   |
+|----------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `dateFormat(?string $format = null): SmartString`                          | PHP `date()` format; null format uses `SmartString::$dateFormat` (default `'Y-m-d'`). Numeric input = unix timestamp; strings parsed with `strtotime()`; invalid/bool/null → null. One method for dates and datetimes      |
+| `numberFormat(int $decimals = 0): SmartString`                             | `number_format()` with configured separators; non-numeric → null                                                                                                                                                           |
+| `percent(int $decimals = 0, $ifZero = null): SmartString`                  | value * 100 + `%` (0.24 → `24%`). Zero with `$ifZero` set returns `$ifZero` (parameter exists because a chained ifZero can't see zero inside `"0.00%"`); accepts plain values or SmartString/SmartNull. Non-numeric → null |
+| `percentOf($total, int $decimals = 0): SmartString`                        | value / `$total` * 100 + `%`. Null when either non-numeric or `$total` is 0                                                                                                                                                |
+| `add($value)` / `subtract($value)` / `multiply($value)` / `divide($value)` | Float arithmetic. Null when either side non-numeric; `divide` also null on zero divisor. Args accept plain values or SmartString/SmartNull                                                                                 |
 
 Null propagation: null carries through subsequent operations but is not
 permanent; a mid-chain `ifNull(0)` replaces it and later methods run on the
@@ -182,14 +186,14 @@ echo SmartString::new("1,234")->add(1);                    // "" (comma → non-
 Chainable: return a new SmartString. Each replaces the value when its
 condition matches. Args accept plain values or SmartString/SmartNull.
 
-| Method | Fires when |
-|--------|-----------|
-| `or($fallback)` | Value is missing (null or `""`); zero and false survive |
-| `ifNull($fallback)` | Value is null exactly |
-| `ifZero($fallback)` | `is_numeric($value) && (float)$value === 0.0` (0, 0.0, "0", "0.00", "-0"); non-numeric values never match |
-| `ifTrue($condition, $newValue)` | `$condition` (a computed plain value, not a callback) is truthy. Replaces the value only; does not gate the chain |
-| `ifEquals($match, $newValue)` | `$value == $match` (loose, so "5" matches 5). Never pass null as `$match` (null == 0 == "" == false); use ifNull() |
-| `set($newValue)` | Always; for storing match()/expression results |
+| Method                          | Fires when                                                                                                         |
+|---------------------------------|--------------------------------------------------------------------------------------------------------------------|
+| `or($fallback)`                 | Value is missing (null or `""`); zero and false survive                                                            |
+| `ifNull($fallback)`             | Value is null exactly                                                                                              |
+| `ifZero($fallback)`             | `is_numeric($value) && (float)$value === 0.0` (0, 0.0, "0", "0.00", "-0"); non-numeric values never match          |
+| `ifTrue($condition, $newValue)` | `$condition` (a computed plain value, not a callback) is truthy. Replaces the value only; does not gate the chain  |
+| `ifEquals($match, $newValue)`   | `$value == $match` (loose, so "5" matches 5). Never pass null as `$match` (null == 0 == "" == false); use ifNull() |
+| `set($newValue)`                | Always; for storing match()/expression results                                                                     |
 
 ```php
 echo $name->or('Guest');
@@ -213,12 +217,12 @@ Stop the page when the value is missing (null or `""`; zero passes).
 Otherwise return `$this` unchanged for chaining. Message/`$text` params are
 HTML-encoded automatically (messages often interpolate user input).
 
-| Method | On missing |
-|--------|-----------|
-| `or404(?string $text = null): self` | HTTP 404 + minimal HTML page + `exit`. Default text "The requested URL was not found on this server." |
-| `orDie(string $text): self` | Echo encoded text + `exit(1)` (failure code for CLI/cron) |
-| `orThrow(string $text): self` | `throw new RuntimeException($encodedText)`. Decode for logs/CLI with `htmlspecialchars_decode($msg, ENT_QUOTES \| ENT_SUBSTITUTE \| ENT_HTML5)` |
-| `orRedirect(string $url): self` | 302 + `Location: $url` + `exit`. Checks `headers_sent()` IMMEDIATELY (throws RuntimeException even when value present, so misuse fails on first request) |
+| Method                              | On missing                                                                                                                                               |
+|-------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `or404(?string $text = null): self` | HTTP 404 + minimal HTML page + `exit`. Default text "The requested URL was not found on this server."                                                    |
+| `orDie(string $text): self`         | Echo encoded text + `exit(1)` (failure code for CLI/cron)                                                                                                |
+| `orThrow(string $text): self`       | `throw new RuntimeException($encodedText)`. Decode for logs/CLI with `htmlspecialchars_decode($msg, ENT_QUOTES \| ENT_SUBSTITUTE \| ENT_HTML5)`          |
+| `orRedirect(string $url): self`     | 302 + `Location: $url` + `exit`. Checks `headers_sent()` IMMEDIATELY (throws RuntimeException even when value present, so misuse fails on first request) |
 
 ```php
 $article->num->or404("Article not found");
@@ -229,12 +233,12 @@ $row->orThrow("no row")->memberId->orThrow("row found but memberId empty")->int(
 
 Terminal: return plain `bool`.
 
-| Method | True when | Zero |
-|--------|-----------|------|
-| `isEmpty()` | PHP `empty()`: null, "", 0, "0", false | true |
-| `isNotEmpty()` | `!empty()` | false |
-| `isMissing()` | null or `""` exactly (matches or() and guards) | false |
-| `isNull()` | null exactly | false |
+| Method         | True when                                      | Zero  |
+|----------------|------------------------------------------------|-------|
+| `isEmpty()`    | PHP `empty()`: null, "", 0, "0", false         | true  |
+| `isNotEmpty()` | `!empty()`                                     | false |
+| `isMissing()`  | null or `""` exactly (matches or() and guards) | false |
+| `isNull()`     | null exactly                                   | false |
 
 ## Custom Functions
 
@@ -249,9 +253,9 @@ return types throw CallerException. Non-callable `$func` throws
 CallerException.
 
 ```php
-echo $name->map('strtoupper');
+echo $name->map('mb_strtoupper');
 echo $name->map('str_pad', 15, '.');
-echo $user->nickname->ifNull('')->map('ucwords');
+echo $user->nickname->ifNull('')->map('mb_convert_case', MB_CASE_TITLE);
 ```
 
 ## Static Configuration

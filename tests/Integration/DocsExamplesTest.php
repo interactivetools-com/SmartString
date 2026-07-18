@@ -136,6 +136,13 @@ class DocsExamplesTest extends SmartStringTestCase
             "<a href='search.php?title=%3C10%25+OFF+%22SALE%22'>Search</a>",
             "<a href='search.php?title={$title->urlEncode()}'>Search</a>"
         );
+
+        // file/path links need %20, not + (query strings read + as a space; paths don't)
+        $file = SmartString::new('Annual Report 2026.pdf');
+        $this->assertSame(
+            "<a href='/uploads/Annual%20Report%202026.pdf'>Download</a>",
+            "<a href='/uploads/{$file->map('rawurlencode')}'>Download</a>"
+        );
     }
 
     public function testJsonEncodeMethod(): void
@@ -308,8 +315,9 @@ class DocsExamplesTest extends SmartStringTestCase
     {
         $name = SmartString::new('John Doe');
 
-        $this->assertSame('JOHN DOE', (string)$name->map('strtoupper'));
-        $this->assertSame('JOHN DOE', (string)$name->map(strtoupper(...)));
+        $this->assertSame('JOHN DOE', (string)$name->map('mb_strtoupper'));
+        $this->assertSame('JOHN DOE', (string)$name->map(mb_strtoupper(...)));
+        $this->assertSame('JOSÉ GARCÍA', (string)SmartString::new('josé garcía')->map('mb_strtoupper')); // the docs' accent claim
         $this->assertSame('John Doe.......', (string)$name->map('str_pad', 15, '.'));
         $this->assertSame('John_Doe', (string)$name->map(fn($v) => str_replace(' ', '_', $v)));
     }
@@ -554,7 +562,7 @@ class DocsExamplesTest extends SmartStringTestCase
         $province = SmartArrayHtml::new(['code' => 'bc']);
         $sku      = SmartString::new(42);
 
-        $this->assertSame('BC', (string)$province->code->map('strtoupper'));
+        $this->assertSame('BC', (string)$province->code->map('mb_strtoupper'));
         $this->assertSame('000042', (string)$sku->map(fn($v) => str_pad((string)$v, 6, '0', STR_PAD_LEFT)));
     }
 
@@ -583,15 +591,18 @@ class DocsExamplesTest extends SmartStringTestCase
     public function testTroubleshootingComparisonsAndIfChecks(): void
     {
         $status  = SmartString::new("it's active");
+        $price   = SmartString::new(2000);
         $missing = SmartString::new(null);
 
         $this->assertFalse($status == "it's active");
         $this->assertFalse((string)$status === "it's active");
+        $this->assertFalse(@($price > 1000)); // @: PHP notices the int coercion; the docs' point is the silent wrong result
         $this->assertFalse($missing === null);
         $this->assertFalse(empty($missing));
         $this->assertTrue((bool)$missing);
 
         $this->assertTrue($status->value() === "it's active");
+        $this->assertTrue($price->int() > 1000);
         $this->assertTrue($missing->isMissing());
         $this->assertTrue($missing->isEmpty());
     }

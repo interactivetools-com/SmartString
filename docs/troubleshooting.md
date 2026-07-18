@@ -11,24 +11,28 @@ can find them by search.
 
 ### Comparisons and if() checks don't work as expected
 
-A SmartString is an object wrapping your value, and PHP's native checks
-look at the object, not the value inside. Casts and comparisons see the
-encoded text, and an object is always truthy and never `empty()`, even
-when the value inside is null:
+A SmartString is an object wrapping your value, and PHP comparisons and
+checks don't work on objects - unwrap with `value()` (or `int()`, `float()`)
+first. Without that, string comparisons see the encoded text, numeric
+comparisons treat the object as the number 1, and an object is always
+truthy and never `empty()`, even when the value inside is null:
 
 ```php
 $status  = SmartString::new("it's active");
+$price   = SmartString::new(2000);
 $missing = SmartString::new(null);
 
 // none of these work the way they read
 if ($status == "it's active") { }           // WRONG - false: compares the encoded text
 if ((string)$status === "it's active") { }  // WRONG - false: the cast encodes too
+if ($price > 1000) { }                      // WRONG - false: the object compares as int 1, not 2000
 if ($missing === null) { }                  // WRONG - false: the object itself isn't null
 if (empty($missing)) { }                    // WRONG - false: objects are never empty
 if ($missing) { }                           // WRONG - true: objects are always truthy
 
-// check the value instead
+// unwrap the value instead
 if ($status->value() === "it's active") { }  // RIGHT
+if ($price->int() > 1000) { }                // RIGHT
 if ($missing->isMissing()) { }               // RIGHT - true for null or ""
 if ($missing->isEmpty()) { }                 // RIGHT - true for null, "", and zeros
 ```

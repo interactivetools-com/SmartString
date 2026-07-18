@@ -5,9 +5,10 @@ Most old code keeps working after an upgrade:
 - **Renamed methods keep their old names forever.** IDEs like PHPStorm show
   the old name in strikethrough with a one-click rename.
 - **Breaking changes produce clear errors.** Removed methods and wrong named
-  arguments throw an Error with your file and line, and deprecated calls log
-  their exact replacement, e.g. "Replace ->stripTags() with ->textOnly() in
-  listings.php:14".
+  arguments throw an Error with your file and line, and deprecated calls raise
+  a deprecation notice with their exact replacement, e.g. "Replace
+  ->stripTags() with ->textOnly() in listings.php:14" - error handlers like
+  CMS Builder's developer log catch these.
 - **Only the silent changes need checking.** This file lists them per
   version, each with a search.
 
@@ -144,8 +145,9 @@ Full lists of what changed per release: [CHANGELOG.md](CHANGELOG.md).
 *Follow this section when upgrading from SmartString before v2.0.0
 (or CMS Builder before 3.75).*
 
-> No required changes: every v1 method name still works and logs its
-> replacement to the error log. Renaming is optional cleanup:
+> No required changes: every v1 method name still works and raises a
+> deprecation notice naming its replacement (visible in error handlers like
+> CMS Builder's developer log). Renaming is optional cleanup:
 >
 > | Old name (still works)     | Current name                                                                                                  |
 > |----------------------------|---------------------------------------------------------------------------------------------------------------|

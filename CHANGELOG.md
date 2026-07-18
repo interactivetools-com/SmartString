@@ -76,6 +76,9 @@ These still work, they're just no longer featured in the docs - no changes requi
   library's throw site stays available in `$e->thrownInFile`/`$e->thrownInLine`
 - `dateFormat()` on booleans returns null - like any other value that isn't a date
 - `orDie()` exits with code 1 - CLI and cron scripts see the failure
+- foreach over a SmartString throws a CallerException showing the value and
+  suggesting the SmartArray row - previously the loop silently ran zero times
+  (PHP iterates accessible properties, and there are none)
 - Parameter renames - these only matter if you use named arguments,
   e.g. `->percent(2, ifZero: '-')`:
   - `percent(ifZero:)` was `zeroFallback:`
@@ -86,6 +89,27 @@ These still work, they're just no longer featured in the docs - no changes requi
 
 - `SmartString::help()` works as a static call (the documented form was a fatal error)
 - `getRawValue()` unwraps `SmartArrayHtml` (previously "Unsupported value type")
+- `maxChars()` and `maxWords()` handle invalid UTF-8 - bad bytes become � like
+  `htmlEncode()` (previously a fatal TypeError)
+- `textOnly()` keeps prose containing `<` ("Kids <12 eat free", "I <3 PHP") -
+  only `<` followed by a letter, `/`, `!`, or `?` counts as a tag, the same rule
+  browsers use (previously everything from the `<` to the next `>` or the end of
+  the string was removed, whether the `<` arrived raw or entity-encoded)
+- `maxChars()` counts UTF-8 characters regardless of `mb_internal_encoding()` -
+  that global can be changed by any include in the request (previously a
+  non-UTF-8 setting made multibyte text falsely truncate or slice mid-character)
+- `dateFormat()` formats date strings that parse to exactly the Unix epoch
+  ("1970-01-01 00:00:00 UTC" previously returned null - timestamp 0 was
+  mistaken for a parse failure)
+- `percent(ifZero:)` and `trim()` accept SmartString arguments like every other
+  value parameter (previously a TypeError under `strict_types`; in weak mode a
+  SmartString `$ifZero` was stored HTML-encoded and double-encoded on output)
+- `help()` prints plain text on the command line (previously wrapped the
+  output in literal `<xmp>` tags, which only make sense in HTML)
+
+### Other
+
+- Misc internal code cleanup and modernization
 
 ## [2.6.3] - 2026-04-27
 
@@ -103,7 +127,7 @@ These still work, they're just no longer featured in the docs - no changes requi
 
 - `htmlEncode()` now encodes all tags including `<br>` (previously preserved `<br>` tags)
 - Numeric operations now accept `string` type parameters for convenience
-- Deprecation warnings now always trigger via `@trigger_error()`, controlled by PHP's `display_errors`
+- Deprecation warnings now always trigger via `@trigger_error()`, so custom error handlers (e.g. CMS Builder's developer log) can catch them
 - Error and deprecation messages now show the actual calling file:line instead of the library internals
 
 ### Deprecated

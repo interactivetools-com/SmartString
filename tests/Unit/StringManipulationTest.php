@@ -41,6 +41,11 @@ class StringManipulationTest extends SmartStringTestCase
             'null input'                  => [null, null],
             'wysiwyg entities decoded'    => ["O'Reilly said &quot;this &gt; that&quot;", 'O\'Reilly said "this > that"'],
             'leading/trailing whitespace' => [' <b> Hello World </b>', 'Hello World'],
+            'encoded < number is prose'   => ['Kids &lt;12 eat free', 'Kids <12 eat free'],
+            'raw < number is prose'       => ['Kids <12 eat free', 'Kids <12 eat free'],
+            'heart emoticon is prose'     => ['I <3 <b>bold</b> moves', 'I <3 bold moves'],
+            'encoded script still strips' => ['&lt;script&gt;alert(1)&lt;/script&gt;Hi', 'alert(1)Hi'],
+            '< letter still strips'       => ['price <ten dollars', 'price'],
         ];
     }
 
@@ -66,6 +71,12 @@ class StringManipulationTest extends SmartStringTestCase
         $smartString = SmartString::new($input);
         $result      = $characterMask !== null ? $smartString->trim($characterMask) : $smartString->trim();
         $this->assertSmartString($expected, $result);
+    }
+
+    public function testTrimAcceptsSmartStringCharList(): void
+    {
+        // char list unwraps like every other value parameter (was TypeError: trim() under strict_types)
+        $this->assertSame('abc', SmartString::new('xxabcxx')->trim(SmartString::new('x'))->value());
     }
 
     public static function trimProvider(): array
@@ -127,6 +138,7 @@ class StringManipulationTest extends SmartStringTestCase
             'mixed ascii and multibyte' => ['Hello こんにちは World 世界', 3, '...', 'Hello こんにちは World...'],
             'empty ellipsis'            => ['One two three four', 2, '', 'One two'],
             'html content'              => ['<p>First</p> <div>Second</div> <span>Third</span>', 2, '...', '<p>First</p> <div>Second</div>...'],
+            'invalid utf8 becomes �'    => ["caf\xE9 latte and more words here", 2, '...', 'caf� latte...'],
         ];
     }
 
@@ -161,7 +173,25 @@ class StringManipulationTest extends SmartStringTestCase
             'one over boundary'         => ['12345678901', 10, '...', '1234567890...'],
             'empty ellipsis'            => ['The quick brown fox', 10, '', 'The quick'],
             'html entities as chars'    => ['&amp; &lt; &gt;', 5, '...', '&amp...'],
+            'invalid utf8 becomes �'    => ["caf\xE9 latte and more words here", 10, '...', 'caf� latte...'],
+            'invalid utf8 no truncate'  => ["caf\xE9", 10, '...', 'caf�'],
         ];
+    }
+
+    /**
+     * maxChars() counts UTF-8 characters no matter what mb_internal_encoding() is set
+     * to - any legacy include can change that global mid-request. Under ISO-8859-1 the
+     * old code counted bytes (13), falsely truncating this 11-character string.
+     */
+    public function testMaxCharsIgnoresMbInternalEncoding(): void
+    {
+        $original = mb_internal_encoding();
+        mb_internal_encoding('ISO-8859-1');
+        try {
+            $this->assertSame('héllo wörld', SmartString::new('héllo wörld')->maxChars(12)->value());
+        } finally {
+            mb_internal_encoding($original);
+        }
     }
 
     //endregion

@@ -7,21 +7,21 @@ use Itools\SmartString\SmartString;
 use Tests\Support\SmartStringTestCase;
 
 /**
- * help(): output content, $value passthrough, both call forms, and
- * <xmp> wrapping (CLI has no Content-Type header, which counts as text/html).
+ * help(): output content, $value passthrough, both call forms, and plain
+ * (no <xmp>) output on CLI. The <xmp> wrap only happens for text/html web
+ * responses, which can't be simulated in-process (xmpWrap reads PHP_SAPI).
  *
  * n/a dimensions: encoding, global settings, immutability, argument matrix
  * ($value passes through untouched by design).
  */
 class HelpTest extends SmartStringTestCase
 {
-    public function testHelpOutputsDocumentationWrappedInXmp(): void
+    public function testHelpOutputsDocumentationPlainOnCli(): void
     {
         [$result, $output] = $this->captureOutput(fn() => SmartString::new('test')->help());
 
         $this->assertNull($result);
-        $this->assertStringStartsWith("\n<xmp>\n", $output);
-        $this->assertStringEndsWith("\n</xmp>\n", $output);
+        $this->assertStringNotContainsString('<xmp>', $output);
         $this->assertStringContainsString('SmartString: XSS-Safe Strings', $output);
         $this->assertStringContainsString('Basics', $output);
         $this->assertStringContainsString('Type Conversion', $output);

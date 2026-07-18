@@ -4,6 +4,8 @@ declare(strict_types=1);
 namespace Itools\SmartString;
 
 use Error;
+use Iterator;
+use IteratorAggregate;
 use Itools\SmartArray\SmartArray;
 use Itools\SmartArray\SmartArrayBase;
 use Itools\SmartArray\SmartArrayHtml;
@@ -16,7 +18,7 @@ use RuntimeException;
  *
  * For inline help, call $smartString->help() or print_r() on a SmartString object.
  */
-class SmartString implements JsonSerializable
+final class SmartString implements JsonSerializable, IteratorAggregate
 {
     use DeprecatedAliases;
     use ErrorHelpersTrait;
@@ -30,7 +32,7 @@ class SmartString implements JsonSerializable
     /**
      * The raw stored value (type as passed: string|int|float|bool|null).
      */
-    private string|int|float|bool|null $rawData;
+    private readonly string|int|float|bool|null $rawData;
 
     //region Global Settings
 
@@ -271,14 +273,22 @@ class SmartString implements JsonSerializable
     /**
      * Decodes HTML entities, removes tags, and trims whitespace. Entities are decoded
      * first so entity-encoded tags (&lt;script&gt;) are removed too.
+     *
+     * Only "<" followed by a letter, "/", "!", or "?" counts as a tag (the same rule
+     * browsers use), so prose like "Kids <12 eat free" or "I <3 PHP" keeps its "<".
      */
     public function textOnly(): SmartString
     {
-        $newValue = match (true) {
-            is_null($this->rawData) => null,
-            default                 => trim(strip_tags(html_entity_decode((string)$this->rawData, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8'))),
-        };
-        return new self($newValue);
+        if (is_null($this->rawData)) {
+            return new self(null);
+        }
+
+        $prose = "\xEE\x80\x80"; // U+E000 (private use), restored to "<" after strip_tags
+        $text  = html_entity_decode((string)$this->rawData, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8');
+        $text  = preg_replace('/<(?![a-zA-Z\/!?])/', $prose, $text); // hide prose "<" so strip_tags doesn't delete from it to the next ">" or end of string (no /u: byte-level is UTF-8-safe here and never fails on bad bytes)
+        $text  = str_replace($prose, '<', strip_tags($text));
+
+        return new self(trim($text));
     }
 
 
@@ -287,6 +297,7 @@ class SmartString implements JsonSerializable
      */
     public function trim(...$args): SmartString
     {
+        $args     = array_map(self::getRawValue(...), $args); // accept a SmartString char list, like every other value parameter
         $newValue = match (true) {
             is_null($this->rawData) => null,
             default                 => trim((string)$this->rawData, ...$args),
@@ -295,13 +306,14 @@ class SmartString implements JsonSerializable
     }
 
     /**
-     * Limit words to $max, if truncated adds ... (override with second parameter)
+     * Limit words to $max, if truncated adds ... (override with second parameter).
+     * Invalid UTF-8 bytes are substituted with � (like htmlEncode/jsonEncode).
      */
     public function maxWords(int $max, string $ellipsis = "..."): SmartString
     {
         $newValue = null;
         if (!is_null($this->rawData)) {
-            $text     = trim((string)$this->rawData);
+            $text     = trim(self::substituteInvalidUtf8((string)$this->rawData));
             $words    = preg_split('/\s+/u', $text);
             $newValue = implode(' ', array_slice($words, 0, $max));
             if (count($words) > $max) {
@@ -316,21 +328,22 @@ class SmartString implements JsonSerializable
     /**
      * Limit chars to $max breaking at the last whole word, if truncated adds ... (override
      * with second parameter). Whitespace runs collapse to single spaces before measuring.
+     * Invalid UTF-8 bytes are substituted with � (like htmlEncode/jsonEncode).
      */
     public function maxChars(int $max, string $ellipsis = "..."): SmartString
     {
         $newValue = null;
         if (!is_null($this->rawData)) {
-            $text = preg_replace('/\s+/u', ' ', trim((string)$this->rawData));
+            $text = preg_replace('/\s+/u', ' ', trim(self::substituteInvalidUtf8((string)$this->rawData)));
 
-            if (mb_strlen($text) <= $max) {
+            if (mb_strlen($text, 'UTF-8') <= $max) {
                 $newValue = $text;
             } elseif ($max > 0 && preg_match("/^.{1,$max}(?=\s|$)/u", $text, $matches)) {
                 $newValue = $matches[0];
                 $newValue = preg_replace('/\p{P}+$/u', '', $newValue); // Strip trailing Unicode punctuation before ellipsis
                 $newValue .= $ellipsis;
             } else {
-                $newValue = mb_substr($text, 0, $max) . $ellipsis;
+                $newValue = mb_substr($text, 0, $max, 'UTF-8') . $ellipsis;
             }
         }
 
@@ -356,10 +369,10 @@ class SmartString implements JsonSerializable
             is_null($this->rawData)    => null,
             is_bool($this->rawData)    => null,
             is_numeric($this->rawData) => (int)$this->rawData,
-            default                    => strtotime($this->rawData) ?: null,
+            default                    => strtotime($this->rawData), // int|false; is_int() below keeps timestamp 0 (the epoch) formatting
         };
 
-        $newValue = !is_null($timestamp) ? date($format, $timestamp) : null;
+        $newValue = is_int($timestamp) ? date($format, $timestamp) : null;
 
         return new self($newValue);
     }
@@ -398,7 +411,7 @@ class SmartString implements JsonSerializable
      * ->ifZero() can't detect zero after formatting (percent() has already made it "0.00%").
      *
      * @param int $decimals Number of decimal places in formatted output
-     * @param string|int|float|null $ifZero Optional fallback returned when the value is zero
+     * @param string|int|float|bool|null|SmartString|SmartNull $ifZero Optional fallback returned when the value is zero
      * @return SmartString Formatted percentage, or null if not numeric
      *
      * @example Converting numbers to percentages:
@@ -410,13 +423,14 @@ class SmartString implements JsonSerializable
      *   echo $zero->percent(2);                  // "0.00%"
      *   echo $zero->percent(2, ifZero: "None");  // "None"
      */
-    public function percent(int $decimals = 0, string|int|float|null $ifZero = null): SmartString
+    public function percent(int $decimals = 0, string|int|float|bool|null|SmartString|SmartNull $ifZero = null): SmartString
     {
         $value    = self::getFloatOrNull($this->rawData);
+        $ifZero   = self::getRawValue($ifZero);
         $newValue = match (true) {
             is_null($value)                     => null,
             $value === 0.0 && !is_null($ifZero) => $ifZero,
-            default                                   => number_format($value * 100, $decimals, self::$numberFormatDecimal, self::$numberFormatThousands) . '%',
+            default                             => number_format($value * 100, $decimals, self::$numberFormatDecimal, self::$numberFormatThousands) . '%',
         };
         return new self($newValue);
     }
@@ -902,17 +916,41 @@ class SmartString implements JsonSerializable
      * @param string $property Name of the property/method being accessed
      * @return SmartString Always returns a new instance with null value to prevent fatal errors
      */
-    public function __get(string $property): SmartString
+    /**
+     * Returns a short quoted preview of the value for error messages (strings truncated to 20 chars).
+     */
+    private function valuePreview(): string
     {
-        // Format value for display (truncate strings to 20 chars)
-        $formattedValue = match (true) {
-            is_string($this->rawData) => mb_strlen($this->rawData) <= 20
+        return match (true) {
+            is_string($this->rawData) => mb_strlen($this->rawData, 'UTF-8') <= 20
                 ? "\"$this->rawData\""
-                : '"' . mb_substr($this->rawData, 0, 20) . '..."',
+                : '"' . mb_substr($this->rawData, 0, 20, 'UTF-8') . '..."',
             is_bool($this->rawData)   => $this->rawData ? "TRUE" : "FALSE",
             is_null($this->rawData)   => "NULL",
             default                   => (string)$this->rawData,
         };
+    }
+
+    /**
+     * SmartString is a single value, so foreach over one is always a mistake. PHP would
+     * silently loop zero times (no accessible properties); this throws instead so the
+     * mistake is visible. Also fires for iterator_to_array() and yield from.
+     */
+    public function getIterator(): Iterator
+    {
+        // SECURITY: encode < > & in the preview - exception handlers often echo messages into pages (see orThrow).
+        // No ENT_QUOTES: the preview's own quotes stay readable in logs and CLI stack traces.
+        $preview = htmlspecialchars($this->valuePreview(), ENT_SUBSTITUTE | ENT_DISALLOWED | ENT_HTML5, 'UTF-8');
+        throw new CallerException(
+            "Can't foreach over SmartString $preview - it holds a single value, not a collection. " .
+            "Did you mean to loop the SmartArray row or result set it came from?"
+        );
+    }
+
+    public function __get(string $property): SmartString
+    {
+        // Format value for display (truncate strings to 20 chars)
+        $formattedValue = $this->valuePreview();
 
         // throw unknown property warning
         // PHP Default Error: Warning: Undefined property: stdClass::$property in C:\dev\projects\SmartString\test.php on line 28
@@ -972,8 +1010,9 @@ class SmartString implements JsonSerializable
             'int'            => ['toint', 'getint', 'integer'],
             'ifEquals'       => ['ifequal', 'ifmatch'],
             'ifTrue'         => ['when', 'setif'],
+            'ifZero'         => ['iszero'], // pre-2.1.2 method name, promised a suggestion in UPGRADING.md
             'isEmpty'        => ['isblank', 'empty'],
-            'isMissing'      => ['isempty', 'ismissingvalue'],
+            'isMissing'      => ['ismissingvalue'],
             'isNotEmpty'     => ['isnotblank', 'hasvalue', 'ispresent', 'notempty'],
             'jsonEncode'     => ['tojson', 'encodejson', 'json_encode', 'json'],
             'map'            => ['pipe', 'transform', 'callback'],
@@ -984,15 +1023,16 @@ class SmartString implements JsonSerializable
             'numberFormat'   => ['formatnumber', 'number_format', 'format'],
             'or'             => ['default', 'ifmissing', 'fallback', 'else'],
             'prepend'        => ['prefix'],
+            'pregReplace'    => ['replace'], // replace(search, replacement) intent; set() would silently keep only the first argument
             'rawHtml'        => ['unsafe', 'unescaped', 'trusted', 'trustedhtml', 'unsafehtml', 'raw', 'html'],
-            'set'            => ['setvalue', 'replace'],
-            'string'         => ['tostring', 'getstring', 'str'],
+            'set'            => ['setvalue'],
+            'string'         => ['getstring', 'str'],
             'subtract'       => ['minus', 'sub'],
             'textOnly'       => ['plaintext', 'striphtml', 'strip', 'text'],
-            'urlEncode'      => ['escapeurl', 'encodeurl', 'url_encode', 'urlencode'],
+            'urlEncode'      => ['escapeurl', 'encodeurl', 'url_encode'],
             'value'          => ['noescape', 'getvalue', 'val'],
             'wrap'           => ['surround', 'enclose'],
-            'wrapHtml'       => ['andwraphtml', 'surroundhtml'],
+            'wrapHtml'       => ['andwraphtml', 'surroundhtml', 'prependhtml', 'prefixhtml'], // no prepend-side method by design; wrapHtml($before, '') covers it
         ];
 
         // Check if the called method is an alias
@@ -1043,16 +1083,34 @@ class SmartString implements JsonSerializable
      * Wrap output in <xmp> tag if text/html and not called from a function that already added <xmp>
      * @noinspection SpellCheckingInspection // ignore all lowercase strtolower function name
      */
-    private static function xmpWrap($output): string
+    private static function xmpWrap(string $output): string
     {
-        $output             = trim($output, "\n");
-        $headersList        = implode("\n", headers_list());
-        $hasContentType     = (bool)preg_match('|^\s*Content-Type:\s*|im', $headersList);                          // assume no content type will default to html
-        $isTextHtml         = !$hasContentType || preg_match('|^\s*Content-Type:\s*text/html\b|im', $headersList); // match: text/html or ...;charset=utf-8
-        $backtraceFunctions = array_map('strtolower', array_column(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS), 'function'));
-        $wrapInXmp          = $isTextHtml && !in_array('showme', $backtraceFunctions, true);
+        $output = trim($output, "\n");
+        $plain  = "\n$output\n";
 
-        return $wrapInXmp ? "\n<xmp>\n$output\n</xmp>\n" : "\n$output\n";
+        // terminals show <xmp> literally; CGI builds misreport SAPI on some hosts, so check more than PHP_SAPI
+        $inCli = PHP_SAPI === 'cli'
+                 || ($_SERVER['SESSIONNAME'] ?? '') === 'Console' // Windows console
+                 || empty($_SERVER['SCRIPT_NAME']);               // only web servers set SCRIPT_NAME
+        if ($inCli) {
+            return $plain;
+        }
+
+        // non-HTML responses (json, plain text, etc.) stay unwrapped
+        $headersList    = implode("\n", headers_list());
+        $hasContentType = (bool)preg_match('|^\s*Content-Type:\s*|im', $headersList);                          // assume no content type will default to html
+        $isTextHtml     = !$hasContentType || preg_match('|^\s*Content-Type:\s*text/html\b|im', $headersList); // match: text/html or ...;charset=utf-8
+        if (!$isTextHtml) {
+            return $plain;
+        }
+
+        // showme() debug helper adds its own <xmp>
+        $backtraceFunctions = array_map('strtolower', array_column(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS), 'function'));
+        if (in_array('showme', $backtraceFunctions, true)) {
+            return $plain;
+        }
+
+        return "\n<xmp>\n$output\n</xmp>\n";
     }
 
     /**
@@ -1073,6 +1131,20 @@ class SmartString implements JsonSerializable
         }
 
         return $this->rawData;
+    }
+
+    /**
+     * Returns the string with invalid UTF-8 byte sequences substituted with � (U+FFFD),
+     * so /u regexes and mb_* functions can process it. Valid strings pass through unchanged.
+     */
+    private static function substituteInvalidUtf8(string $text): string
+    {
+        if (preg_match('//u', $text) === 1) { // isValid: ~5x faster than mb_check_encoding()
+            return $text;
+        }
+
+        // json_encode's own U+FFFD substitution, so bad bytes become the same � that htmlEncode() and jsonEncode() produce
+        return json_decode(json_encode($text, JSON_INVALID_UTF8_SUBSTITUTE));
     }
 
     /**

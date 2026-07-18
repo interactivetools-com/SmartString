@@ -270,6 +270,16 @@ class MathTest extends SmartStringTestCase
         $this->assertSmartString('N/A', $result);
     }
 
+    /**
+     * A SmartString $ifZero unwraps to its raw value like every other value
+     * parameter - the fallback must not arrive HTML-encoded (double-encodes on
+     * output) or throw TypeError under strict_types.
+     */
+    public function testPercentIfZeroAcceptsSmartString(): void
+    {
+        $this->assertSame('Tom & Co', SmartString::new(0)->percent(2, ifZero: SmartString::new('Tom & Co'))->value());
+    }
+
     public function testPercentIfZeroOnlyAppliesToZero(): void
     {
         $this->assertSmartString(0, SmartString::new(0)->percent(2, 0));              // numeric fallback keeps its type

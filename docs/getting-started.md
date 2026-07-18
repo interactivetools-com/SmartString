@@ -17,9 +17,10 @@ already a SmartString; skip ahead to [The Mental Model](#the-mental-model).
 composer require itools/smartstring
 ```
 
-Requirements: PHP 8.1+ and `ext-mbstring`. Composer also installs
-[SmartArray](https://github.com/interactivetools-com/SmartArray), the
-companion library that handles arrays as collections of SmartStrings.
+Requirements: PHP 8.1+ and `ext-mbstring`. The
+[SmartArray](https://github.com/interactivetools-com/SmartArray) companion
+library (arrays as collections of SmartStrings) installs separately:
+`composer require itools/smartarray`.
 
 ## Your First SmartString
 
@@ -157,7 +158,7 @@ In practice, you rarely create SmartStrings one at a time. Database rows and
 request data arrive as arrays, and
 [SmartArray](https://github.com/interactivetools-com/SmartArray)'s
 `SmartArrayHtml` class wraps a whole array so every value comes back as a
-SmartString:
+SmartString (separate install: `composer require itools/smartarray`):
 
 ```php
 use Itools\SmartArray\SmartArrayHtml;

@@ -14,14 +14,15 @@ use Tests\Support\SmartStringTestCase;
  * help.txt, so new methods can't ship undocumented.
  *
  * Exemptions:
- * - magic methods and jsonSerialize(): interface plumbing, never called directly
+ * - magic methods, jsonSerialize(), getIterator(): interface plumbing, never
+ *   called directly (getIterator only throws a foreach-misuse error)
  * - everything in the DeprecatedAliases trait: renamed and retired methods
  *   keep working but stay out of the docs by design - docs show only the
  *   current names
  */
 class DocsCoverageTest extends SmartStringTestCase
 {
-    private const EXEMPT = ['and', 'andPrefix', 'apply', 'dateTimeFormat', 'if', 'ifBlank', 'phoneFormat', 'textToHtml', 'jsonSerialize'];
+    private const EXEMPT = ['and', 'andPrefix', 'apply', 'dateTimeFormat', 'if', 'ifBlank', 'phoneFormat', 'textToHtml', 'jsonSerialize', 'getIterator'];
 
     #[DataProvider('publicMethodsProvider')]
     public function testMethodIsInMethodReference(string $method): void

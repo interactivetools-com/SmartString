@@ -5,6 +5,7 @@ namespace Tests\Unit;
 
 use Error;
 use Itools\SmartArray\SmartArrayHtml;
+use Itools\SmartString\CallerException;
 use Itools\SmartString\SmartString;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
@@ -157,6 +158,9 @@ class MagicMethodsTest extends SmartStringTestCase
             'formatnumber → numberFormat' => ['formatnumber', 'numberFormat'],
             'plus → add'               => ['plus', 'add'],
             'raw → rawHtml'            => ['raw', 'rawHtml'],
+            'iszero → ifZero'          => ['iszero', 'ifZero'], // pre-2.1.2 name; UPGRADING.md says the error suggests the fix
+            'replace → pregReplace'    => ['replace', 'pregReplace'], // NOT set(): set('a','b') silently keeps only 'a'
+            'prependHtml → wrapHtml'   => ['prependHtml', 'wrapHtml'], // no prepend-side method by design; wrapHtml($before, '') covers it
         ];
     }
 
@@ -228,6 +232,27 @@ class MagicMethodsTest extends SmartStringTestCase
         $this->assertSame('TRUE', $rawDataFor(true));
         $this->assertSame('FALSE', $rawDataFor(false));
         $this->assertSame("NULL, // Either value is NULL or field doesn't exist", $rawDataFor(null));
+    }
+
+    //endregion
+    //region getIterator()
+
+    /**
+     * foreach over a SmartString throws instead of PHP's silent zero-iteration
+     * loop (no accessible properties). The message shows the value so the
+     * field-vs-row mixup is obvious.
+     */
+    public function testForeachThrowsWithValueAndHint(): void
+    {
+        try {
+            foreach (SmartString::new('red,green,blue') as $tag) {
+                $this->fail("foreach body should never run, got: $tag");
+            }
+            $this->fail('Expected CallerException was not thrown');
+        } catch (CallerException $e) {
+            $this->assertStringContainsString('Can\'t foreach over SmartString "red,green,blue"', $e->getMessage());
+            $this->assertStringContainsString('single value, not a collection', $e->getMessage());
+        }
     }
 
     //endregion

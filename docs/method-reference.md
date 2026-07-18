@@ -74,7 +74,7 @@ ready for regular PHP code.
 | `->dateFormat($format = null)`             | Formats as a date or datetime, e.g. `dateFormat('Y-m-d H:i:s')`; default: `SmartString::$dateFormat` |
 | `->numberFormat($decimals = 0)`            | Formats the value as a number with thousands separators and `$decimals` decimal places               |
 | `->percent($decimals = 0, $ifZero = null)` | Converts a decimal to a percentage, e.g. 0.24 becomes 24%; `$ifZero` is shown for zero values        |
-| `->percentOf($total, $decimals = 0)`       | Calculates what percentage the value is of `$total`, e.g. 25 of 200 is 12.5%                         |
+| `->percentOf($total, $decimals = 0)`       | Calculates what percentage the value is of `$total`, e.g. 24 of 100 is 24%                         |
 | `->add($value)`                            | Adds `$value` to the current number                                                                  |
 | `->subtract($value)`                       | Subtracts `$value` from the current number                                                           |
 | `->multiply($value)`                       | Multiplies the current number by `$value`                                                            |

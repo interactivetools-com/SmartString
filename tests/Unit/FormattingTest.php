@@ -39,6 +39,7 @@ class FormattingTest extends SmartStringTestCase
             'custom format output'      => ['2023-05-15 14:30:00', 'd/m/Y H:i T', '15/05/2023 14:30 MST'],
             'null input'                => [null, 'Y-m-d T', null],
             'zero timestamp'            => [0, 'Y-m-d H:i:s T', '1969-12-31 17:00:00 MST'],
+            'epoch zero date string'    => ['1970-01-01 00:00:00 UTC', 'Y-m-d H:i:s T', '1969-12-31 17:00:00 MST'],
             'negative timestamp'        => [-1684159800, 'Y-m-d H:i:s T', '1916-08-19 02:50:00 MST'],
             'far future date'           => ['2123-05-15 14:30:00', 'Y-m-d H:i:s T', '2123-05-15 14:30:00 MST'],
             'invalid date string'       => ['not a date', 'Y-m-d T', null],

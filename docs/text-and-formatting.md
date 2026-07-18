@@ -302,8 +302,8 @@ chaining:
 // map($func, ...$args)
 $name = SmartString::new('John Doe');
 
-echo $name->map('strtoupper');                         // JOHN DOE
-echo $name->map(strtoupper(...));                      // JOHN DOE (first-class callable syntax, PHP 8.1+)
+echo $name->map('mb_strtoupper');                      // JOHN DOE (mb_ case functions handle accents too: josé → JOSÉ)
+echo $name->map(mb_strtoupper(...));                   // JOHN DOE (first-class callable syntax, PHP 8.1+)
 echo $name->map('str_pad', 15, '.');                   // John Doe....... (extra args pass through)
 echo $name->map(fn($v) => str_replace(' ', '_', $v));  // John_Doe
 ```
@@ -314,7 +314,7 @@ raise a deprecation notice on null, so chain `ifNull('')` first when the
 value can be missing:
 
 ```php
-echo $user->nickname->ifNull('')->map('ucwords');
+echo $user->nickname->ifNull('')->map('mb_convert_case', MB_CASE_TITLE);
 ```
 
 The callback must return a scalar or null; returning an array or object

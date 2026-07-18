@@ -220,8 +220,8 @@ function is called just once (the name matches `array_map()` and
 `SmartArray::map()`):
 
 ```php
-echo $province->code->map('strtoupper');                              // BC
-echo $user->name->ifNull('')->map('ucwords');                         // built-ins like ucwords() reject null, so convert it first
+echo $province->code->map('mb_strtoupper');                          // BC
+echo $user->name->ifNull('')->map('mb_convert_case', MB_CASE_TITLE); // built-ins reject null, so convert it first
 echo $sku->map(fn($v) => str_pad((string)$v, 6, '0', STR_PAD_LEFT));  // zero-pads to 6 digits: 000042
 ```
 

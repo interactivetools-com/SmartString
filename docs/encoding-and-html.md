@@ -93,6 +93,17 @@ echo "<a href='search.php?title={$title->urlEncode()}'>Search</a>";
 // <a href='search.php?title=%3C10%25+OFF+%22SALE%22'>Search</a>
 ```
 
+Linking to a file or path that might have spaces in the name? Use
+`map('rawurlencode')`. The `+` from `urlEncode()` looks nicer in URLs, but
+only query strings read it as a space - files and paths need `%20`:
+
+```php
+$file = SmartString::new('Annual Report 2026.pdf');
+
+echo "<a href='/uploads/{$file->map('rawurlencode')}'>Download</a>";
+// <a href='/uploads/Annual%20Report%202026.pdf'>Download</a>
+```
+
 ### JSON Encoding - `jsonEncode()`
 
 Returns the value as a JSON string safe to embed in a `<script>` block. The
