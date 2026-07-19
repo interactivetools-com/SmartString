@@ -11,21 +11,45 @@ To regenerate: dispatch the Speed Matrix workflow (Actions tab or
 
 Verdicts from this run (details in the per-test rows below):
 
-- **gate-preg** (identity fast path): ADOPTED in SmartString 3.0 - see
-  ENCODE_SKIP_REGEX in src/SmartString.php. Positive on all 25 cells.
-- **arr-get** (folded __get): adopt in SmartArray; union return kept
-  (arr-get-mixed gain does not reproduce cross-platform).
-- **prop-type**: ADOPTED in SmartString 3.0 - $rawData is untyped (typed ctor param + ImmutabilityTest cover the contract); see its docblock.
-- **promo**, **memo-mix**: ties everywhere - settled, not worth adopting.
-- **gate-adaptive** (strspn on 8.4+): rejected - loses on short strings on
-  every platform, including 8.4+.
-- **strspn-cliff**: documents why - strspn is ~50x slower than preg scanning
-  before PHP 8.4 on every platform.
-- **tier-strrep**, **gate-unicode**: deferred phase-2 candidates
-  (tier-strrep is platform-skewed: big on Windows/Linux, ~1.0x on macOS).
-- **no-object**: ceiling reference only (~2x), parked.
+### Adopted
+
+- **gate-preg** (identity fast path): SmartString 3.0 - see ENCODE_SKIP_REGEX in
+  src/SmartString.php. Positive on all 25 cells.
+- **arr-get** (folded __get): SmartArray 3.0 - see __get() in
+  src/SmartArrayBase.php; union return kept (arr-get-mixed gain does not
+  reproduce cross-platform).
+- **prop-type**: SmartString 3.0 - $rawData is untyped (typed ctor param +
+  ImmutabilityTest cover the contract); see its docblock.
+
+### Rejected
+
+- **gate-adaptive** (strspn on 8.4+): loses on short strings on every platform,
+  including 8.4+.
+- **promo**: tie everywhere - constructor promotion is pure style, settled.
+- **memo-mix**: tie-to-slower everywhere - memo cache is pure overhead.
+
+### Deferred (phase-2 candidates, revisit with numbers in hand)
+
+- **tier-strrep**: gated str_replace tier for dirty HTML - platform-skewed
+  (3-4x Windows, ~2x Linux, ~1.0x macOS).
+- **gate-unicode**: /u clean-multibyte tier - 3.4-13.9x on accented 1KB text,
+  costs ~60ns on short accented strings; matters for non-English installs.
+- **gate-hybrid-len** (untested): route long strings to strspn on PHP 8.4+
+  (`PHP_VERSION_ID >= 80400 && strlen >= threshold`; version check compiles away,
+  strlen is one compare). Would add ~400ns per 1KB clean field on 8.4+ only
+  (~0.4ns/byte; scan drops ~840ns -> ~420ns, gate win ~8x -> ~14x); zero gain on
+  short fields and on 8.1-8.3. The 64-512B crossover threshold is unmeasured -
+  needs a probe A/B before adopting. Ages well as 8.4+ adoption grows.
 - **idiom**: ->htmlEncode() is a few percent faster than (string) cast -
-  docs tip, not a code change.
+  pending docs tip, not a code change.
+
+### Reference (informs decisions, not a candidate)
+
+- **strspn-cliff**: documents why gate-adaptive exists at all - strspn is ~50x
+  slower than preg scanning before PHP 8.4 on every platform, then flips to
+  1.5-2.2x faster at 8.4.
+- **no-object**: ceiling measurement (~2x) for a hypothetical no-object opt-in
+  class; parked, no design.
 
 ## Speed matrix: B-vs-A ratios (>1.00 = candidate faster)
 

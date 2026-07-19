@@ -126,6 +126,52 @@ function enc_adaptive(string $s): string
     return PHP_VERSION_ID >= 80400 ? enc_hybrid_strspn($s) : enc_two_tier($s);
 }
 
+/**
+ * OS-gated str_replace tier: identity gate everywhere, but the str_replace tier only
+ * off macOS (its htmlspecialchars is already fast; Windows/Linux gain 2-4x).
+ * PHP_OS_FAMILY is a compile-time constant like PHP_VERSION_ID, so opcache deletes
+ * the dead branch: on Windows/Linux this must measure as an exact tie vs the ungated
+ * two-tier (that tie IS what this variant exists to demonstrate), and on macOS it
+ * shows what gating the tier off costs there (expected ~nothing, tier is ~1.0x).
+ */
+function enc_os_tier(string $s): string
+{
+    if (preg_match(GATE_CHANGEABLE, $s) === 0) {
+        return $s;
+    }
+    if (PHP_OS_FAMILY !== 'Darwin' && preg_match(GATE_NON_ASCII, $s) === 0) {
+        return str_replace(SPECIALS_FROM, SPECIALS_TO, $s);
+    }
+    return htmlspecialchars($s, FLAGS, 'UTF-8');
+}
+
+/**
+ * Length+version hybrid gate (deferred candidate gate-hybrid-len): identical to the
+ * shipped preg gate except long strings on PHP 8.4+ scan with strspn instead of preg
+ * (strspn is ~2x faster per byte there, but has setup cost that loses on short strings,
+ * and is catastrophically slow before 8.4). Both version check and strlen are ~free:
+ * the version branch constant-folds, strlen is one compare.
+ */
+const HYBRID_LEN_THRESHOLD = 256;
+
+function enc_hybrid_len(string $s): string
+{
+    // preg path inlined (not enc_gate()) so the short-string A/B measures the guard
+    // cost alone, not an extra function call the real implementation wouldn't have.
+    // strlen stays inside the condition: hoisting it to a variable keeps the
+    // assignment alive on <= 8.3 even though the whole branch is dead there.
+    if (PHP_VERSION_ID >= 80400 && strlen($s) >= HYBRID_LEN_THRESHOLD) {
+        if (strspn($s, TIER1) === strlen($s)) {
+            return $s;
+        }
+        return htmlspecialchars($s, FLAGS, 'UTF-8');
+    }
+    if (preg_match(GATE_CHANGEABLE, $s) === 0) {
+        return $s;
+    }
+    return htmlspecialchars($s, FLAGS, 'UTF-8');
+}
+
 /** Guarded per-request memo stacked behind the gate (verified REJECT; matrix confirms cross-platform). */
 function enc_memo(string $s): string
 {
@@ -318,12 +364,18 @@ function build_clean(int $len, int $seed): string
 function build_pools(): array
 {
     $pools = ['clean10' => [], 'clean200' => [], 'clean1k' => [], 'dirty10' => [],
-              'dirty1k' => [], 'accented1k' => [], 'mix' => [], 'memo_mix' => []];
+              'dirty1k' => [], 'accented1k' => [], 'mix' => [], 'memo_mix' => [],
+              'clean64' => [], 'clean128' => [], 'clean256' => [], 'clean512' => []];
 
     for ($i = 0; $i < 64; $i++) {
         $pools['clean10'][]  = build_clean(10, 1000 + $i);
         $pools['clean200'][] = build_clean(200, 2000 + $i);
         $pools['clean1k'][]  = build_clean(1024, 3000 + $i);
+        // crossover sweep lengths: where does strspn's setup cost break even vs preg?
+        $pools['clean64'][]  = build_clean(64, 7000 + $i);
+        $pools['clean128'][] = build_clean(128, 7100 + $i);
+        $pools['clean256'][] = build_clean(256, 7200 + $i);
+        $pools['clean512'][] = build_clean(512, 7300 + $i);
         // dirty10: one special mid-string
         $pools['dirty10'][] = substr(build_clean(9, 4000 + $i), 0, 4) . '&' . substr(build_clean(9, 4000 + $i), 5);
         // dirty1k: HTML-ish, specials throughout (ASCII only, so the str_replace tier fires)
@@ -460,6 +512,50 @@ function build_tests(array $pools): array
             looped(static fn(string $v): int => strlen(enc_two_tier($v)), $pools['accented1k']),
             looped(static fn(string $v): int => strlen(enc_three_tier($v)), $pools['accented1k']), ['enc_two_tier', 'enc_three_tier']],
 
+        // --- Length+version hybrid gate (deferred candidate gate-hybrid-len) ---
+        ['gate-hybrid-short', 'short', 'shipped preg gate', 'hybrid-len gate',
+            looped(static fn(string $v): int => strlen(enc_gate($v)), $pools['clean10']),
+            looped(static fn(string $v): int => strlen(enc_hybrid_len($v)), $pools['clean10']), ['enc_gate', 'enc_hybrid_len']],
+        ['gate-hybrid-1kb', 'long', 'shipped preg gate', 'hybrid-len gate',
+            looped(static fn(string $v): int => strlen(enc_gate($v)), $pools['clean1k']),
+            looped(static fn(string $v): int => strlen(enc_hybrid_len($v)), $pools['clean1k']), ['enc_gate', 'enc_hybrid_len']],
+        ['gate-hybrid-mix', 'medium', 'shipped preg gate', 'hybrid-len gate',
+            looped(static fn(string $v): int => strlen(enc_gate($v)), $pools['mix']),
+            looped(static fn(string $v): int => strlen(enc_hybrid_len($v)), $pools['mix']), ['enc_gate', 'enc_hybrid_len']],
+
+        // --- Scan crossover sweep: raw preg vs strspn scan by length (locates the threshold) ---
+        ['scan-cross-10', 'short', 'preg scan 10B', 'strspn scan 10B',
+            looped(static fn(string $v): int => preg_match(GATE_CHANGEABLE, $v) === 0 ? strlen($v) : 0, $pools['clean10']),
+            looped(static fn(string $v): int => strspn($v, TIER1) === strlen($v) ? strlen($v) : 0, $pools['clean10']), []],
+        ['scan-cross-64', 'medium', 'preg scan 64B', 'strspn scan 64B',
+            looped(static fn(string $v): int => preg_match(GATE_CHANGEABLE, $v) === 0 ? strlen($v) : 0, $pools['clean64']),
+            looped(static fn(string $v): int => strspn($v, TIER1) === strlen($v) ? strlen($v) : 0, $pools['clean64']), []],
+        ['scan-cross-128', 'medium', 'preg scan 128B', 'strspn scan 128B',
+            looped(static fn(string $v): int => preg_match(GATE_CHANGEABLE, $v) === 0 ? strlen($v) : 0, $pools['clean128']),
+            looped(static fn(string $v): int => strspn($v, TIER1) === strlen($v) ? strlen($v) : 0, $pools['clean128']), []],
+        ['scan-cross-256', 'medium', 'preg scan 256B', 'strspn scan 256B',
+            looped(static fn(string $v): int => preg_match(GATE_CHANGEABLE, $v) === 0 ? strlen($v) : 0, $pools['clean256']),
+            looped(static fn(string $v): int => strspn($v, TIER1) === strlen($v) ? strlen($v) : 0, $pools['clean256']), []],
+        ['scan-cross-512', 'medium', 'preg scan 512B', 'strspn scan 512B',
+            looped(static fn(string $v): int => preg_match(GATE_CHANGEABLE, $v) === 0 ? strlen($v) : 0, $pools['clean512']),
+            looped(static fn(string $v): int => strspn($v, TIER1) === strlen($v) ? strlen($v) : 0, $pools['clean512']), []],
+
+        // --- OS gate: PHP_OS_FAMILY branch must be free where live, harmless where not ---
+        ['tier-os-gated-short', 'short', 'ungated two-tier', 'OS-gated two-tier',
+            looped(static fn(string $v): int => strlen(enc_two_tier($v)), $pools['clean10']),
+            looped(static fn(string $v): int => strlen(enc_os_tier($v)), $pools['clean10']), ['enc_two_tier', 'enc_os_tier']],
+        ['tier-os-gated-dirty', 'long', 'ungated two-tier', 'OS-gated two-tier',
+            looped(static fn(string $v): int => strlen(enc_two_tier($v)), $pools['dirty1k']),
+            looped(static fn(string $v): int => strlen(enc_os_tier($v)), $pools['dirty1k']), ['enc_two_tier', 'enc_os_tier']],
+
+        // --- Stacked maximum: everything adoptable at once vs plain htmlspecialchars ---
+        ['stack-mix', 'medium', 'htmlspecialchars', 'three-tier stacked',
+            looped(static fn(string $v): int => strlen(enc_baseline($v)), $pools['mix']),
+            looped(static fn(string $v): int => strlen(enc_three_tier($v)), $pools['mix']), ['enc_three_tier']],
+        ['stack-accented-mix', 'medium', 'htmlspecialchars', 'three-tier stacked',
+            looped(static fn(string $v): int => strlen(enc_baseline($v)), $pools['accented1k']),
+            looped(static fn(string $v): int => strlen(enc_three_tier($v)), $pools['accented1k']), ['enc_three_tier']],
+
         // --- SmartArray access path (adoption candidate #2) ---
         ['arr-get', 'short', 'current 3-call chain', 'folded single-lookup __get',
             row_loop(ArrCurrent::class, $pools['clean10']),
@@ -526,7 +622,7 @@ $out = [
 $encoderStatus = [];
 if (!isset($opts['skip-corpus'])) {
     $corpus   = speed_corpus();
-    $encoders = ['enc_gate', 'enc_two_tier', 'enc_three_tier', 'enc_adaptive', 'enc_hybrid_strspn', 'enc_memo'];
+    $encoders = ['enc_gate', 'enc_two_tier', 'enc_three_tier', 'enc_adaptive', 'enc_hybrid_strspn', 'enc_hybrid_len', 'enc_os_tier', 'enc_memo'];
     // strspn corpus pass is slow before 8.4 (linear charset scan) but corpus strings are
     // short, so it stays in: correctness must hold even where we'd never deploy it.
     foreach ($encoders as $fn) {
