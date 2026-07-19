@@ -80,9 +80,12 @@ final class SmartString implements JsonSerializable, IteratorAggregate
 
     // strspn() overtakes the preg scan at 64-128 bytes depending on platform; 128 is the
     // lowest length that wins or ties on every 8.4+ cell (8-61% faster on 128-255B clean
-    // strings; at 64B it still loses on Linux x64 and macOS ARM). See speed-results.md
-    // (tests: thresh-128-*, scan-cross-*).
-    private const ENCODE_STRSPN_MIN_BYTES = 128;
+    // strings; at 64B it still loses on Linux x64 and macOS ARM). Windows is the
+    // exception: 64 wins 20-25% there, and its official PHP builds are x64-only, so the
+    // OS check implies the architecture. PHP_OS_FAMILY is known at compile time - the
+    // expression folds to a plain integer, and non-Windows platforms measured exact
+    // ties. See speed-results.md (tests: thresh-128-*, thresh-64-*, thresh-os-64b).
+    private const ENCODE_STRSPN_MIN_BYTES = PHP_OS_FAMILY === 'Windows' ? 64 : 128;
 
     /** Control chars, DEL, or non-ASCII: no match = ASCII needing only the five specials encoded */
     private const ENCODE_NON_ASCII_REGEX = '/[\x00-\x08\x0B\x0E-\x1F\x7F-\xFF]/';

@@ -1,4 +1,4 @@
-# Speed Matrix results - full runs 2026-07-18 (29670857386) and 2026-07-19 (29675354782, 29676033393 current grid below; repeated tests reproduced run 1 within noise). Filtered run 29690005430 (2026-07-19) added the thresh-128-* and strtr-* rows.
+# Speed Matrix results - full runs 2026-07-18 (29670857386) and 2026-07-19 (29675354782, 29676033393 current grid below; repeated tests reproduced run 1 within noise). Filtered runs 29690005430 and 29690465062 (2026-07-19) added the thresh-128-*/strtr-* and thresh-64/os/arch rows.
 
 Run: https://github.com/interactivetools-com/SmartString/actions/runs/29676033393
 (25 cells: PHP 8.1-8.5 x linux-x64/linux-arm/windows-x64/macos-x64/macos-arm,
@@ -45,6 +45,11 @@ Verdicts from this run (details in the per-test rows below):
   every 8.1-8.3 cell is an exact tie (dead branch). 128 is the lowest length
   that wins everywhere: at 64B the strspn scan still loses on linux-x64 and
   darwin-arm (scan-cross-64, 0.92-0.94x).
+- **thresh-os** (adopted 2026-07-19, run 29690465062): ENCODE_STRSPN_MIN_BYTES
+  is 64 on Windows, 128 elsewhere. Windows 8.4+ wins 1.20-1.21x on 64-127B
+  clean strings; PHP_OS_FAMILY is compile-time so the ternary folds to a plain
+  integer, and every non-Windows cell measured a tie. Windows PHP builds are
+  x64-only (no ARM64 builds exist), so the OS check implies the architecture.
 
 ### Rejected
 
@@ -61,6 +66,16 @@ Verdicts from this run (details in the per-test rows below):
   php_strtr_array_ex pays a per-call bitset alloc sized to the input plus a
   scalar byte loop. Settled with data - do not re-open without new C-level
   changes in php-src.
+- **thresh-64 flat** (rejected 2026-07-19, run 29690465062): 64B minimum on all
+  platforms loses on linux-x64 (0.93x) and darwin-arm (0.93-0.94x) at 8.4+,
+  exactly where scan-cross-64 predicted. Platform-split, not adoptable flat.
+- **thresh-arch** (rejected 2026-07-19, run 29690465062): the 64B threshold for
+  Windows plus Linux ARM needs php_uname('m'), a function call - illegal in
+  constant expressions, so it must be a runtime define() that opcache cannot
+  fold. The per-call constant fetch is not reliably free: cells that should tie
+  showed 0.85-0.94x (thresh-arch-64b darwin-x64 8.4, thresh-arch-short
+  linux-x64 8.5). Linux ARM's 64B win (1.17-1.18x) stays on the table; the
+  only compile-time-detectable winner is Windows, which thresh-os captures.
 
 ### Deferred (phase-2 candidates, revisit with numbers in hand)
 
@@ -112,6 +127,11 @@ Correctness: every encoder byte-identical on every cell.
 | strtr-sparse-1kb | 0.72x (slower) | 0.70x (slower) | 0.70x (slower) | 0.70x (slower) | 0.73x (slower) | 0.72x (slower) | 0.90x (slower) | 0.91x (slower) | 0.90x (slower) | 0.65x (slower) | 0.75x (slower) | 0.74x (slower) | 0.74x (slower) | 0.74x (slower) | 0.86x (slower) | 0.61x (slower) | 0.72x (slower) | 0.76x (slower) | 0.70x (slower) | 0.70x (slower) | 0.78x (slower) | 0.71x (slower) | 0.67x (slower) | 0.65x (slower) | 0.67x (slower) |
 | strtr-dense-1kb | **1.19x** | **1.16x** | **1.16x** | **1.13x** | 0.84x (slower) | 0.99x | 0.93x (slower) | 0.92x (slower) | 0.91x (slower) | 0.82x (slower) | 0.91x (slower) | 0.94x (slower) | 0.93x (slower) | 0.93x (slower) | 0.81x (slower) | 0.76x (slower) | 0.62x (slower) | 0.67x (slower) | 0.66x (slower) | 0.68x (slower) | **1.21x** | 0.90x (slower) | 0.86x (slower) | 0.83x (slower) | 0.91x (slower) |
 | strtr-short | **1.16x** | **1.08x** | **1.08x** | **1.10x** | **1.11x** | **1.22x** | 0.96x | 0.98x | 0.97x | 1.04x | **1.09x** | **1.05x** | 1.03x | 1.04x | **1.05x** | 1.00x | 0.95x (slower) | 0.98x | 1.04x | 1.04x | **1.09x** | 1.00x | 0.99x | 0.96x | 0.95x |
+| thresh-64-64b | 1.00x | 1.00x | 1.00x | 0.94x (slower) | 0.93x (slower) | **1.17x** | **1.07x** | 1.00x | **1.12x** | 1.04x | 1.02x | 1.00x | 1.00x | **1.23x** | **1.23x** | 0.99x | 0.99x | 1.01x | 0.93x (slower) | 0.97x | 1.00x | 1.02x | 1.01x | **1.25x** | **1.20x** |
+| thresh-64-96b | 1.01x | 1.00x | 1.00x | 1.02x | 1.02x | **1.08x** | 0.92x (slower) | 1.01x | **1.34x** | **1.14x** | 0.99x | 0.97x | 0.99x | **1.32x** | **1.31x** | 1.01x | 1.00x | 1.01x | 1.00x | 1.04x | 1.02x | 1.04x | 1.00x | **1.24x** | **1.22x** |
+| thresh-os-64b | 1.00x | 1.00x | 1.00x | 0.98x | 0.97x | 1.02x | **1.19x** | 1.02x | 0.99x | 0.95x | 0.98x | 1.01x | 1.02x | 0.98x | 1.00x | 1.03x | 0.99x | 1.00x | 1.01x | 0.99x | 1.03x | 0.90x (slower) | 1.00x | **1.21x** | **1.20x** |
+| thresh-arch-64b | 1.00x | 1.00x | 1.00x | 0.98x | 0.99x | 1.04x | 1.03x | 1.01x | 0.85x (slower) | 1.00x | 1.03x | 0.99x | 1.00x | **1.18x** | **1.17x** | 1.04x | 0.99x | 1.00x | 1.00x | 0.94x (slower) | 1.01x | 0.96x | 1.00x | **1.15x** | **1.21x** |
+| thresh-arch-short | 1.00x | 1.00x | 1.00x | 0.97x | 0.96x | 0.92x (slower) | **1.05x** | 1.03x | 0.96x | 0.95x (slower) | 1.02x | 1.03x | 0.99x | 0.99x | 0.97x | **1.07x** | 0.97x | 0.99x | 0.99x | 0.88x (slower) | 0.99x | 0.99x | 1.00x | 1.00x | 0.99x |
 
 <details><summary>Test legend (A vs B)</summary>
 
@@ -151,5 +171,10 @@ Correctness: every encoder byte-identical on every cell.
 - **strtr-sparse-1kb**: str_replace tier vs strtr tier
 - **strtr-dense-1kb**: str_replace tier vs strtr tier
 - **strtr-short**: str_replace tier vs strtr tier
+- **thresh-64-64b**: hybrid gate (128B min) vs hybrid gate (64B min)
+- **thresh-64-96b**: hybrid gate (128B min) vs hybrid gate (64B min)
+- **thresh-os-64b**: hybrid gate (128B min) vs OS-gated 64B min (const-folded)
+- **thresh-arch-64b**: hybrid gate (128B min) vs arch-gated 64B min (runtime const)
+- **thresh-arch-short**: hybrid gate (128B min) vs arch-gated 64B min (runtime const)
 
 </details>
