@@ -365,7 +365,8 @@ function build_pools(): array
 {
     $pools = ['clean10' => [], 'clean200' => [], 'clean1k' => [], 'dirty10' => [],
               'dirty1k' => [], 'accented1k' => [], 'mix' => [], 'memo_mix' => [],
-              'clean64' => [], 'clean128' => [], 'clean256' => [], 'clean512' => []];
+              'clean64' => [], 'clean128' => [], 'clean256' => [], 'clean512' => [],
+              'invalid1k' => []];
 
     for ($i = 0; $i < 64; $i++) {
         $pools['clean10'][]  = build_clean(10, 1000 + $i);
@@ -382,6 +383,9 @@ function build_pools(): array
         $pools['dirty1k'][] = '<p class="x">' . str_replace(' ', ' & ', build_clean(950, 5000 + $i)) . "</p>\n";
         // accented1k: clean multibyte text (é per word), no specials
         $pools['accented1k'][] = str_replace('a', "\u{E9}", build_clean(900, 6000 + $i));
+        // invalid1k: the real-world invalid-UTF-8 case - legacy Latin-1 bytes (bare
+        // 0xE9 'é') embedded in clean ASCII; every tier must miss, encoder substitutes
+        $pools['invalid1k'][] = str_replace('o', "\xE9", build_clean(1024, 8000 + $i));
     }
 
     // Realistic field mix: 70% clean-short, 15% clean-200B, 10% clean-1KB, 5% dirty-1KB
@@ -555,6 +559,13 @@ function build_tests(array $pools): array
         ['stack-accented-mix', 'medium', 'htmlspecialchars', 'three-tier stacked',
             looped(static fn(string $v): int => strlen(enc_baseline($v)), $pools['accented1k']),
             looped(static fn(string $v): int => strlen(enc_three_tier($v)), $pools['accented1k']), ['enc_three_tier']],
+        // Worst cases: bound the stack's losses with numbers, like gate-miss-* did for the gate
+        ['stack-miss-short', 'short', 'htmlspecialchars', 'three-tier stacked',
+            looped(static fn(string $v): int => strlen(enc_baseline($v)), $pools['dirty10']),
+            looped(static fn(string $v): int => strlen(enc_three_tier($v)), $pools['dirty10']), ['enc_three_tier']],
+        ['stack-invalid-1kb', 'long', 'htmlspecialchars', 'three-tier stacked',
+            looped(static fn(string $v): int => strlen(enc_baseline($v)), $pools['invalid1k']),
+            looped(static fn(string $v): int => strlen(enc_three_tier($v)), $pools['invalid1k']), ['enc_three_tier']],
 
         // --- SmartArray access path (adoption candidate #2) ---
         ['arr-get', 'short', 'current 3-call chain', 'folded single-lookup __get',
