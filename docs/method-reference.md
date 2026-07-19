@@ -106,7 +106,7 @@ the chain continues. Zero counts as present.*
 | `->orDie($text)`        | Outputs the message and exits                                                        |
 | `->or404($text = null)` | Outputs a 404 header and the message (default: standard not-found text), then exits  |
 | `->orThrow($text)`      | Throws a RuntimeException with the message                                           |
-| `->orRedirect($url)`    | Redirects to `$url` and exits (throws RuntimeException if headers were already sent) |
+| `->orRedirect($url)`    | Redirects to `$url` and exits (throws CallerException if headers were already sent)  |
 
 ### [Value Checks](conditionals-and-error-checking.md#truefalse-checks---isempty-isnotempty-ismissing-isnull)
 

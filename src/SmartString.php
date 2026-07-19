@@ -857,13 +857,13 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      *
      * @param string $url The URL to redirect to if value is missing
      * @return self Returns $this for method chaining if not missing, redirects if missing
-     * @throws RuntimeException If headers have already been sent
+     * @throws CallerException If headers have already been sent (an InvalidArgumentException that reports your file:line)
      */
     public function orRedirect(string $url): self
     {
         // Check early so developers find out immediately, not only when isMissing()
         if (headers_sent($file, $line)) {
-            throw new RuntimeException("orRedirect(): headers already sent in $file on line $line");
+            throw new CallerException("orRedirect(): headers already sent in $file on line $line");
         }
 
         if ($this->isMissing()) {

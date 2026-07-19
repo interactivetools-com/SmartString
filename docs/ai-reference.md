@@ -222,7 +222,7 @@ HTML-encoded automatically (messages often interpolate user input).
 | `or404(?string $text = null): self` | HTTP 404 + minimal HTML page + `exit`. Default text "The requested URL was not found on this server."                                                    |
 | `orDie(string $text): self`         | Echo encoded text + `exit(1)` (failure code for CLI/cron)                                                                                                |
 | `orThrow(string $text): self`       | `throw new RuntimeException($encodedText)`. Decode for logs/CLI with `htmlspecialchars_decode($msg, ENT_QUOTES \| ENT_SUBSTITUTE \| ENT_HTML5)`          |
-| `orRedirect(string $url): self`     | 302 + `Location: $url` + `exit`. Checks `headers_sent()` IMMEDIATELY (throws RuntimeException even when value present, so misuse fails on first request) |
+| `orRedirect(string $url): self`     | 302 + `Location: $url` + `exit`. Checks `headers_sent()` IMMEDIATELY (throws CallerException even when value present, so misuse fails on first request)  |
 
 ```php
 $article->num->or404("Article not found");
@@ -280,12 +280,12 @@ print_r($str);        // shows rawData (original value) + one-time help() hint
 - **CallerException** (`Itools\SmartString\CallerException`, extends
   `InvalidArgumentException`): thrown for developer mistakes:
   `pregReplace()` invalid pattern, `map()` non-callable or non-scalar
-  return, `getRawValue()` unsupported type. Reports the CALLER's file:line
+  return, `getRawValue()` unsupported type, `orRedirect()` when headers
+  already sent. Reports the CALLER's file:line
   via `getFile()`/`getLine()`; the library's real throw site is in public
   readonly `$thrownInFile`/`$thrownInLine`. Catch as
   InvalidArgumentException.
-- **RuntimeException**: `orThrow()` (message HTML-encoded), `orRedirect()`
-  when headers already sent.
+- **RuntimeException**: `orThrow()` (message HTML-encoded).
 - **Error** (PHP native): undefined method calls, with did-you-mean
   suggestions for ~100 common alias names (`truncate` → `maxChars`,
   `escapeHtml` → `htmlEncode`, `fallback` → `or`, ...).
