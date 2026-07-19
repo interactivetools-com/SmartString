@@ -471,7 +471,7 @@ function build_pools(): array
     $pools = ['clean10' => [], 'clean200' => [], 'clean1k' => [], 'dirty10' => [],
               'dirty1k' => [], 'accented1k' => [], 'mix' => [], 'memo_mix' => [],
               'clean64' => [], 'clean128' => [], 'clean256' => [], 'clean512' => [],
-              'invalid1k' => [], 'sparse1k' => [], 'clean96' => []];
+              'invalid1k' => [], 'sparse1k' => [], 'clean96' => [], 'ints' => []];
 
     for ($i = 0; $i < 64; $i++) {
         $pools['clean10'][]  = build_clean(10, 1000 + $i);
@@ -496,6 +496,9 @@ function build_pools(): array
         // strtr's worst (full setup for a single hit); contrast pool for dirty1k (dense)
         $sparse = build_clean(1024, 9000 + $i);
         $pools['sparse1k'][] = substr($sparse, 0, 512) . '&' . substr($sparse, 513);
+        // ints: DB-shaped numeric values (ids, counts, timestamps) - stay ints, cast per call
+        mt_srand(9500 + $i);
+        $pools['ints'][] = [1, 42, 999, 100000, 1752934000, PHP_INT_MAX - 1000][$i % 6] + mt_rand(0, 999);
     }
 
     // Realistic field mix: 70% clean-short, 15% clean-200B, 10% clean-1KB, 5% dirty-1KB
@@ -661,6 +664,14 @@ function build_tests(array $pools): array
         ['thresh-128-200b', 'medium', 'hybrid gate (256B min)', 'hybrid gate (128B min)',
             looped(static fn(string $v): int => strlen(enc_hybrid_len($v)), $pools['clean200']),
             looped(static fn(string $v): int => strlen(enc_hybrid_len_128($v)), $pools['clean200']), ['enc_hybrid_len', 'enc_hybrid_len_128']],
+
+        // --- Type fast path: cast-then-scan (current) vs is_string check returning the cast directly ---
+        ['cast-int', 'short', 'cast then tier scan', 'is_string fast path',
+            looped(static fn(int $v): int => strlen(enc_hybrid_len_128((string)$v)), $pools['ints']),
+            looped(static fn($v): int => strlen(is_string($v) ? enc_hybrid_len_128($v) : (string)$v), $pools['ints']), ['enc_hybrid_len_128']],
+        ['cast-guard-short', 'short', 'tier scan only', 'is_string check + tier scan',
+            looped(static fn(string $v): int => strlen(enc_hybrid_len_128($v)), $pools['clean10']),
+            looped(static fn($v): int => strlen(is_string($v) ? enc_hybrid_len_128($v) : (string)$v), $pools['clean10']), ['enc_hybrid_len_128']],
 
         // --- Per-platform threshold: shipped 128B vs flat 64, OS-gated 64, arch-gated 64 ---
         ['thresh-64-64b', 'medium', 'hybrid gate (128B min)', 'hybrid gate (64B min)',

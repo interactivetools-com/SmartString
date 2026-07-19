@@ -50,6 +50,10 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      * incidentally (an ampersand in a company name, quotes or angle brackets typed
      * into a description). The tiers match that distribution, common case first:
      *
+     * - Type check: non-string values (int/float/bool/null - what the constructor
+     *   accepts) cast to clean ASCII only (digits, sign, '.', 'E+', 'INF', '1', ''),
+     *   so the cast returns with no scan at all. Float casts are locale-independent
+     *   on PHP 8.0+. EncodingCorpusTest sweeps the cast outputs against the encoder.
      * - Tier 1 (ENCODE_SKIP_REGEX): no byte encoding could change - return as-is.
      *   Tab, LF, FF, CR are legal in HTML5 and deliberately excluded from the pattern.
      *   On PHP 8.4+, strings of ENCODE_STRSPN_MIN_BYTES or more run this same check
@@ -259,7 +263,10 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     public function htmlEncode(): string
     {
         // speed: tiered fast paths, see ENCODE_SKIP_REGEX docblock
-        $text = (string)$this->rawData;
+        $text = $this->rawData;
+        if (!is_string($text)) {
+            return (string)$text; // int/float/bool/null cast to clean ASCII only - nothing to encode
+        }
         if (PHP_VERSION_ID >= 80400 && strlen($text) >= self::ENCODE_STRSPN_MIN_BYTES) {
             if (strspn($text, self::ENCODE_CLEAN_CHARS) === strlen($text)) {
                 return $text;
@@ -1054,7 +1061,10 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     public function __toString(): string
     {
         // speed: tiered fast paths, see ENCODE_SKIP_REGEX docblock
-        $text = (string)$this->rawData;
+        $text = $this->rawData;
+        if (!is_string($text)) {
+            return (string)$text; // int/float/bool/null cast to clean ASCII only - nothing to encode
+        }
         if (PHP_VERSION_ID >= 80400 && strlen($text) >= self::ENCODE_STRSPN_MIN_BYTES) {
             if (strspn($text, self::ENCODE_CLEAN_CHARS) === strlen($text)) {
                 return $text;
