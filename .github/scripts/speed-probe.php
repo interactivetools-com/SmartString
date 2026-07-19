@@ -42,6 +42,7 @@ const GATE_NOT_TIER1  = '/[^\x09\x0A\x0C\x0D\x20\x21\x23-\x25\x28-\x3B\x3D\x3F-\
 
 const SPECIALS_FROM = ['&', '<', '>', '"', "'"];
 const SPECIALS_TO   = ['&amp;', '&lt;', '&gt;', '&quot;', '&apos;'];
+const SPECIALS_MAP  = ['&' => '&amp;', '<' => '&lt;', '>' => '&gt;', '"' => '&quot;', "'" => '&apos;'];
 
 /** strspn charsets for the PHP 8.4+ gates (linear-scan strspn; catastrophic before 8.4) */
 function tier1_charset(): string
@@ -168,6 +169,48 @@ function enc_hybrid_len(string $s): string
     }
     if (preg_match(GATE_CHANGEABLE, $s) === 0) {
         return $s;
+    }
+    return htmlspecialchars($s, FLAGS, 'UTF-8');
+}
+
+/**
+ * Same hybrid gate with the candidate 128-byte threshold. scan-cross-128 showed the raw
+ * strspn scan winning on every 8.4+ cell, so 128-255B clean strings may be leaving a
+ * little on the table under the shipped 256. On <= 8.3 both variants compile to the
+ * identical preg path (expect exact ties).
+ */
+function enc_hybrid_len_128(string $s): string
+{
+    if (PHP_VERSION_ID >= 80400 && strlen($s) >= 128) {
+        if (strspn($s, TIER1) === strlen($s)) {
+            return $s;
+        }
+        return htmlspecialchars($s, FLAGS, 'UTF-8');
+    }
+    if (preg_match(GATE_CHANGEABLE, $s) === 0) {
+        return $s;
+    }
+    return htmlspecialchars($s, FLAGS, 'UTF-8');
+}
+
+/**
+ * Three-tier stack with single-pass strtr instead of 5-pass str_replace. From the C
+ * source (php_strtr_array_ex): one scan + one growing output buffer, but a per-call
+ * bitset alloc sized slen/8 and a scalar byte loop, vs str_replace's 5 SSE2 count
+ * scans + one copy per special actually present. Prediction: strtr wins on
+ * special-dense input (str_replace does up to 5 full copies), loses or ties on
+ * sparse input (str_replace copies once and its extra scans are vectorized).
+ */
+function enc_three_tier_strtr(string $s): string
+{
+    if (preg_match(GATE_CHANGEABLE, $s) === 0) {
+        return $s;
+    }
+    if (preg_match(GATE_NON_ASCII, $s) === 0) {
+        return strtr($s, SPECIALS_MAP);
+    }
+    if (preg_match(DISALLOWED_RE, $s) === 0) { // false (invalid UTF-8) falls through
+        return strtr($s, SPECIALS_MAP);
     }
     return htmlspecialchars($s, FLAGS, 'UTF-8');
 }
@@ -366,7 +409,7 @@ function build_pools(): array
     $pools = ['clean10' => [], 'clean200' => [], 'clean1k' => [], 'dirty10' => [],
               'dirty1k' => [], 'accented1k' => [], 'mix' => [], 'memo_mix' => [],
               'clean64' => [], 'clean128' => [], 'clean256' => [], 'clean512' => [],
-              'invalid1k' => []];
+              'invalid1k' => [], 'sparse1k' => []];
 
     for ($i = 0; $i < 64; $i++) {
         $pools['clean10'][]  = build_clean(10, 1000 + $i);
@@ -386,6 +429,10 @@ function build_pools(): array
         // invalid1k: the real-world invalid-UTF-8 case - legacy Latin-1 bytes (bare
         // 0xE9 'é') embedded in clean ASCII; every tier must miss, encoder substitutes
         $pools['invalid1k'][] = str_replace('o', "\xE9", build_clean(1024, 8000 + $i));
+        // sparse1k: ONE special in 1KB clean ASCII - str_replace's best case (one copy),
+        // strtr's worst (full setup for a single hit); contrast pool for dirty1k (dense)
+        $sparse = build_clean(1024, 9000 + $i);
+        $pools['sparse1k'][] = substr($sparse, 0, 512) . '&' . substr($sparse, 513);
     }
 
     // Realistic field mix: 70% clean-short, 15% clean-200B, 10% clean-1KB, 5% dirty-1KB
@@ -544,6 +591,25 @@ function build_tests(array $pools): array
             looped(static fn(string $v): int => preg_match(GATE_CHANGEABLE, $v) === 0 ? strlen($v) : 0, $pools['clean512']),
             looped(static fn(string $v): int => strspn($v, TIER1) === strlen($v) ? strlen($v) : 0, $pools['clean512']), []],
 
+        // --- Gate threshold: shipped 256B vs candidate 128B (only 128-255B strings behave differently) ---
+        ['thresh-128-128b', 'medium', 'hybrid gate (256B min)', 'hybrid gate (128B min)',
+            looped(static fn(string $v): int => strlen(enc_hybrid_len($v)), $pools['clean128']),
+            looped(static fn(string $v): int => strlen(enc_hybrid_len_128($v)), $pools['clean128']), ['enc_hybrid_len', 'enc_hybrid_len_128']],
+        ['thresh-128-200b', 'medium', 'hybrid gate (256B min)', 'hybrid gate (128B min)',
+            looped(static fn(string $v): int => strlen(enc_hybrid_len($v)), $pools['clean200']),
+            looped(static fn(string $v): int => strlen(enc_hybrid_len_128($v)), $pools['clean200']), ['enc_hybrid_len', 'enc_hybrid_len_128']],
+
+        // --- Replace primitive: 5-pass str_replace vs single-pass strtr, by special density ---
+        ['strtr-sparse-1kb', 'long', 'str_replace tier', 'strtr tier',
+            looped(static fn(string $v): int => strlen(enc_three_tier($v)), $pools['sparse1k']),
+            looped(static fn(string $v): int => strlen(enc_three_tier_strtr($v)), $pools['sparse1k']), ['enc_three_tier', 'enc_three_tier_strtr']],
+        ['strtr-dense-1kb', 'long', 'str_replace tier', 'strtr tier',
+            looped(static fn(string $v): int => strlen(enc_three_tier($v)), $pools['dirty1k']),
+            looped(static fn(string $v): int => strlen(enc_three_tier_strtr($v)), $pools['dirty1k']), ['enc_three_tier', 'enc_three_tier_strtr']],
+        ['strtr-short', 'short', 'str_replace tier', 'strtr tier',
+            looped(static fn(string $v): int => strlen(enc_three_tier($v)), $pools['dirty10']),
+            looped(static fn(string $v): int => strlen(enc_three_tier_strtr($v)), $pools['dirty10']), ['enc_three_tier', 'enc_three_tier_strtr']],
+
         // --- OS gate: PHP_OS_FAMILY branch must be free where live, harmless where not ---
         ['tier-os-gated-short', 'short', 'ungated two-tier', 'OS-gated two-tier',
             looped(static fn(string $v): int => strlen(enc_two_tier($v)), $pools['clean10']),
@@ -633,7 +699,7 @@ $out = [
 $encoderStatus = [];
 if (!isset($opts['skip-corpus'])) {
     $corpus   = speed_corpus();
-    $encoders = ['enc_gate', 'enc_two_tier', 'enc_three_tier', 'enc_adaptive', 'enc_hybrid_strspn', 'enc_hybrid_len', 'enc_os_tier', 'enc_memo'];
+    $encoders = ['enc_gate', 'enc_two_tier', 'enc_three_tier', 'enc_adaptive', 'enc_hybrid_strspn', 'enc_hybrid_len', 'enc_hybrid_len_128', 'enc_three_tier_strtr', 'enc_os_tier', 'enc_memo'];
     // strspn corpus pass is slow before 8.4 (linear charset scan) but corpus strings are
     // short, so it stays in: correctness must hold even where we'd never deploy it.
     foreach ($encoders as $fn) {
