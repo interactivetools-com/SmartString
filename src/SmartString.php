@@ -16,6 +16,12 @@ use RuntimeException;
 /**
  * SmartString class provides a fluent interface for various string and numeric manipulations.
  *
+ * Missing values (null or "") follow one rule per method group:
+ * - String Manipulation methods pass them through unchanged
+ * - Formatting and Numeric Operations return null
+ * - Conditional Logic methods skip the operation or apply the fallback
+ * - Encoding methods return "" (except jsonEncode, which returns valid JSON literals)
+ *
  * For inline help, call $smartString->help() or print_r() on a SmartString object.
  */
 final class SmartString implements JsonSerializable, IteratorAggregate
@@ -77,6 +83,8 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     /**
      * Returns original type and value.
      *
+     * Missing values (null or "") return null or "" unchanged.
+     *
      * @return string|int|float|bool|null
      */
     public function value(): string|int|float|bool|null
@@ -86,7 +94,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
 
     /**
      * Converts Smart* objects to their original values, recursing into arrays; scalars and
-     * null pass through unchanged. Useful if you don't know the type but want the original
+     * null are returned as-is. Useful if you don't know the type but want the original
      * value. Any other type (objects, resources) throws CallerException.
      */
     public static function getRawValue(mixed $value): mixed
@@ -95,10 +103,10 @@ final class SmartString implements JsonSerializable, IteratorAggregate
             $value instanceof self           => $value->value(),
             $value instanceof SmartArrayBase => $value->toArray(), // SmartArray and SmartArrayHtml
             $value instanceof SmartNull      => null,
-            is_scalar($value)            => $value,
-            is_null($value)              => $value,
-            is_array($value)             => array_map([self::class, 'getRawValue'], $value), // for manually passed in arrays
-            default                      => throw new CallerException("Unsupported value type: " . get_debug_type($value)),
+            is_scalar($value)                => $value,
+            is_null($value)                  => $value,
+            is_array($value)                 => array_map([self::class, 'getRawValue'], $value), // for manually passed in arrays
+            default                          => throw new CallerException("Unsupported value type: " . get_debug_type($value)),
         };
     }
 
@@ -107,6 +115,8 @@ final class SmartString implements JsonSerializable, IteratorAggregate
 
     /**
      * Returns value as integer
+     *
+     * Missing values (null or "") return 0.
      */
     public function int(): int
     {
@@ -115,6 +125,8 @@ final class SmartString implements JsonSerializable, IteratorAggregate
 
     /**
      * Returns value as float
+     *
+     * Missing values (null or "") return 0.0.
      */
     public function float(): float
     {
@@ -123,6 +135,8 @@ final class SmartString implements JsonSerializable, IteratorAggregate
 
     /**
      * Returns value as boolean
+     *
+     * Missing values (null or "") return false.
      */
     public function bool(): bool
     {
@@ -131,6 +145,8 @@ final class SmartString implements JsonSerializable, IteratorAggregate
 
     /**
      * Returns value as string (doesn't HTML-encode, use ->htmlEncode() for HTML-encoded string)
+     *
+     * Missing values (null or "") return "".
      */
     public function string(): string
     {
@@ -140,6 +156,8 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     /**
      * Alias for value() - returns the unencoded, raw value.
      * This can be useful when you want to output trusted HTML content.
+     *
+     * Missing values (null or "") return null or "" unchanged - unlike the encoding methods, null does not become "".
      *
      * @return string|int|float|bool|null The raw, unencoded value
      */
@@ -153,6 +171,8 @@ final class SmartString implements JsonSerializable, IteratorAggregate
 
     /**
      * HTML-encodes the current value for safe output in an HTML context.
+     *
+     * Missing values (null or "") return "".
      *
      * @return string Html-encoded output
      */
@@ -169,6 +189,8 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      *
      *     echo "{$text->nl2br()}";    // "Bob & Sons\nSuite 5" → "Bob &amp; Sons<br>\nSuite 5"
      *
+     * Missing values (null or "") return "".
+     *
      * @return string HTML-safe output with newlines converted to <br> tags
      */
     public function nl2br(): string
@@ -179,12 +201,14 @@ final class SmartString implements JsonSerializable, IteratorAggregate
 
     /**
      * HTML-encodes the value and appends $html as-is, only when a value is present (not null
-     * or ""), zero is considered present. Missing values return "".
+     * or ""), zero is considered present.
      *
      * Terminal: returns a plain string so nothing downstream can re-encode the markup.
      * The markup argument must be a literal you wrote - never pass user input.
      *
      *     echo $member->AddressLine1->appendHtml(",<br>\n");  // "12 High St,<br>\n", or "" when missing
+     *
+     * Missing values (null or "") return "" - nothing is appended.
      *
      * @param string $html Trusted markup, appended as-is (not encoded)
      * @return string HTML-safe output, or "" when the value is missing
@@ -199,8 +223,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
 
     /**
      * HTML-encodes the value and wraps it in $before/$after as-is, only when a value is
-     * present (not null or ""), zero is considered present. Missing values return "", so the
-     * whole wrapper vanishes when there is nothing to wrap.
+     * present (not null or ""), zero is considered present.
      *
      * Terminal: returns a plain string so nothing downstream can re-encode the markup.
      * Both sides are required: pass "" for a side you don't want. Best for single-tag
@@ -209,8 +232,10 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      *
      *     echo $page->subheading->wrapHtml('<h2 class="lead">', '</h2>');  // whole <h2> vanishes when empty
      *
+     * Missing values (null or "") return "" - the wrapper is not added.
+     *
      * @param string $before Trusted markup placed before the encoded value (not encoded)
-     * @param string $after Trusted markup placed after the encoded value (not encoded)
+     * @param string $after  Trusted markup placed after the encoded value (not encoded)
      * @return string HTML-safe output, or "" when the value is missing
      */
     public function wrapHtml(string $before, string $after): string
@@ -229,6 +254,8 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      * Invalid UTF-8 bytes are percent-encoded as-is (not substituted with � like
      * htmlEncode/jsonEncode) - urlencode() is byte-level by design.
      *
+     * Missing values (null or "") return "".
+     *
      * @return string The URL-encoded string.
      */
     public function urlEncode(): string
@@ -246,6 +273,8 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      * - INF, NAN, and recursion still throw JsonException - those are always code bugs
      *
      *     echo "<script>let title = {$title->jsonEncode()};</script>";
+     *
+     * Missing values (null or "") return `null` and `""` (quotes included) - valid JavaScript, never empty output.
      *
      * @return string The encoded JSON string, safely formatted for embedding in JavaScript.
      */
@@ -364,10 +393,12 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     //region Formatting Operations
 
     /**
-     * Formats a date using default or specified format.  Returns null on failure.
+     * Formats a date using default or specified format.
      *
      * Numeric values are treated as Unix timestamps (so '2024' formats as epoch + 2024
      * seconds, not as a year); everything else is parsed with strtotime().
+     *
+     * Missing values (null or "") and unparseable dates return null.
      *
      * @param string|null $format Date format (default: SmartString::$dateFormat)
      * @return SmartString Formatted date or null on failure
@@ -390,14 +421,15 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     /**
      * Formats a numeric value using number_format() function with configurable decimal places.
      * Uses the static properties $numberFormatDecimal and $numberFormatThousands for formatting.
-     * Returns null if the value is not numeric.
+     *
+     *     $num = SmartString::new(1234.56);
+     *     echo $num->numberFormat();     // "1,235" (rounded to 0 decimals)
+     *     echo $num->numberFormat(2);    // "1,234.56" (2 decimal places)
+     *
+     * Missing values (null or "") and non-numeric values return null.
      *
      * @param int $decimals Number of decimal places to display (default: 0)
      * @return SmartString Formatted number or null if not numeric
-     *
-     * @example $num = SmartString::new(1234.56);
-     *          echo $num->numberFormat();     // "1,235" (rounded to 0 decimals)
-     *          echo $num->numberFormat(2);    // "1,234.56" (2 decimal places)
      */
     public function numberFormat(int $decimals = 0): SmartString
     {
@@ -413,25 +445,24 @@ final class SmartString implements JsonSerializable, IteratorAggregate
 
     /**
      * Converts a number to a percentage. Support optional decimal places and fallback value for zero
-     * - If value is null, null is returned
      * - If value is zero AND $ifZero is defined, $ifZero is returned
      * - Otherwise a percentage is returned. e.g., 0.1234 => 12.34%
      *
      * The zero rule is a parameter ($ifZero), not a chain link, because a chained
      * ->ifZero() can't detect zero after formatting (percent() has already made it "0.00%").
      *
-     * @param int $decimals Number of decimal places in formatted output
-     * @param string|int|float|bool|null|SmartString|SmartNull $ifZero Optional fallback returned when the value is zero
+     *     $val = SmartString::new(0.1234);
+     *     echo $val->percent(2);                   // "12.34%"
+     *
+     *     $zero = SmartString::new(0);
+     *     echo $zero->percent(2);                  // "0.00%"
+     *     echo $zero->percent(2, ifZero: "None");  // "None"
+     *
+     * Missing values (null or "") and non-numeric values return null.
+     *
+     * @param int                                              $decimals Number of decimal places in formatted output
+     * @param string|int|float|bool|null|SmartString|SmartNull $ifZero   Optional fallback returned when the value is zero
      * @return SmartString Formatted percentage, or null if not numeric
-     *
-     * @example Converting numbers to percentages:
-     *   $val = SmartString::new(0.1234);
-     *   echo $val->percent(2);           // "12.34%"
-     *
-     * @example Handling zero values:
-     *   $zero = SmartString::new(0);
-     *   echo $zero->percent(2);                  // "0.00%"
-     *   echo $zero->percent(2, ifZero: "None");  // "None"
      */
     public function percent(int $decimals = 0, string|int|float|bool|null|SmartString|SmartNull $ifZero = null): SmartString
     {
@@ -447,7 +478,9 @@ final class SmartString implements JsonSerializable, IteratorAggregate
 
     /**
      * Returns the current value as a percentage of $total, e.g., 24 of 100 becomes 24%.
-     * Returns null if either value is non-numeric or $total is zero.
+     * Both sides must be numeric; a zero $total returns null (no division by zero).
+     *
+     * Missing values (null or "") and non-numeric values return null.
      */
     public function percentOf(int|float|string|bool|null|SmartString|SmartNull $total, int $decimals = 0): SmartString
     {
@@ -460,7 +493,9 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     }
 
     /**
-     * Adds $value to the current value. Returns null if either side is non-numeric. Result is a float.
+     * Adds $value to the current value. Both sides must be numeric. Result is a float.
+     *
+     * Missing values (null or "") and non-numeric values return null.
      */
     public function add(int|float|string|bool|null|SmartString|SmartNull $value): SmartString
     {
@@ -471,7 +506,9 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     }
 
     /**
-     * Subtracts $value from the current value. Returns null if either side is non-numeric. Result is a float.
+     * Subtracts $value from the current value. Both sides must be numeric. Result is a float.
+     *
+     * Missing values (null or "") and non-numeric values return null.
      */
     public function subtract(int|float|string|bool|null|SmartString|SmartNull $value): SmartString
     {
@@ -482,7 +519,9 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     }
 
     /**
-     * Multiplies the current value by $value. Returns null if either side is non-numeric. Result is a float.
+     * Multiplies the current value by $value. Both sides must be numeric. Result is a float.
+     *
+     * Missing values (null or "") and non-numeric values return null.
      */
     public function multiply(int|float|string|bool|null|SmartString|SmartNull $value): SmartString
     {
@@ -493,7 +532,9 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     }
 
     /**
-     * Divides the current value by $value. Returns null if either side is non-numeric or $value is zero. Result is a float.
+     * Divides the current value by $value. Both sides must be numeric; dividing by zero returns null. Result is a float.
+     *
+     * Missing values (null or "") and non-numeric values return null.
      */
     public function divide(int|float|string|bool|null|SmartString|SmartNull $value): SmartString
     {
@@ -518,8 +559,9 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     /**
      * Appends $value if present (not null or ""), zero is considered present
      *
-     * Missing values pass through unchanged, so nothing is appended to nothing.
-     * false also counts as present but converts to "", so only the appended value appears.
+     * A false value counts as present but converts to "", so only the appended value appears.
+     *
+     * Missing values (null or "") pass through unchanged - nothing is appended.
      */
     public function append(int|float|string|bool|null|SmartString|SmartNull $value): SmartString
     {
@@ -533,8 +575,9 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     /**
      * Prepends $value if present (not null or ""), zero is considered present
      *
-     * Missing values pass through unchanged, so nothing is prepended to nothing.
-     * false also counts as present but converts to "", so only the prepended value appears.
+     * A false value counts as present but converts to "", so only the prepended value appears.
+     *
+     * Missing values (null or "") pass through unchanged - nothing is prepended.
      */
     public function prepend(int|float|string|bool|null|SmartString|SmartNull $value): SmartString
     {
@@ -548,12 +591,13 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     /**
      * Wraps the value in $before and $after if present (not null or ""), zero is considered present
      *
-     * Missing values pass through unchanged, so the whole wrapper vanishes when there is
-     * nothing to wrap. Both sides are required: pass "" for a side you don't want, or use
+     * Both sides are required: pass "" for a side you don't want, or use
      * prepend()/append() for one-sided text.
      *
      *     $price->wrap('(', ')');            // "(19.99)"; missing stays missing
      *     $label->wrap('[', ']')->or('none'); // "[Sale]", or "none" when missing
+     *
+     * Missing values (null or "") pass through unchanged - the wrapper is not added.
      */
     public function wrap(int|float|string|bool|null|SmartString|SmartNull $before, int|float|string|bool|null|SmartString|SmartNull $after): SmartString
     {
@@ -566,6 +610,8 @@ final class SmartString implements JsonSerializable, IteratorAggregate
 
     /**
      * Replaces value only if it's null or undefined
+     *
+     * Missing values (null or "") split here: null is replaced, "" passes through.  Use or() to replace both.
      */
     public function ifNull(int|float|string|bool|null|SmartString|SmartNull $fallback): SmartString
     {
@@ -576,6 +622,8 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     /**
      * Replaces value only if it's numeric zero (0, 0.0, "0", "0.00", "-0" - any is_numeric zero);
      * non-numeric values never match
+     *
+     * Missing values (null or "") never match and pass through unchanged.
      */
     public function ifZero(int|float|string|bool|null|SmartString|SmartNull $fallback): SmartString
     {
@@ -804,8 +852,8 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      * array_map() and SmartArray::map(). Chain ->ifNull('') first when using
      * built-ins that require a string.
      *
-     * @param callable|string $func The function to call with the value
-     * @param mixed ...$args Additional arguments to pass to the function
+     * @param callable|string $func    The function to call with the value
+     * @param mixed           ...$args Additional arguments to pass to the function
      */
     public function map(callable|string $func, mixed ...$args): SmartString
     {
@@ -823,13 +871,13 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     /**
      * Apply preg_replace to the value, returning a new SmartString.
      *
-     * Missing values (null or "") pass through unchanged, so a later or() fallback still works.
-     *
      *     $digits = $phone->pregReplace('/\D/', '');           // "5551234567"
      *     $clean  = $text->pregReplace('/\s+/', ' ');          // normalize whitespace
      *     $wrap   = $slug->pregReplace('/(.+)/', 'pre-$1');    // add prefix via backreference
      *
-     * @param string $pattern Regex pattern
+     * Missing values (null or "") pass through unchanged.
+     *
+     * @param string $pattern     Regex pattern
      * @param string $replacement Replacement string (supports backreferences)
      * @return SmartString A new SmartString with the replaced value
      * @throws CallerException If the pattern is invalid or matching fails (an InvalidArgumentException that reports your file:line)
@@ -953,7 +1001,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         $preview = htmlspecialchars($this->valuePreview(), ENT_SUBSTITUTE | ENT_DISALLOWED | ENT_HTML5, 'UTF-8');
         throw new CallerException(
             "Can't foreach over SmartString $preview - it holds a single value, not a collection. " .
-            "Did you mean to loop the SmartArray row or result set it came from?"
+            "Did you mean to loop the SmartArray row or result set it came from?",
         );
     }
 
@@ -1009,40 +1057,40 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         // Common aliases: throw error with suggestion.  These are used by other libraries or common LLM suggestions
         $methodAliases = [
             // use lowercase for aliases
-            'add'            => ['plus'],
-            'append'         => ['concat', 'suffix'],
-            'appendHtml'     => ['andhtml', 'addhtml', 'suffixhtml'],
-            'bool'           => ['tobool', 'getbool', 'boolean'],
-            'dateFormat'     => ['formatdate', 'todate', 'date_format', 'date', 'formatdatetime', 'todatetime', 'datetime'],
-            'divide'         => ['div', 'divideby'],
-            'float'          => ['tofloat', 'getfloat'],
-            'htmlEncode'     => ['escapehtml', 'encodehtml', 'e', 'encode', 'escape', 'html_encode'],
-            'int'            => ['toint', 'getint', 'integer'],
-            'ifEquals'       => ['ifequal', 'ifmatch'],
-            'ifTrue'         => ['when', 'setif'],
-            'ifZero'         => ['iszero'], // pre-2.1.2 method name, promised a suggestion in UPGRADING.md
-            'isEmpty'        => ['isblank', 'empty'],
-            'isMissing'      => ['ismissingvalue'],
-            'isNotEmpty'     => ['isnotblank', 'hasvalue', 'ispresent', 'notempty'],
-            'jsonEncode'     => ['tojson', 'encodejson', 'json_encode', 'json'],
-            'map'            => ['pipe', 'transform', 'callback'],
-            'maxChars'       => ['truncate', 'limit', 'limitchars', 'excerpt', 'shorten'],
-            'maxWords'       => ['truncatewords', 'limitwords'],
-            'multiply'       => ['times', 'mul'],
-            'nl2br'          => ['tohtml', 'text2html'],
-            'numberFormat'   => ['formatnumber', 'number_format', 'format'],
-            'or'             => ['default', 'ifmissing', 'fallback', 'else'],
-            'prepend'        => ['prefix'],
-            'pregReplace'    => ['replace'], // replace(search, replacement) intent; set() would silently keep only the first argument
-            'rawHtml'        => ['unsafe', 'unescaped', 'trusted', 'trustedhtml', 'unsafehtml', 'raw', 'html'],
-            'set'            => ['setvalue'],
-            'string'         => ['getstring', 'str'],
-            'subtract'       => ['minus', 'sub'],
-            'textOnly'       => ['plaintext', 'striphtml', 'strip', 'text'],
-            'urlEncode'      => ['escapeurl', 'encodeurl', 'url_encode'],
-            'value'          => ['noescape', 'getvalue', 'val'],
-            'wrap'           => ['surround', 'enclose'],
-            'wrapHtml'       => ['andwraphtml', 'surroundhtml', 'prependhtml', 'prefixhtml'], // no prepend-side method by design; wrapHtml($before, '') covers it
+            'add'          => ['plus'],
+            'append'       => ['concat', 'suffix'],
+            'appendHtml'   => ['andhtml', 'addhtml', 'suffixhtml'],
+            'bool'         => ['tobool', 'getbool', 'boolean'],
+            'dateFormat'   => ['formatdate', 'todate', 'date_format', 'date', 'formatdatetime', 'todatetime', 'datetime'],
+            'divide'       => ['div', 'divideby'],
+            'float'        => ['tofloat', 'getfloat'],
+            'htmlEncode'   => ['escapehtml', 'encodehtml', 'e', 'encode', 'escape', 'html_encode'],
+            'int'          => ['toint', 'getint', 'integer'],
+            'ifEquals'     => ['ifequal', 'ifmatch'],
+            'ifTrue'       => ['when', 'setif'],
+            'ifZero'       => ['iszero'], // pre-2.1.2 method name, promised a suggestion in UPGRADING.md
+            'isEmpty'      => ['isblank', 'empty'],
+            'isMissing'    => ['ismissingvalue'],
+            'isNotEmpty'   => ['isnotblank', 'hasvalue', 'ispresent', 'notempty'],
+            'jsonEncode'   => ['tojson', 'encodejson', 'json_encode', 'json'],
+            'map'          => ['pipe', 'transform', 'callback'],
+            'maxChars'     => ['truncate', 'limit', 'limitchars', 'excerpt', 'shorten'],
+            'maxWords'     => ['truncatewords', 'limitwords'],
+            'multiply'     => ['times', 'mul'],
+            'nl2br'        => ['tohtml', 'text2html'],
+            'numberFormat' => ['formatnumber', 'number_format', 'format'],
+            'or'           => ['default', 'ifmissing', 'fallback', 'else'],
+            'prepend'      => ['prefix'],
+            'pregReplace'  => ['replace'], // replace(search, replacement) intent; set() would silently keep only the first argument
+            'rawHtml'      => ['unsafe', 'unescaped', 'trusted', 'trustedhtml', 'unsafehtml', 'raw', 'html'],
+            'set'          => ['setvalue'],
+            'string'       => ['getstring', 'str'],
+            'subtract'     => ['minus', 'sub'],
+            'textOnly'     => ['plaintext', 'striphtml', 'strip', 'text'],
+            'urlEncode'    => ['escapeurl', 'encodeurl', 'url_encode'],
+            'value'        => ['noescape', 'getvalue', 'val'],
+            'wrap'         => ['surround', 'enclose'],
+            'wrapHtml'     => ['andwraphtml', 'surroundhtml', 'prependhtml', 'prefixhtml'], // no prepend-side method by design; wrapHtml($before, '') covers it
         ];
 
         // Check if the called method is an alias
