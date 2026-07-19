@@ -293,6 +293,9 @@ print_r($str);        // shows rawData (original value) + one-time help() hint
   braces in a string (`$str->trim`, `"$str->trim()"`). Page continues;
   expression yields an empty SmartString.
 
+Rule of thumb: RuntimeException (from `orThrow()`) is the only type to catch
+in normal operation - everything else means code to fix.
+
 ## Gotchas Quick Reference
 
 - Wrapping output in `htmlspecialchars()` double-encodes (`&amp;apos;` in
