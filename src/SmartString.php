@@ -36,6 +36,22 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     private const HTML_ENCODE_FLAGS = ENT_QUOTES | ENT_SUBSTITUTE | ENT_DISALLOWED | ENT_HTML5;
 
     /**
+     * Fast path: skip htmlspecialchars() when it would return the input unchanged.
+     *
+     * - Matches every byte htmlspecialchars() with HTML_ENCODE_FLAGS can alter:
+     *   `"&'<>`, HTML5-disallowed control chars, DEL, and all non-ASCII bytes.
+     * - Tab, LF, FF, CR are legal in HTML5 and deliberately excluded.
+     * - Non-ASCII always fails the gate, so multibyte and invalid UTF-8 take the
+     *   full encoder; the gate only ever skips work, never changes output.
+     * - Why: most CMS fields are short plain ASCII. Measured on PHP 8.1-8.5 across
+     *   5 platforms (.github/workflows/speed-matrix.yml): 15-80% faster on short
+     *   fields, 5-8x on 1KB clean text, 13-20x on native Windows builds.
+     * - If HTML_ENCODE_FLAGS changes, this pattern must change with it;
+     *   tests/Unit/EncodingCorpusTest.php enforces the match byte-for-byte.
+     */
+    private const ENCODE_SKIP_REGEX = '/[\x00-\x08\x0B\x0E-\x1F"&\'<>\x7F-\xFF]/';
+
+    /**
      * The raw stored value (type as passed: string|int|float|bool|null).
      */
     private readonly string|int|float|bool|null $rawData;
@@ -178,7 +194,11 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      */
     public function htmlEncode(): string
     {
-        return htmlspecialchars((string)$this->rawData, self::HTML_ENCODE_FLAGS, 'UTF-8');
+        $text = (string)$this->rawData;
+        if (!preg_match(self::ENCODE_SKIP_REGEX, $text)) {
+            return $text; // speed: no byte that encoding would change, see ENCODE_SKIP_REGEX
+        }
+        return htmlspecialchars($text, self::HTML_ENCODE_FLAGS, 'UTF-8');
     }
 
     /**
@@ -958,7 +978,11 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      */
     public function __toString(): string
     {
-        return htmlspecialchars((string)$this->rawData, self::HTML_ENCODE_FLAGS, 'UTF-8');
+        $text = (string)$this->rawData;
+        if (!preg_match(self::ENCODE_SKIP_REGEX, $text)) {
+            return $text; // speed: no byte that encoding would change, see ENCODE_SKIP_REGEX
+        }
+        return htmlspecialchars($text, self::HTML_ENCODE_FLAGS, 'UTF-8');
     }
 
     /**
