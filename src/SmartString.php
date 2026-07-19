@@ -52,9 +52,21 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     private const ENCODE_SKIP_REGEX = '/[\x00-\x08\x0B\x0E-\x1F"&\'<>\x7F-\xFF]/';
 
     /**
-     * The raw stored value (type as passed: string|int|float|bool|null).
+     * The raw stored value, exactly as passed to the constructor.
+     *
+     * Speed: no property type or readonly, on purpose.
+     * - The constructor parameter already type-checks every incoming value; a property
+     *   type would repeat that check at assignment. Skipping the re-check makes
+     *   construction 3-20% faster across PHP 8.1-8.5 on all 5 platforms; see
+     *   .github/scripts/speed-results.md (test: prop-type).
+     * - PHP requires readonly properties to be typed, so readonly goes too.
+     *   ImmutabilityTest covers the same guarantee: no method changes the stored
+     *   value after construction.
+     *
+     * @noinspection PhpMissingFieldTypeInspection
+     * @var string|int|float|bool|null
      */
-    private readonly string|int|float|bool|null $rawData;
+    private $rawData;
 
     //region Global Settings
 

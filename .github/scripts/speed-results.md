@@ -15,7 +15,7 @@ Verdicts from this run (details in the per-test rows below):
   ENCODE_SKIP_REGEX in src/SmartString.php. Positive on all 25 cells.
 - **arr-get** (folded __get): adopt in SmartArray; union return kept
   (arr-get-mixed gain does not reproduce cross-platform).
-- **prop-type**: small consistent gain, optional.
+- **prop-type**: ADOPTED in SmartString 3.0 - $rawData is untyped (typed ctor param + ImmutabilityTest cover the contract); see its docblock.
 - **promo**, **memo-mix**: ties everywhere - settled, not worth adopting.
 - **gate-adaptive** (strspn on 8.4+): rejected - loses on short strings on
   every platform, including 8.4+.
