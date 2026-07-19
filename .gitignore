@@ -6,3 +6,4 @@ composer.lock
 composer.phar
 test.php
 vendor/
+bench-src/
