@@ -42,4 +42,27 @@ class EncodingCorpusTest extends SmartStringTestCase
 
         $this->assertSame(0, $fail, "encoding mismatches on corpus:\n" . implode("\n", $samples));
     }
+
+    /**
+     * Tier 1 tests the same byte set two ways: ENCODE_SKIP_REGEX (preg, "any byte
+     * needing encoding?") and ENCODE_CLEAN_CHARS (strspn on PHP 8.4+, "every byte
+     * clean?"). This proves they are exact complements for all 256 bytes, on every
+     * PHP version - the corpus test alone only exercises the strspn path on 8.4+.
+     */
+    public function testCleanCharsIsExactComplementOfSkipRegex(): void
+    {
+        $class     = new \ReflectionClass(SmartString::class);
+        $skipRegex = $class->getConstant('ENCODE_SKIP_REGEX');
+        $cleanSet  = $class->getConstant('ENCODE_CLEAN_CHARS');
+
+        for ($b = 0; $b <= 0xFF; $b++) {
+            $char        = chr($b);
+            $regexSkips  = preg_match($skipRegex, $char) === 1;
+            $strspnClean = strpos($cleanSet, $char) !== false;
+            $this->assertSame($regexSkips, !$strspnClean,
+                sprintf('byte 0x%02X: ENCODE_SKIP_REGEX says %s but ENCODE_CLEAN_CHARS says %s',
+                    $b, $regexSkips ? 'encode' : 'clean', $strspnClean ? 'clean' : 'encode'));
+        }
+        $this->assertSame(strlen(count_chars($cleanSet, 3)), strlen($cleanSet), 'ENCODE_CLEAN_CHARS has duplicate bytes');
+    }
 }

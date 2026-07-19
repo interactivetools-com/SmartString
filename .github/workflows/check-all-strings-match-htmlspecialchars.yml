@@ -1,0 +1,83 @@
+name: Check all strings up to 4 bytes match htmlspecialchars
+
+# Manual-only: never runs on push. Dispatch from the Actions tab ("Run workflow") or
+# with: gh workflow run check-all-strings-match-htmlspecialchars.yml
+#
+# Encodes every possible string of 1 to 4 bytes (4.3 billion at length 4, 16.8
+# million at lengths 1-3) through the real SmartString class and verifies both
+# htmlEncode() and __toString() are byte-identical to htmlspecialchars() with
+# HTML_ENCODE_FLAGS. Length 4 shards by first byte across the runner's cores;
+# roughly 20 minutes per PHP version, versions run as parallel jobs.
+on:
+  workflow_dispatch:
+    inputs:
+      php:
+        description: 'PHP version (blank = all)'
+        required: false
+        type: choice
+        options: ['', '8.1', '8.2', '8.3', '8.4', '8.5']
+
+jobs:
+  matrix:
+    name: Load matrix
+    runs-on: ubuntu-latest
+    outputs:
+      php: ${{ steps.load.outputs.php }}
+    steps:
+      - name: Build matrix from inputs
+        id: load
+        run: |
+          if [ -n "${{ inputs.php }}" ]; then
+            echo 'php=["${{ inputs.php }}"]' >> "$GITHUB_OUTPUT"
+          else
+            echo 'php=["8.1", "8.2", "8.3", "8.4", "8.5"]' >> "$GITHUB_OUTPUT"
+          fi
+
+  check:
+    name: PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    needs: matrix
+    timeout-minutes: 90
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ${{ fromJSON(needs.matrix.outputs.php) }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Setup PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2.37.2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          ini-values: opcache.enable_cli=1
+
+      - name: Lengths 1-3 (16.8 million strings)
+        run: php .github/scripts/check-all-strings-up-to-4-bytes-match-htmlspecialchars.php --len=3
+
+      # 256 shards (one per first byte), as many in parallel as the runner has
+      # cores. xargs exits non-zero if any shard found a mismatch.
+      - name: Length 4 (4.3 billion strings)
+        run: |
+          seq 0 255 | xargs -P "$(nproc)" -I{} \
+            php .github/scripts/check-all-strings-up-to-4-bytes-match-htmlspecialchars.php --len=4 --first={}
+
+      - name: Verdict
+        if: always()
+        run: |
+          if [ -f __encode-mismatches.log ]; then
+            echo "MISMATCHES FOUND (PHP ${{ matrix.php }}):"
+            cat __encode-mismatches.log
+            {
+              echo "## PHP ${{ matrix.php }}: MISMATCHES FOUND"
+              echo '```'
+              cat __encode-mismatches.log
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "ALL MATCH: every string up to 4 bytes encodes identically to htmlspecialchars()"
+          echo "PHP ${{ matrix.php }}: ALL MATCH (4,311,810,304 strings, zero mismatches)" >> "$GITHUB_STEP_SUMMARY"

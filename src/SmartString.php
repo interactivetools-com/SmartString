@@ -39,8 +39,10 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      * Encoding fast paths: three checks run before htmlspecialchars(), each returning
      * early when the remaining work is provably simpler. Output is byte-identical to
      * htmlspecialchars() with HTML_ENCODE_FLAGS on every input - enforced over a
-     * ~106k-string corpus by tests/Unit/EncodingCorpusTest.php. If the flags change,
-     * these patterns must change with them.
+     * ~106k-string corpus by tests/Unit/EncodingCorpusTest.php, and over every
+     * possible 1-4 byte string (the full utf8mb4 space, 4.3 billion inputs) by
+     * .github/scripts/check-all-strings-up-to-4-bytes-match-htmlspecialchars.php.
+     * If the flags change, these patterns must change with them.
      *
      * Why this pays off: values containing real HTML (WYSIWYG fields) are output raw
      * via rawHtml() and never reach the encoder. What does reach it is mostly plain
@@ -50,6 +52,10 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      *
      * - Tier 1 (ENCODE_SKIP_REGEX): no byte encoding could change - return as-is.
      *   Tab, LF, FF, CR are legal in HTML5 and deliberately excluded from the pattern.
+     *   On PHP 8.4+, strings of ENCODE_STRSPN_MIN_BYTES or more run this same check
+     *   via strspn(ENCODE_CLEAN_CHARS) instead - 8.4 rewrote strspn to scan in blocks,
+     *   making it 1.3-2.2x faster than the preg scan on 1KB clean text. Before 8.4 the
+     *   version branch compiles away entirely (verified as exact ties in the matrix).
      * - Tier 2 (ENCODE_NON_ASCII_REGEX): plain ASCII where only the five specials
      *   need encoding - str_replace beats the full encoder pass.
      * - Tier 3 (ENCODE_DISALLOWED_UTF8_REGEX): valid UTF-8 (accents, CJK, emoji) with
@@ -64,6 +70,17 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      * scans + str_replace instead of one small encode, ~60ns); invalid UTF-8 ~even.
      */
     private const ENCODE_SKIP_REGEX = '/[\x00-\x08\x0B\x0E-\x1F"&\'<>\x7F-\xFF]/';
+
+    /**
+     * Tier 1's clean bytes as a list for strspn(): exactly the bytes ENCODE_SKIP_REGEX
+     * does NOT match (tab, LF, FF, CR, printable ASCII minus the five specials).
+     * The two must stay exact complements - EncodingCorpusTest verifies byte-by-byte.
+     */
+    private const ENCODE_CLEAN_CHARS = "\t\n\f\r !#\$%()*+,-./0123456789:;=?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+
+    // strspn() overtakes the preg scan at 64-128 bytes depending on platform; 256 clears
+    // the crossover everywhere tested. See speed-results.md (tests: scan-cross-*).
+    private const ENCODE_STRSPN_MIN_BYTES = 256;
 
     /** Control chars, DEL, or non-ASCII: no match = ASCII needing only the five specials encoded */
     private const ENCODE_NON_ASCII_REGEX = '/[\x00-\x08\x0B\x0E-\x1F\x7F-\xFF]/';
@@ -238,7 +255,11 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     {
         // speed: tiered fast paths, see ENCODE_SKIP_REGEX docblock
         $text = (string)$this->rawData;
-        if (!preg_match(self::ENCODE_SKIP_REGEX, $text)) {
+        if (PHP_VERSION_ID >= 80400 && strlen($text) >= self::ENCODE_STRSPN_MIN_BYTES) {
+            if (strspn($text, self::ENCODE_CLEAN_CHARS) === strlen($text)) {
+                return $text;
+            }
+        } elseif (!preg_match(self::ENCODE_SKIP_REGEX, $text)) {
             return $text;
         }
         if (!preg_match(self::ENCODE_NON_ASCII_REGEX, $text)) {
@@ -1029,7 +1050,11 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     {
         // speed: tiered fast paths, see ENCODE_SKIP_REGEX docblock
         $text = (string)$this->rawData;
-        if (!preg_match(self::ENCODE_SKIP_REGEX, $text)) {
+        if (PHP_VERSION_ID >= 80400 && strlen($text) >= self::ENCODE_STRSPN_MIN_BYTES) {
+            if (strspn($text, self::ENCODE_CLEAN_CHARS) === strlen($text)) {
+                return $text;
+            }
+        } elseif (!preg_match(self::ENCODE_SKIP_REGEX, $text)) {
             return $text;
         }
         if (!preg_match(self::ENCODE_NON_ASCII_REGEX, $text)) {
