@@ -78,9 +78,11 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      */
     private const ENCODE_CLEAN_CHARS = "\t\n\f\r !#\$%()*+,-./0123456789:;=?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
 
-    // strspn() overtakes the preg scan at 64-128 bytes depending on platform; 256 clears
-    // the crossover everywhere tested. See speed-results.md (tests: scan-cross-*).
-    private const ENCODE_STRSPN_MIN_BYTES = 256;
+    // strspn() overtakes the preg scan at 64-128 bytes depending on platform; 128 is the
+    // lowest length that wins or ties on every 8.4+ cell (8-61% faster on 128-255B clean
+    // strings; at 64B it still loses on Linux x64 and macOS ARM). See speed-results.md
+    // (tests: thresh-128-*, scan-cross-*).
+    private const ENCODE_STRSPN_MIN_BYTES = 128;
 
     /** Control chars, DEL, or non-ASCII: no match = ASCII needing only the five specials encoded */
     private const ENCODE_NON_ASCII_REGEX = '/[\x00-\x08\x0B\x0E-\x1F\x7F-\xFF]/';

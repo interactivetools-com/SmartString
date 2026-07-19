@@ -119,9 +119,10 @@ function speed_corpus(): array
     $corpus[] = $clean1k . speed_corpus_u8(0xFDD0);
 
     // The strspn length-threshold boundaries (PHP 8.4+ scans long strings differently):
-    // clean strings straddling the shipped 256-byte threshold and the candidate 128-byte
-    // threshold, plus each length with a special or bad byte at first/middle/last position
-    foreach ([127, 128, 129, 255, 256, 257] as $n) {
+    // clean strings straddling every threshold in play (64 per-platform candidate,
+    // 128 shipped, 256 original), plus each length with a special or bad byte at
+    // first/middle/last position
+    foreach ([63, 64, 65, 127, 128, 129, 255, 256, 257] as $n) {
         $clean = substr($clean1k, 0, $n);
         $mid   = intdiv($n, 2);
         $corpus[] = $clean;

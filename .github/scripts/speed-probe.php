@@ -194,6 +194,68 @@ function enc_hybrid_len_128(string $s): string
 }
 
 /**
+ * Per-platform threshold candidates. The 64B strspn scan wins on windows-x64 and
+ * linux-arm, is marginal on darwin-x64, and loses on linux-x64 and darwin-arm
+ * (scan-cross-64), so a flat 64 is wrong but a platform-aware 64 might not be.
+ *
+ * THRESH_OS is a compile-time constant expression (PHP_OS_FAMILY is known at compile
+ * time): opcache folds it, so non-Windows cells must measure as exact ties vs the
+ * 128 gate - that fold IS what thresh-os-* exists to demonstrate. Windows has no
+ * official ARM64 PHP builds, so PHP_OS_FAMILY === 'Windows' implies x64.
+ *
+ * THRESH_ARCH adds the linux-arm win, but arm-ness needs php_uname('m'), a function
+ * call - not allowed in constant expressions, so it is a runtime define(). The guard
+ * then costs a by-name constant fetch per call that opcache cannot fold away;
+ * thresh-arch-short measures that fetch on strings the branch never takes.
+ */
+const THRESH_OS = PHP_OS_FAMILY === 'Windows' ? 64 : 128;
+define('THRESH_ARCH', PHP_OS_FAMILY === 'Windows'
+    || (PHP_OS_FAMILY === 'Linux' && in_array(strtolower(php_uname('m')), ['aarch64', 'arm64'], true))
+    ? 64 : 128);
+
+function enc_hybrid_len_64(string $s): string
+{
+    if (PHP_VERSION_ID >= 80400 && strlen($s) >= 64) {
+        if (strspn($s, TIER1) === strlen($s)) {
+            return $s;
+        }
+        return htmlspecialchars($s, FLAGS, 'UTF-8');
+    }
+    if (preg_match(GATE_CHANGEABLE, $s) === 0) {
+        return $s;
+    }
+    return htmlspecialchars($s, FLAGS, 'UTF-8');
+}
+
+function enc_hybrid_len_os(string $s): string
+{
+    if (PHP_VERSION_ID >= 80400 && strlen($s) >= THRESH_OS) {
+        if (strspn($s, TIER1) === strlen($s)) {
+            return $s;
+        }
+        return htmlspecialchars($s, FLAGS, 'UTF-8');
+    }
+    if (preg_match(GATE_CHANGEABLE, $s) === 0) {
+        return $s;
+    }
+    return htmlspecialchars($s, FLAGS, 'UTF-8');
+}
+
+function enc_hybrid_len_arch(string $s): string
+{
+    if (PHP_VERSION_ID >= 80400 && strlen($s) >= THRESH_ARCH) {
+        if (strspn($s, TIER1) === strlen($s)) {
+            return $s;
+        }
+        return htmlspecialchars($s, FLAGS, 'UTF-8');
+    }
+    if (preg_match(GATE_CHANGEABLE, $s) === 0) {
+        return $s;
+    }
+    return htmlspecialchars($s, FLAGS, 'UTF-8');
+}
+
+/**
  * Three-tier stack with single-pass strtr instead of 5-pass str_replace. From the C
  * source (php_strtr_array_ex): one scan + one growing output buffer, but a per-call
  * bitset alloc sized slen/8 and a scalar byte loop, vs str_replace's 5 SSE2 count
@@ -409,7 +471,7 @@ function build_pools(): array
     $pools = ['clean10' => [], 'clean200' => [], 'clean1k' => [], 'dirty10' => [],
               'dirty1k' => [], 'accented1k' => [], 'mix' => [], 'memo_mix' => [],
               'clean64' => [], 'clean128' => [], 'clean256' => [], 'clean512' => [],
-              'invalid1k' => [], 'sparse1k' => []];
+              'invalid1k' => [], 'sparse1k' => [], 'clean96' => []];
 
     for ($i = 0; $i < 64; $i++) {
         $pools['clean10'][]  = build_clean(10, 1000 + $i);
@@ -417,6 +479,7 @@ function build_pools(): array
         $pools['clean1k'][]  = build_clean(1024, 3000 + $i);
         // crossover sweep lengths: where does strspn's setup cost break even vs preg?
         $pools['clean64'][]  = build_clean(64, 7000 + $i);
+        $pools['clean96'][]  = build_clean(96, 7050 + $i);
         $pools['clean128'][] = build_clean(128, 7100 + $i);
         $pools['clean256'][] = build_clean(256, 7200 + $i);
         $pools['clean512'][] = build_clean(512, 7300 + $i);
@@ -599,6 +662,23 @@ function build_tests(array $pools): array
             looped(static fn(string $v): int => strlen(enc_hybrid_len($v)), $pools['clean200']),
             looped(static fn(string $v): int => strlen(enc_hybrid_len_128($v)), $pools['clean200']), ['enc_hybrid_len', 'enc_hybrid_len_128']],
 
+        // --- Per-platform threshold: shipped 128B vs flat 64, OS-gated 64, arch-gated 64 ---
+        ['thresh-64-64b', 'medium', 'hybrid gate (128B min)', 'hybrid gate (64B min)',
+            looped(static fn(string $v): int => strlen(enc_hybrid_len_128($v)), $pools['clean64']),
+            looped(static fn(string $v): int => strlen(enc_hybrid_len_64($v)), $pools['clean64']), ['enc_hybrid_len_128', 'enc_hybrid_len_64']],
+        ['thresh-64-96b', 'medium', 'hybrid gate (128B min)', 'hybrid gate (64B min)',
+            looped(static fn(string $v): int => strlen(enc_hybrid_len_128($v)), $pools['clean96']),
+            looped(static fn(string $v): int => strlen(enc_hybrid_len_64($v)), $pools['clean96']), ['enc_hybrid_len_128', 'enc_hybrid_len_64']],
+        ['thresh-os-64b', 'medium', 'hybrid gate (128B min)', 'OS-gated 64B min (const-folded)',
+            looped(static fn(string $v): int => strlen(enc_hybrid_len_128($v)), $pools['clean64']),
+            looped(static fn(string $v): int => strlen(enc_hybrid_len_os($v)), $pools['clean64']), ['enc_hybrid_len_128', 'enc_hybrid_len_os']],
+        ['thresh-arch-64b', 'medium', 'hybrid gate (128B min)', 'arch-gated 64B min (runtime const)',
+            looped(static fn(string $v): int => strlen(enc_hybrid_len_128($v)), $pools['clean64']),
+            looped(static fn(string $v): int => strlen(enc_hybrid_len_arch($v)), $pools['clean64']), ['enc_hybrid_len_128', 'enc_hybrid_len_arch']],
+        ['thresh-arch-short', 'short', 'hybrid gate (128B min)', 'arch-gated 64B min (runtime const)',
+            looped(static fn(string $v): int => strlen(enc_hybrid_len_128($v)), $pools['clean10']),
+            looped(static fn(string $v): int => strlen(enc_hybrid_len_arch($v)), $pools['clean10']), ['enc_hybrid_len_128', 'enc_hybrid_len_arch']],
+
         // --- Replace primitive: 5-pass str_replace vs single-pass strtr, by special density ---
         ['strtr-sparse-1kb', 'long', 'str_replace tier', 'strtr tier',
             looped(static fn(string $v): int => strlen(enc_three_tier($v)), $pools['sparse1k']),
@@ -699,7 +779,8 @@ $out = [
 $encoderStatus = [];
 if (!isset($opts['skip-corpus'])) {
     $corpus   = speed_corpus();
-    $encoders = ['enc_gate', 'enc_two_tier', 'enc_three_tier', 'enc_adaptive', 'enc_hybrid_strspn', 'enc_hybrid_len', 'enc_hybrid_len_128', 'enc_three_tier_strtr', 'enc_os_tier', 'enc_memo'];
+    $encoders = ['enc_gate', 'enc_two_tier', 'enc_three_tier', 'enc_adaptive', 'enc_hybrid_strspn', 'enc_hybrid_len', 'enc_hybrid_len_128',
+                 'enc_hybrid_len_64', 'enc_hybrid_len_os', 'enc_hybrid_len_arch', 'enc_three_tier_strtr', 'enc_os_tier', 'enc_memo'];
     // strspn corpus pass is slow before 8.4 (linear charset scan) but corpus strings are
     // short, so it stays in: correctness must hold even where we'd never deploy it.
     foreach ($encoders as $fn) {

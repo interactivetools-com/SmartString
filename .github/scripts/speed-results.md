@@ -1,4 +1,4 @@
-# Speed Matrix results - full runs 2026-07-18 (29670857386) and 2026-07-19 (29675354782, 29676033393 current grid below; repeated tests reproduced run 1 within noise)
+# Speed Matrix results - full runs 2026-07-18 (29670857386) and 2026-07-19 (29675354782, 29676033393 current grid below; repeated tests reproduced run 1 within noise). Filtered run 29690005430 (2026-07-19) added the thresh-128-* and strtr-* rows.
 
 Run: https://github.com/interactivetools-com/SmartString/actions/runs/29676033393
 (25 cells: PHP 8.1-8.5 x linux-x64/linux-arm/windows-x64/macos-x64/macos-arm,
@@ -35,9 +35,16 @@ Verdicts from this run (details in the per-test rows below):
   1.3-2.2x on 1KB clean, +4-9% on the realistic mix, 0.91-0.98x on shorts (the
   strlen guard, ~1-3ns - strlen reads the stored length, it never scans).
   scan-cross-* locates the preg/strspn crossover: 64B on darwin-x64/linux-arm/
-  windows, ~128B on darwin-arm/linux-x64; threshold 256 is safe everywhere.
-  Corpus covers the 255/256/257 boundary; EncodingCorpusTest also proves
-  ENCODE_CLEAN_CHARS is the exact byte complement of ENCODE_SKIP_REGEX.
+  windows, ~128B on darwin-arm/linux-x64.
+  Corpus covers the 63/64/65, 127/128/129, and 255/256/257 boundaries;
+  EncodingCorpusTest also proves ENCODE_CLEAN_CHARS is the exact byte
+  complement of ENCODE_SKIP_REGEX.
+- **thresh-128** (adopted 2026-07-19, run 29690005430): ENCODE_STRSPN_MIN_BYTES
+  lowered 256 -> 128. Every 8.4+ cell wins on the 128-255B band (1.08-1.44x at
+  128B, 1.13-1.61x at 200B; linux-x64 mildest, darwin-x64/linux-arm biggest);
+  every 8.1-8.3 cell is an exact tie (dead branch). 128 is the lowest length
+  that wins everywhere: at 64B the strspn scan still loses on linux-x64 and
+  darwin-arm (scan-cross-64, 0.92-0.94x).
 
 ### Rejected
 
@@ -45,6 +52,15 @@ Verdicts from this run (details in the per-test rows below):
   including 8.4+.
 - **promo**: tie everywhere - constructor promotion is pure style, settled.
 - **memo-mix**: tie-to-slower everywhere - memo cache is pure overhead.
+- **strtr** (rejected 2026-07-19, run 29690005430): single-pass strtr in tiers
+  2-3 vs the 5-pass str_replace. Sparse 1KB (one special) loses on all 25 cells
+  (0.61-0.91x); dense 1KB loses on all Linux cells (0.62-0.94x) with only
+  scattered wins (darwin-arm <= 8.4, windows 8.1); short dirty is a small
+  inconsistent win (0.95-1.22x). Matches the C source: str_replace's per-needle
+  count scans are SSE2-vectorized and absent needles are zero-copy, while
+  php_strtr_array_ex pays a per-call bitset alloc sized to the input plus a
+  scalar byte loop. Settled with data - do not re-open without new C-level
+  changes in php-src.
 
 ### Deferred (phase-2 candidates, revisit with numbers in hand)
 
@@ -91,6 +107,11 @@ Correctness: every encoder byte-identical on every cell.
 | no-object | **1.89x** | **1.95x** | **1.91x** | **1.81x** | **1.68x** | **2.07x** | **2.08x** | **2.17x** | **2.24x** | **2.84x** | **2.12x** | **2.04x** | **2.03x** | **1.93x** | **1.96x** | **2.02x** | **2.18x** | **2.16x** | **1.86x** | **2.07x** | **1.69x** | **1.75x** | **1.87x** | **1.86x** | **1.87x** |
 | idiom | **1.08x** | **1.07x** | **1.09x** | **1.09x** | 1.04x | **1.10x** | 1.03x | **1.15x** | **1.10x** | 1.04x | **1.14x** | **1.11x** | **1.13x** | **1.11x** | **1.12x** | **1.09x** | **1.22x** | **1.21x** | 1.03x | **1.15x** | **1.05x** | **1.16x** | 1.04x | 1.02x | **1.09x** |
 | memo-mix | 0.99x | 1.01x | 0.99x | 0.99x | 0.99x | 0.99x | 1.04x | 1.02x | 0.99x | 1.00x | 0.98x | 0.97x | 0.98x | 0.98x | 0.98x | 0.98x | 0.99x | 0.99x | 0.99x | 0.99x | 1.00x | 0.99x | 1.00x | 0.99x | 0.98x |
+| thresh-128-128b | 0.98x | 1.00x | 0.99x | **1.11x** | **1.11x** | 0.99x | 1.02x | 1.00x | **1.44x** | **1.25x** | 1.00x | 1.00x | 1.00x | **1.41x** | **1.41x** | 1.00x | 0.99x | 0.98x | **1.08x** | **1.08x** | 0.99x | 1.04x | 1.02x | **1.27x** | **1.29x** |
+| thresh-128-200b | 0.98x | 1.00x | 1.00x | **1.13x** | **1.13x** | 0.99x | 1.00x | 1.01x | **1.61x** | **1.43x** | 0.99x | 1.00x | 1.00x | **1.54x** | **1.53x** | 1.00x | 0.98x | 1.01x | **1.22x** | **1.19x** | 1.01x | 1.01x | 0.98x | **1.36x** | **1.37x** |
+| strtr-sparse-1kb | 0.72x (slower) | 0.70x (slower) | 0.70x (slower) | 0.70x (slower) | 0.73x (slower) | 0.72x (slower) | 0.90x (slower) | 0.91x (slower) | 0.90x (slower) | 0.65x (slower) | 0.75x (slower) | 0.74x (slower) | 0.74x (slower) | 0.74x (slower) | 0.86x (slower) | 0.61x (slower) | 0.72x (slower) | 0.76x (slower) | 0.70x (slower) | 0.70x (slower) | 0.78x (slower) | 0.71x (slower) | 0.67x (slower) | 0.65x (slower) | 0.67x (slower) |
+| strtr-dense-1kb | **1.19x** | **1.16x** | **1.16x** | **1.13x** | 0.84x (slower) | 0.99x | 0.93x (slower) | 0.92x (slower) | 0.91x (slower) | 0.82x (slower) | 0.91x (slower) | 0.94x (slower) | 0.93x (slower) | 0.93x (slower) | 0.81x (slower) | 0.76x (slower) | 0.62x (slower) | 0.67x (slower) | 0.66x (slower) | 0.68x (slower) | **1.21x** | 0.90x (slower) | 0.86x (slower) | 0.83x (slower) | 0.91x (slower) |
+| strtr-short | **1.16x** | **1.08x** | **1.08x** | **1.10x** | **1.11x** | **1.22x** | 0.96x | 0.98x | 0.97x | 1.04x | **1.09x** | **1.05x** | 1.03x | 1.04x | **1.05x** | 1.00x | 0.95x (slower) | 0.98x | 1.04x | 1.04x | **1.09x** | 1.00x | 0.99x | 0.96x | 0.95x |
 
 <details><summary>Test legend (A vs B)</summary>
 
@@ -125,5 +146,10 @@ Correctness: every encoder byte-identical on every cell.
 - **no-object**: object + __toString vs direct encoded string
 - **idiom**: (string) cast vs ->htmlEncode()
 - **memo-mix**: gate only vs gate + memo cache
+- **thresh-128-128b**: hybrid gate (256B min) vs hybrid gate (128B min)
+- **thresh-128-200b**: hybrid gate (256B min) vs hybrid gate (128B min)
+- **strtr-sparse-1kb**: str_replace tier vs strtr tier
+- **strtr-dense-1kb**: str_replace tier vs strtr tier
+- **strtr-short**: str_replace tier vs strtr tier
 
 </details>
