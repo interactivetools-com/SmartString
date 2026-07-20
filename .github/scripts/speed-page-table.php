@@ -225,7 +225,7 @@ foreach ($rows as $row) {
 }
 
 echo $table;
-echo "\n2x = SmartString outputs the value in half the time htmlspecialchars() takes; 1.0x = same speed; below 1x = slower.\n";
+echo "\n2x = SmartString outputs the value in half the time `htmlspecialchars()` takes; 1.0x = same speed; below 1x = slower.\n";
 echo "Measured on " . PHP_OS_FAMILY . ' ' . php_uname('m') . ", PHP " . PHP_VERSION . ".\n";
 echo "\nRaw timings (per call, best of 7):\n" . implode("\n", $rawLines) . "\n";
 

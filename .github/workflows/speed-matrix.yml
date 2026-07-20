@@ -6,7 +6,10 @@ name: Speed Matrix
 # Benchmarks every hot-path optimization candidate as paired A/B comparisons across
 # PHP versions and platforms. Numbers are B-vs-A ratios measured interleaved in one
 # process, so shared-runner speed wobble cancels out; treat anything within +/-5% as
-# a tie. See .github/scripts/speed-probe.php for the tests and design rules.
+# a tie. See .github/scripts/speed-probe.php for the tests and design rules, and
+# .github/scripts/speed-results.md for the latest full-run grid and verdicts.
+# Also hosts the SmartArray shape tests (arr-* rows): both libraries share this
+# harness, one matrix covers both repos.
 # No Windows ARM cell: php.net ships no ARM64 Windows builds.
 on:
   workflow_dispatch:
