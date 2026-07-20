@@ -15,6 +15,14 @@
 | `wrap($before, $after)`       | SmartString | Wraps the value only when present; missing (null or "") skips the wrapper. Both sides required; pass "" for a side you don't want                                         |
 | `wrapHtml($before, $after)`   | string      | Like `appendHtml()` but adds HTML on both sides: `->wrapHtml('<h2>', '</h2>')` prints nothing when the value is missing, so you don't need an `if` around optional fields |
 
+### Performance
+
+- HTML-encoded output (echo and `htmlEncode()`) is 2-4x faster across a typical
+  page: values are scanned first and only encoded when something needs encoding.
+  Output stays byte-identical to `htmlspecialchars()`, verified against every
+  possible string up to 4 bytes (4.3 billion inputs) on PHP 8.1-8.5. Benchmarks
+  and details: [docs/performance.md](docs/performance.md)
+
 ### Renamed
 
 These renames give the library one consistent naming pattern (matching
