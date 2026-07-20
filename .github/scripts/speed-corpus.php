@@ -7,9 +7,10 @@ declare(strict_types=1);
  * Any alternative encoder must produce byte-identical output to
  * htmlspecialchars($s, ENT_QUOTES|ENT_SUBSTITUTE|ENT_DISALLOWED|ENT_HTML5, 'UTF-8')
  * for every string this corpus generates. speed-probe.php runs this gate before
- * timing anything; a future PHPUnit test can wrap it when a fast path ships.
+ * timing anything, and tests/Unit/EncodingCorpusTest.php runs the same corpus
+ * against the real SmartString class in the test suite.
  *
- * Corpus derived from the adversarial verifier run of 2026-07-18 (~91k entries):
+ * Corpus coverage (~106k entries):
  * empty string, all 256 single bytes, ALL 65,536 two-byte strings, every byte at
  * head/mid/tail of clean ASCII, valid multibyte incl. emoji and combining marks,
  * all 66 Unicode noncharacters, overlongs, surrogate halves, truncated sequences,

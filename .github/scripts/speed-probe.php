@@ -7,7 +7,7 @@ declare(strict_types=1);
  *
  *     php speed-probe.php [--json=out.json] [--filter=id1,id2] [--scale=1.0] [--skip-corpus]
  *
- * Design rules (see __speed-matrix-plan.md):
+ * Design rules:
  * - Every number is a ratio from interleaved A/B pairs in one process (A,B,A,B...),
  *   best-of-7 per side, so shared-VM speed wobble cancels out.
  * - Input strings are runtime-built and cycled from pools of >= 64 distinct values:
@@ -19,8 +19,7 @@ declare(strict_types=1);
  *
  * Self-contained: no composer, PHP 8.1+ syntax, no extensions beyond pcre/spl.
  * Variant classes are minimal mimics of the real SmartString/SmartArray code shape;
- * they exist to compare code SHAPES, not to test the real classes (the real-class
- * A/B happens locally; see the plan file).
+ * they exist to compare code SHAPES, not to test the real classes.
  */
 
 require __DIR__ . '/speed-corpus.php';
@@ -147,7 +146,7 @@ function enc_os_tier(string $s): string
 }
 
 /**
- * Length+version hybrid gate (deferred candidate gate-hybrid-len): identical to the
+ * Length+version hybrid gate (gate-hybrid-len): identical to the
  * shipped preg gate except long strings on PHP 8.4+ scan with strspn instead of preg
  * (strspn is ~2x faster per byte there, but has setup cost that loses on short strings,
  * and is catastrophically slow before 8.4). Both version check and strlen are ~free:
@@ -174,9 +173,9 @@ function enc_hybrid_len(string $s): string
 }
 
 /**
- * Same hybrid gate with the candidate 128-byte threshold. scan-cross-128 showed the raw
- * strspn scan winning on every 8.4+ cell, so 128-255B clean strings may be leaving a
- * little on the table under the shipped 256. On <= 8.3 both variants compile to the
+ * Same hybrid gate with a 128-byte threshold (thresh-128: 256B min vs 128B min).
+ * scan-cross-128 showed the raw strspn scan winning on every 8.4+ cell, so this pair
+ * measures the 128-255B band directly. On <= 8.3 both variants compile to the
  * identical preg path (expect exact ties).
  */
 function enc_hybrid_len_128(string $s): string
@@ -277,7 +276,7 @@ function enc_three_tier_strtr(string $s): string
     return htmlspecialchars($s, FLAGS, 'UTF-8');
 }
 
-/** Guarded per-request memo stacked behind the gate (verified REJECT; matrix confirms cross-platform). */
+/** Guarded per-request memo stacked behind the gate; memo-mix measures it tie-to-slower on every cell. */
 function enc_memo(string $s): string
 {
     static $cache = [];

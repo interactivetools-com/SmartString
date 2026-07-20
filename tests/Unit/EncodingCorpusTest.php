@@ -14,6 +14,13 @@ use Tests\Support\SmartStringTestCase;
  * corpus in .github/scripts/speed-corpus.php (every 1- and 2-byte string, byte
  * position sweeps, valid and invalid UTF-8, noncharacters, seeded fuzz).
  *
+ * The fast paths are byte-level checks, so multibyte tricks can't slip a special
+ * character past them: every overlong or multibyte representation of '<' contains
+ * bytes >= 0x80, which fail the clean-ASCII tiers by construction and fall through
+ * to htmlspecialchars() itself. The guarantee is byte-identity with
+ * htmlspecialchars(), never an independent "safe" claim: context-level attacks no
+ * encoder stops (javascript: URLs, unquoted attributes) remain the template's job.
+ *
  * If HTML_ENCODE_FLAGS or ENCODE_SKIP_REGEX changes without the other, this
  * test fails with hex samples of the mismatching inputs.
  */

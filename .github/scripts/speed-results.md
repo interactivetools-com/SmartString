@@ -1,4 +1,7 @@
-# Speed Matrix results - full runs 2026-07-18 (29670857386) and 2026-07-19 (29675354782, 29676033393 current grid below; repeated tests reproduced run 1 within noise). Filtered runs 29690005430 and 29690465062 (2026-07-19) added the thresh-128-*/strtr-* and thresh-64/os/arch rows.
+# Speed Matrix results - full runs 2026-07-18 (29670857386) and 2026-07-19 (29675354782, 29676033393 current grid below; repeated tests reproduced run 1 within noise). Filtered runs 29690005430 and 29690465062 (2026-07-19) added the thresh-128-*/strtr-* and thresh-64/os/arch rows; run 29715636255 (2026-07-20) added the cast-* rows.
+
+Note: the workflow's `filter` input takes exact test ids, comma-separated
+(`-f filter=cast-int,cast-guard-short`) - prefixes match nothing.
 
 Run: https://github.com/interactivetools-com/SmartString/actions/runs/29676033393
 (25 cells: PHP 8.1-8.5 x linux-x64/linux-arm/windows-x64/macos-x64/macos-arm,
@@ -50,6 +53,13 @@ Verdicts from this run (details in the per-test rows below):
   clean strings; PHP_OS_FAMILY is compile-time so the ternary folds to a plain
   integer, and every non-Windows cell measured a tie. Windows PHP builds are
   x64-only (no ARM64 builds exist), so the OS check implies the architecture.
+- **cast fast path** (adopted 2026-07-19, confirmed run 29715636255): non-string
+  rawData (int/float/bool/null) returns (string)$value with no scan in
+  __toString()/htmlEncode(). cast-int wins all 25 cells, 1.73-2.36x (one 6.23x
+  outlier, darwin-x64 8.3). cast-guard-short (the is_string check's cost on the
+  string path) reads as a tie: 0.87-1.17x scattered around 1.00 with no
+  platform pattern - a few ns on a ~40ns operation, repaid ~2x on every
+  non-string value.
 
 ### Rejected
 
@@ -77,13 +87,14 @@ Verdicts from this run (details in the per-test rows below):
   linux-x64 8.5). Linux ARM's 64B win (1.17-1.18x) stays on the table; the
   only compile-time-detectable winner is Windows, which thresh-os captures.
 
-### Deferred (phase-2 candidates, revisit with numbers in hand)
+### Measured for reference (no code change)
 
-- **stack-mix / stack-accented-mix** (measured 2026-07-19): the ceiling if all
-  tiers adopt - realistic mix 2.4-2.6x on macOS/Linux ARM, 3.8x Linux x64,
-  7-8x Windows (vs 1.9-2.5x for the shipped gate alone); accented mix 3.3-14.4x.
-- **idiom**: ->htmlEncode() is a few percent faster than (string) cast -
-  pending docs tip, not a code change.
+- **stack-mix / stack-accented-mix** (measured 2026-07-19): the full three-tier
+  stack vs plain htmlspecialchars - realistic mix 2.4-2.6x on macOS/Linux ARM,
+  3.8x Linux x64, 7-8x Windows (vs 1.9-2.5x for the gate alone); accented mix
+  3.3-14.4x.
+- **idiom**: ->htmlEncode() is a few percent faster than (string) cast - a
+  docs tip, not a code change.
 
 ## Speed matrix: B-vs-A ratios (>1.00 = candidate faster)
 
@@ -132,6 +143,8 @@ Correctness: every encoder byte-identical on every cell.
 | thresh-os-64b | 1.00x | 1.00x | 1.00x | 0.98x | 0.97x | 1.02x | **1.19x** | 1.02x | 0.99x | 0.95x | 0.98x | 1.01x | 1.02x | 0.98x | 1.00x | 1.03x | 0.99x | 1.00x | 1.01x | 0.99x | 1.03x | 0.90x (slower) | 1.00x | **1.21x** | **1.20x** |
 | thresh-arch-64b | 1.00x | 1.00x | 1.00x | 0.98x | 0.99x | 1.04x | 1.03x | 1.01x | 0.85x (slower) | 1.00x | 1.03x | 0.99x | 1.00x | **1.18x** | **1.17x** | 1.04x | 0.99x | 1.00x | 1.00x | 0.94x (slower) | 1.01x | 0.96x | 1.00x | **1.15x** | **1.21x** |
 | thresh-arch-short | 1.00x | 1.00x | 1.00x | 0.97x | 0.96x | 0.92x (slower) | **1.05x** | 1.03x | 0.96x | 0.95x (slower) | 1.02x | 1.03x | 0.99x | 0.99x | 0.97x | **1.07x** | 0.97x | 0.99x | 0.99x | 0.88x (slower) | 0.99x | 0.99x | 1.00x | 1.00x | 0.99x |
+| cast-int | **2.06x** | **1.91x** | **2.06x** | **1.73x** | **1.97x** | **2.06x** | **1.80x** | **6.23x** | **1.76x** | **1.81x** | **2.36x** | **2.29x** | **2.36x** | **2.16x** | **2.29x** | **2.08x** | **1.98x** | **2.09x** | **2.11x** | **2.22x** | **1.88x** | **1.98x** | **2.08x** | **1.85x** | **1.90x** |
+| cast-guard-short | 1.01x | 0.98x | 0.99x | **1.17x** | 0.99x | **1.08x** | 0.99x | 0.89x (slower) | 1.02x | 0.99x | 1.02x | 0.98x | 0.99x | 1.00x | 0.99x | 0.99x | 0.95x | 0.98x | 0.94x (slower) | 1.01x | 0.87x (slower) | 0.92x (slower) | 0.90x (slower) | 1.00x | 1.02x |
 
 <details><summary>Test legend (A vs B)</summary>
 
@@ -176,5 +189,7 @@ Correctness: every encoder byte-identical on every cell.
 - **thresh-os-64b**: hybrid gate (128B min) vs OS-gated 64B min (const-folded)
 - **thresh-arch-64b**: hybrid gate (128B min) vs arch-gated 64B min (runtime const)
 - **thresh-arch-short**: hybrid gate (128B min) vs arch-gated 64B min (runtime const)
+- **cast-int**: cast then tier scan vs is_string fast path
+- **cast-guard-short**: tier scan only vs is_string check + tier scan
 
 </details>

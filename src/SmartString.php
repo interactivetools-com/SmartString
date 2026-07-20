@@ -1053,7 +1053,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         $formattedValue = $this->valuePreview();
 
         // throw unknown property warning
-        // PHP Default Error: Warning: Undefined property: stdClass::$property in C:\dev\projects\SmartString\test.php on line 28
+        // PHP Default Error: Warning: Undefined property: stdClass::$property in /path/to/template.php on line 28
         if (method_exists($this, $property)) {
             $error = "$formattedValue->$property\n";
             $error .= "Method ->$property needs brackets() everywhere and {curly braces} in strings:\n";
@@ -1145,7 +1145,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         }
 
         // throw unknown method Error
-        // PHP Default Error: Fatal error: Uncaught Error: Call to undefined method SmartString::method() in C:\dev\projects\SmartString\test.php:17
+        // PHP Default Error: Fatal error: Uncaught Error: Call to undefined method SmartString::method() in /path/to/template.php:17
         $suggestion ??= "call ->help() for available methods.";
         $error      = sprintf("Call to undefined method %s->$method(), $suggestion\n", self::stripNamespace(self::class));
         $error      .= self::occurredInFile();
@@ -1172,7 +1172,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         }
 
         // throw unknown method Error
-        // PHP Default Error: Fatal error: Uncaught Error: Call to undefined method SmartString::method() in C:\dev\projects\SmartString\test.php:17
+        // PHP Default Error: Fatal error: Uncaught Error: Call to undefined method SmartString::method() in /path/to/template.php:17
         $baseClass = self::stripNamespace(self::class);
         $error     = "Call to undefined method $baseClass::$method(), call ->help() for available methods.\n";
         $error     .= self::occurredInFile();
