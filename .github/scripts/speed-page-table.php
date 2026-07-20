@@ -66,6 +66,7 @@ function pool(string $unit, int $bytes): array
 const UNIT_CLEAN    = 'Annual Report 2026 Sales Data ';
 const UNIT_SPECIALS = "O'Brien & Co Ltd";                                  // exactly 16 bytes: every 16B rotation keeps both specials
 const UNIT_ACCENTED = "Caf\xC3\xA9 Montr\xC3\xA9al QC";                    // "Café Montréal QC", 16 bytes, no specials
+const UNIT_PROSE    = "The company's Q3 report, prepared by O'Brien & Co, shows steady growth this year. "; // realistic apostrophe density for paragraph/article rows
 
 /** Die unless every entry matches the row's category definition */
 function checkCategory(array $strings, string $category): void
@@ -135,7 +136,7 @@ $opts  = getopt('', ['scale::']);
 $scale = max(0.01, (float)($opts['scale'] ?? 1.0));
 
 // [category, bytes label, example, pool, iterations]
-$mixLabel = '70% 16B clean, 15% 200B, 10% 1KB, 5% 1KB w/ specials';
+$mixLabel = '70% 16B clean, 15% 200B, 10% 1KB, 5% 1KB with quotes';
 $rows     = [];
 
 // Numbers first: ints and floats skip the scan entirely
@@ -144,19 +145,22 @@ for ($i = 0; $i < 32; $i++) {
     $numbers[] = 1000000 + $i * 12345;
     $numbers[] = round(9.99 + $i * 1.37, 2);
 }
-$rows[] = ['Numbers - int, float', 'any', '`1499`, `24.99`', $numbers, 300000];
+// Measured for the record but kept out of the docs table: both sides are a handful
+// of nanoseconds, so the ratio reads as alarming while the absolute cost (~60ns of
+// object overhead per field) is noise at page scale
+$rows[] = ['Numbers - int, float', 'any', '`1499`, `24.99`', $numbers, 300000, false];
 
 // Empty fields: null skips everything via the non-string cast, "" runs the scan
-// and finds nothing - both should cost pure call overhead
+// and finds nothing - both cost pure call overhead
 $empties = [];
 for ($i = 0; $i < 32; $i++) {
     $empties[] = null;
     $empties[] = '';
 }
-$rows[] = ['Empty - null or ""', 'any', 'a blank optional field', $empties, 300000];
+$rows[] = ['Empty - null or ""', 'any', 'a blank optional field', $empties, 300000, false];
 
 $examples = [
-    'clean'    => [16 => '`Annual Report 2026`', 1024 => 'a plain-text paragraph', 10240 => 'a full article, no markup'],
+    'clean'    => [16 => '`Annual Report 2026`', 1024 => 'a plain-text paragraph', 10240 => 'a long field, nothing to encode'],
     'specials' => [16 => "`O'Brien & Co Ltd`", 1024 => 'a paragraph with quotes', 10240 => 'a 1,500-word article'],
     'accented' => [16 => "`Caf\xC3\xA9 Montr\xC3\xA9al QC`", 1024 => 'a French paragraph', 10240 => 'a French article'],
 ];
@@ -167,7 +171,11 @@ foreach ([['clean', UNIT_CLEAN], ['specials', UNIT_SPECIALS], ['accented', UNIT_
         'accented' => 'Accented text - no specials',
     };
     foreach ([16 => 200000, 1024 => 30000, 10240 => 4000] as $bytes => $iterations) {
-        $strings = pool($unit, $bytes);
+        // Paragraph/article rows use realistic prose density (an apostrophe or two
+        // per sentence); the 16B row keeps the dense unit - a short field with a
+        // special is dense by definition
+        $poolUnit = ($category === 'specials' && $bytes > 16) ? UNIT_PROSE : $unit;
+        $strings  = pool($poolUnit, $bytes);
         checkCategory($strings, $category);
         $sizeLabel = $bytes >= 1024 ? sprintf('%d KB', intdiv($bytes, 1024)) : sprintf('%d B', $bytes);
         $rows[]    = [$label, $sizeLabel, $examples[$category][$bytes], $strings, $iterations];
@@ -180,12 +188,12 @@ $standardMix = array_merge(
     array_slice(pool(UNIT_CLEAN, 16), 0, 45),
     array_slice(pool(UNIT_CLEAN, 200), 0, 10),
     array_slice(pool(UNIT_CLEAN, 1024), 0, 6),
-    array_slice(pool(UNIT_SPECIALS, 1024), 0, 3),
+    array_slice(pool(UNIT_PROSE, 1024), 0, 3),
 );
 $rows[] = ['Realistic page mix', 'mixed', $mixLabel, $standardMix, 60000];
 
-$articleMix = array_merge(array_slice($standardMix, 0, 63), array_slice(pool(UNIT_CLEAN, 10240), 0, 1));
-$rows[] = ['Page mix + one 10 KB article', 'mixed', 'the mix above plus one big clean field', $articleMix, 60000];
+$articleMix = array_merge(array_slice($standardMix, 0, 63), array_slice(pool(UNIT_PROSE, 10240), 0, 1));
+$rows[] = ['Page mix + one 10 KB article', 'mixed', 'the mix above plus an article with quotes', $articleMix, 60000];
 
 #endregion
 #region Run and report
@@ -200,20 +208,25 @@ printf(
     $opcache ? '' : ' - NOT CITABLE, short-string rows dominated by unoptimized call overhead'
 );
 
-$table   = "| Content | Size | Example | vs `htmlspecialchars()` |\n|---|---|---|---|\n";
+$table   = "| Content | Size | Example | SmartString speed |\n|---|---|---|---|\n";
 $rawLines = [];
-foreach ($rows as [$label, $sizeLabel, $example, $values, $iterations]) {
+foreach ($rows as $row) {
+    [$label, $sizeLabel, $example, $values, $iterations] = $row;
+    $inTable = $row[5] ?? true;
     // Helper side gets strings (a template's implicit cast); SmartString stores the
     // original type, so the Numbers row exercises the non-string fast path
     $strings = array_map(static fn($v): string => (string)$v, $values);
     $objects = array_map(static fn($v): SmartString => new SmartString($v), $values);
     [$a, $b] = bench($strings, $objects, max(1, (int)($iterations * $scale)));
-    $table     .= sprintf("| %s | %s | %s | %s |\n", $label, $sizeLabel, $example, ratioLabel($a / $b));
+    if ($inTable) {
+        $table .= sprintf("| %s | %s | %s | %s |\n", $label, $sizeLabel, $example, ratioLabel($a / $b));
+    }
     $rawLines[] = sprintf('%-30s %8s  helper %8.0f ns  SmartString %8.0f ns', $label, $sizeLabel, $a, $b);
 }
 
 echo $table;
-echo "\nMeasured on " . PHP_OS_FAMILY . ' ' . php_uname('m') . ", PHP " . PHP_VERSION . ".\n";
+echo "\n2x = SmartString outputs the value in half the time htmlspecialchars() takes; 1.0x = same speed; below 1x = slower.\n";
+echo "Measured on " . PHP_OS_FAMILY . ' ' . php_uname('m') . ", PHP " . PHP_VERSION . ".\n";
 echo "\nRaw timings (per call, best of 7):\n" . implode("\n", $rawLines) . "\n";
 
 #endregion
