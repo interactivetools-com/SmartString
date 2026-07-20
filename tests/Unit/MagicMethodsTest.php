@@ -27,8 +27,7 @@ class MagicMethodsTest extends SmartStringTestCase
     public function testGetWarnsWhenMethodAccessedWithoutBrackets(): void
     {
         $expected = <<<'__TEXT__'
-        "x"->htmlEncode
-        Method ->htmlEncode needs brackets() everywhere and {curly braces} in strings:
+        $str->htmlEncode needs brackets() everywhere and {curly braces} in strings:
             ✓ Outside strings:         $str->htmlEncode()
             ✗ Missing brackets:        $str->htmlEncode
             ✓ Inside strings:          "Hello {$str->htmlEncode()}"
@@ -39,27 +38,13 @@ class MagicMethodsTest extends SmartStringTestCase
         $this->assertSmartString(null, $result); // null wrapper instead of a fatal
     }
 
-    #[DataProvider('unknownPropertyProvider')]
-    public function testGetWarnsOnUnknownProperty($value, string $formattedValue): void
+    public function testGetWarnsOnUnknownProperty(): void
     {
         $result = $this->expectUserWarning(
-            fn() => SmartString::new($value)->bogusProperty,
-            "Undefined property: {$formattedValue}->bogusProperty\n"
+            fn() => SmartString::new('x')->bogusProperty,
+            "Undefined property: SmartString->bogusProperty\n"
         );
         $this->assertSmartString(null, $result);
-    }
-
-    public static function unknownPropertyProvider(): array
-    {
-        return [
-            'short string quoted'   => ['x', '"x"'],
-            'long string truncated' => ['this is a long string over 20 chars', '"this is a long strin..."'],
-            'int'                   => [42, '42'],
-            'float'                 => [3.14, '3.14'],
-            'true'                  => [true, 'TRUE'],
-            'false'                 => [false, 'FALSE'],
-            'null'                  => [null, 'NULL'],
-        ];
     }
 
     public function testGetInterpolatesAsEmptyStringAfterWarning(): void
@@ -70,8 +55,7 @@ class MagicMethodsTest extends SmartStringTestCase
         $result = $this->expectUserWarning(
             fn() => "Hello $str->htmlEncode",
             <<<'__TEXT__'
-            "x"->htmlEncode
-            Method ->htmlEncode needs brackets() everywhere and {curly braces} in strings:
+            $str->htmlEncode needs brackets() everywhere and {curly braces} in strings:
                 ✓ Outside strings:         $str->htmlEncode()
                 ✗ Missing brackets:        $str->htmlEncode
                 ✓ Inside strings:          "Hello {$str->htmlEncode()}"

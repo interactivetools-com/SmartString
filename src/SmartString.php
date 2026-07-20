@@ -1049,20 +1049,16 @@ final class SmartString implements JsonSerializable, IteratorAggregate
 
     public function __get(string $property): SmartString
     {
-        // Format value for display (truncate strings to 20 chars)
-        $formattedValue = $this->valuePreview();
-
         // throw unknown property warning
         // PHP Default Error: Warning: Undefined property: stdClass::$property in /path/to/template.php on line 28
         if (method_exists($this, $property)) {
-            $error = "$formattedValue->$property\n";
-            $error .= "Method ->$property needs brackets() everywhere and {curly braces} in strings:\n";
+            $error = "\$str->$property needs brackets() everywhere and {curly braces} in strings:\n";
             $error .= "    ✓ Outside strings:         \$str->$property()\n";
             $error .= "    ✗ Missing brackets:        \$str->$property\n";
             $error .= "    ✓ Inside strings:          \"Hello {\$str->$property()}\"\n";
             $error .= "    ✗ Missing { } in string:   \"Hello \$str->$property()\"\n";
         } else {
-            $error = "Undefined property: $formattedValue->$property\n";
+            $error = "Undefined property: " . self::stripNamespace(self::class) . "->$property\n";
         }
 
         $error .= self::occurredInFile();

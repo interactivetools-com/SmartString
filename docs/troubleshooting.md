@@ -89,7 +89,7 @@ every combination.
 
 ## Other Issues
 
-### "Method ->*methodName* needs brackets() everywhere and {curly braces} in strings"
+### "$str->*methodName* needs brackets() everywhere and {curly braces} in strings"
 
 **What happened:** A method was written like a field: brackets missing, or
 a call inside a double-quoted string without curly braces. It's a PHP

@@ -630,8 +630,7 @@ class DocsExamplesTest extends SmartStringTestCase
         $user = SmartArray::new(['name' => 'Jean'])->asHtml();
 
         $expectedWarning = <<<'__TEXT__'
-            "Jean"->trim
-            Method ->trim needs brackets() everywhere and {curly braces} in strings:
+            $str->trim needs brackets() everywhere and {curly braces} in strings:
                 ✓ Outside strings:         $str->trim()
                 ✗ Missing brackets:        $str->trim
                 ✓ Inside strings:          "Hello {$str->trim()}"
