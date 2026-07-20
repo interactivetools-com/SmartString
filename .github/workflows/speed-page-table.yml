@@ -1,0 +1,82 @@
+name: Speed Page Table
+
+# Manual-only: never runs on push. Dispatch from the Actions tab ("Run workflow") or
+# with: gh workflow run speed-page-table.yml
+#
+# Regenerates the docs/performance.md category table (helper-wrapped
+# htmlspecialchars() vs echoing a real SmartString) on the platforms the page
+# quotes: Linux x64, Linux ARM, and Windows. Each cell prints its markdown table
+# to the job summary; copy the Linux x64 table into the docs and sanity-check the
+# other two against the page's platform notes.
+# See .github/scripts/speed-page-table.php for categories and harness rules.
+on:
+  workflow_dispatch:
+    inputs:
+      os:
+        description: 'Runner (blank = all)'
+        required: false
+        type: choice
+        options:
+          - ''
+          - ubuntu-latest
+          - ubuntu-24.04-arm
+          - windows-latest
+      php:
+        description: 'PHP version'
+        required: false
+        default: '8.5'
+        type: choice
+        options: ['8.1', '8.2', '8.3', '8.4', '8.5']
+      scale:
+        description: 'Iteration scale (1.0 = full, 0.3 = quick)'
+        required: false
+        default: '1.0'
+
+jobs:
+  matrix:
+    name: Load matrix
+    runs-on: ubuntu-latest
+    outputs:
+      os: ${{ steps.load.outputs.os }}
+    steps:
+      - name: Build matrix from inputs
+        id: load
+        run: |
+          if [ -n "${{ inputs.os }}" ]; then
+            echo 'os=["${{ inputs.os }}"]' >> "$GITHUB_OUTPUT"
+          else
+            echo 'os=["ubuntu-latest", "ubuntu-24.04-arm", "windows-latest"]' >> "$GITHUB_OUTPUT"
+          fi
+
+  table:
+    name: PHP ${{ inputs.php }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    needs: matrix
+    timeout-minutes: 15
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON(needs.matrix.outputs.os) }}
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      # opcache enabled for CLI to match production opcode optimization
+      - name: Setup PHP ${{ inputs.php }}
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2.37.2
+        with:
+          php-version: ${{ inputs.php }}
+          coverage: none
+          ini-values: opcache.enable_cli=1
+
+      - name: Generate table
+        run: |
+          php .github/scripts/speed-page-table.php \
+            --scale="${{ inputs.scale }}" \
+            >> "$GITHUB_STEP_SUMMARY"
