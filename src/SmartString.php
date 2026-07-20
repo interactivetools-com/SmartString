@@ -30,84 +30,6 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     use ErrorHelpersTrait;
 
     /**
-     * Flags for HTML-encoding output. ENT_DISALLOWED substitutes code points HTML5 forbids
-     * (C1 controls, noncharacters) with � so they can't hide in page source.
-     */
-    private const HTML_ENCODE_FLAGS = ENT_QUOTES | ENT_SUBSTITUTE | ENT_DISALLOWED | ENT_HTML5;
-
-    /**
-     * Encoding fast paths: three checks run before htmlspecialchars(), each returning
-     * early when the remaining work is provably simpler. Output is byte-identical to
-     * htmlspecialchars() with HTML_ENCODE_FLAGS on every input - enforced over a
-     * ~106k-string corpus by tests/Unit/EncodingCorpusTest.php, and over every
-     * possible 1-4 byte string (the full utf8mb4 space, 4.3 billion inputs) by
-     * .github/scripts/check-all-strings-up-to-4-bytes-match-htmlspecialchars.php.
-     * If the flags change, these patterns must change with them.
-     *
-     * Why this pays off: values containing real HTML (WYSIWYG fields) are output raw
-     * via rawHtml() and never reach the encoder. What does reach it is mostly plain
-     * text - titles, names, dates, prices - where special characters appear only
-     * incidentally (an ampersand in a company name, quotes or angle brackets typed
-     * into a description). The tiers match that distribution, common case first:
-     *
-     * - Type check: non-string values (int/float/bool/null - what the constructor
-     *   accepts) cast to clean ASCII only (digits, sign, '.', 'E+', 'INF', '1', ''),
-     *   so the cast returns with no scan at all. Float casts are locale-independent
-     *   on PHP 8.0+. EncodingCorpusTest sweeps the cast outputs against the encoder.
-     * - Tier 1 (ENCODE_SKIP_REGEX): no byte encoding could change - return as-is.
-     *   Tab, LF, FF, CR are legal in HTML5 and deliberately excluded from the pattern.
-     *   On PHP 8.4+, strings of ENCODE_STRSPN_MIN_BYTES or more run this same check
-     *   via strspn(ENCODE_CLEAN_CHARS) instead - 8.4 rewrote strspn to scan in blocks,
-     *   making it 1.3-2.2x faster than the preg scan on 1KB clean text. Before 8.4 the
-     *   version branch compiles away entirely (verified as exact ties in the matrix).
-     * - Tier 2 (ENCODE_NON_ASCII_REGEX): plain ASCII where only the five specials
-     *   need encoding - str_replace beats the full encoder pass.
-     * - Tier 3 (ENCODE_DISALLOWED_UTF8_REGEX): valid UTF-8 (accents, CJK, emoji) with
-     *   no HTML5-disallowed code points - same str_replace. The /u scan doubles as
-     *   UTF-8 validation: invalid input returns false (not 0) and falls through to
-     *   the encoder, which substitutes bad bytes with �.
-     *
-     * Measured on PHP 8.1-8.5 x 5 platforms (.github/workflows/speed-matrix.yml,
-     * grid in .github/scripts/speed-results.md): short clean fields 15-80% faster,
-     * 1KB clean text 5-8x (13-20x on native Windows builds), ASCII HTML 2-5x,
-     * accented text 3-14x. Worst case is a short field containing a special (two
-     * scans + str_replace instead of one small encode, ~60ns); invalid UTF-8 ~even.
-     */
-    private const ENCODE_SKIP_REGEX = '/[\x00-\x08\x0B\x0E-\x1F"&\'<>\x7F-\xFF]/';
-
-    /**
-     * Tier 1's clean bytes as a list for strspn(): exactly the bytes ENCODE_SKIP_REGEX
-     * does NOT match (tab, LF, FF, CR, printable ASCII minus the five specials).
-     * The two must stay exact complements - EncodingCorpusTest verifies byte-by-byte.
-     */
-    private const ENCODE_CLEAN_CHARS = "\t\n\f\r !#\$%()*+,-./0123456789:;=?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
-
-    // strspn() overtakes the preg scan at 64-128 bytes depending on platform; 128 is the
-    // lowest length that wins or ties on every 8.4+ cell (8-61% faster on 128-255B clean
-    // strings; at 64B it still loses on Linux x64 and macOS ARM). Windows is the
-    // exception: 64 wins 20-25% there, and its official PHP builds are x64-only, so the
-    // OS check implies the architecture. PHP_OS_FAMILY is known at compile time - the
-    // expression folds to a plain integer, and non-Windows platforms measured exact
-    // ties. See speed-results.md (tests: thresh-128-*, thresh-64-*, thresh-os-64b).
-    private const ENCODE_STRSPN_MIN_BYTES = PHP_OS_FAMILY === 'Windows' ? 64 : 128;
-
-    /** Control chars, DEL, or non-ASCII: no match = ASCII needing only the five specials encoded */
-    private const ENCODE_NON_ASCII_REGEX = '/[\x00-\x08\x0B\x0E-\x1F\x7F-\xFF]/';
-
-    /** HTML5-disallowed code points (C1 controls, noncharacters); /u also validates UTF-8 */
-    private const ENCODE_DISALLOWED_UTF8_REGEX =
-        '/[\x00-\x08\x0B\x0E-\x1F\x7F-\x9F\x{FDD0}-\x{FDEF}'
-        . '\x{FFFE}\x{FFFF}\x{1FFFE}\x{1FFFF}\x{2FFFE}\x{2FFFF}\x{3FFFE}\x{3FFFF}'
-        . '\x{4FFFE}\x{4FFFF}\x{5FFFE}\x{5FFFF}\x{6FFFE}\x{6FFFF}\x{7FFFE}\x{7FFFF}'
-        . '\x{8FFFE}\x{8FFFF}\x{9FFFE}\x{9FFFF}\x{AFFFE}\x{AFFFF}\x{BFFFE}\x{BFFFF}'
-        . '\x{CFFFE}\x{CFFFF}\x{DFFFE}\x{DFFFF}\x{EFFFE}\x{EFFFF}\x{FFFFE}\x{FFFFF}'
-        . '\x{10FFFE}\x{10FFFF}]/u';
-
-    /** What htmlspecialchars() with HTML_ENCODE_FLAGS does to the five specials (ENT_HTML5: ' is &apos;) */
-    private const ENCODE_SPECIALS_FROM = ['&', '<', '>', '"', "'"];
-    private const ENCODE_SPECIALS_TO   = ['&amp;', '&lt;', '&gt;', '&quot;', '&apos;'];
-
-    /**
      * The raw stored value, exactly as passed to the constructor.
      *
      * Speed: no property type or readonly, on purpose.
@@ -252,6 +174,34 @@ final class SmartString implements JsonSerializable, IteratorAggregate
 
     //endregion
     //region Encoding
+
+    /**
+     * Returns HTML-encoded string representation of the Value when object is accessed in string context.
+     *
+     * @return string The HTML-encoded representation of the value.
+     */
+    public function __toString(): string
+    {
+        // speed: tiered fast paths, see ENCODE_SKIP_REGEX docblock
+        $text = $this->rawData;
+        if (!is_string($text)) {
+            return (string)$text; // int/float/bool/null cast to clean ASCII only - nothing to encode
+        }
+        if (PHP_VERSION_ID >= 80400 && strlen($text) >= self::ENCODE_STRSPN_MIN_BYTES) {
+            if (strspn($text, self::ENCODE_CLEAN_CHARS) === strlen($text)) {
+                return $text;
+            }
+        } elseif (!preg_match(self::ENCODE_SKIP_REGEX, $text)) {
+            return $text;
+        }
+        if (!preg_match(self::ENCODE_NON_ASCII_REGEX, $text)) {
+            return str_replace(self::ENCODE_SPECIALS_FROM, self::ENCODE_SPECIALS_TO, $text);
+        }
+        if (preg_match(self::ENCODE_DISALLOWED_UTF8_REGEX, $text) === 0) { // false = invalid UTF-8, falls through
+            return str_replace(self::ENCODE_SPECIALS_FROM, self::ENCODE_SPECIALS_TO, $text);
+        }
+        return htmlspecialchars($text, self::HTML_ENCODE_FLAGS, 'UTF-8');
+    }
 
     /**
      * HTML-encodes the current value for safe output in an HTML context.
@@ -1054,34 +1004,6 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     //region Internal
 
     /**
-     * Returns HTML-encoded string representation of the Value when object is accessed in string context.
-     *
-     * @return string The HTML-encoded representation of the value.
-     */
-    public function __toString(): string
-    {
-        // speed: tiered fast paths, see ENCODE_SKIP_REGEX docblock
-        $text = $this->rawData;
-        if (!is_string($text)) {
-            return (string)$text; // int/float/bool/null cast to clean ASCII only - nothing to encode
-        }
-        if (PHP_VERSION_ID >= 80400 && strlen($text) >= self::ENCODE_STRSPN_MIN_BYTES) {
-            if (strspn($text, self::ENCODE_CLEAN_CHARS) === strlen($text)) {
-                return $text;
-            }
-        } elseif (!preg_match(self::ENCODE_SKIP_REGEX, $text)) {
-            return $text;
-        }
-        if (!preg_match(self::ENCODE_NON_ASCII_REGEX, $text)) {
-            return str_replace(self::ENCODE_SPECIALS_FROM, self::ENCODE_SPECIALS_TO, $text);
-        }
-        if (preg_match(self::ENCODE_DISALLOWED_UTF8_REGEX, $text) === 0) { // false = invalid UTF-8, falls through
-            return str_replace(self::ENCODE_SPECIALS_FROM, self::ENCODE_SPECIALS_TO, $text);
-        }
-        return htmlspecialchars($text, self::HTML_ENCODE_FLAGS, 'UTF-8');
-    }
-
-    /**
      * Magic getter that provides helpful error messages for common mistakes with dynamic properties/methods
      * Emits E_USER_WARNING when property access is invalid, providing detailed usage instructions.
      *
@@ -1337,6 +1259,87 @@ final class SmartString implements JsonSerializable, IteratorAggregate
             default            => null,
         };
     }
+
+    //endregion
+    //region Encoding Internals
+
+    /**
+     * Flags for HTML-encoding output. ENT_DISALLOWED substitutes code points HTML5 forbids
+     * (C1 controls, noncharacters) with � so they can't hide in page source.
+     */
+    private const HTML_ENCODE_FLAGS = ENT_QUOTES | ENT_SUBSTITUTE | ENT_DISALLOWED | ENT_HTML5;
+
+    /**
+     * Encoding fast paths: three checks run before htmlspecialchars(), each returning
+     * early when the remaining work is provably simpler. Output is byte-identical to
+     * htmlspecialchars() with HTML_ENCODE_FLAGS on every input - enforced over a
+     * ~106k-string corpus by tests/Unit/EncodingCorpusTest.php, and over every
+     * possible 1-4 byte string (the full utf8mb4 space, 4.3 billion inputs) by
+     * .github/scripts/check-all-strings-up-to-4-bytes-match-htmlspecialchars.php.
+     * If the flags change, these patterns must change with them.
+     *
+     * Why this pays off: values containing real HTML (WYSIWYG fields) are output raw
+     * via rawHtml() and never reach the encoder. What does reach it is mostly plain
+     * text - titles, names, dates, prices - where special characters appear only
+     * incidentally (an ampersand in a company name, quotes or angle brackets typed
+     * into a description). The tiers match that distribution, common case first:
+     *
+     * - Type check: non-string values (int/float/bool/null - what the constructor
+     *   accepts) cast to clean ASCII only (digits, sign, '.', 'E+', 'INF', '1', ''),
+     *   so the cast returns with no scan at all. Float casts are locale-independent
+     *   on PHP 8.0+. EncodingCorpusTest sweeps the cast outputs against the encoder.
+     * - Tier 1 (ENCODE_SKIP_REGEX): no byte encoding could change - return as-is.
+     *   Tab, LF, FF, CR are legal in HTML5 and deliberately excluded from the pattern.
+     *   On PHP 8.4+, strings of ENCODE_STRSPN_MIN_BYTES or more run this same check
+     *   via strspn(ENCODE_CLEAN_CHARS) instead - 8.4 rewrote strspn to scan in blocks,
+     *   making it 1.3-2.2x faster than the preg scan on 1KB clean text. Before 8.4 the
+     *   version branch compiles away entirely (verified as exact ties in the matrix).
+     * - Tier 2 (ENCODE_NON_ASCII_REGEX): plain ASCII where only the five specials
+     *   need encoding - str_replace beats the full encoder pass.
+     * - Tier 3 (ENCODE_DISALLOWED_UTF8_REGEX): valid UTF-8 (accents, CJK, emoji) with
+     *   no HTML5-disallowed code points - same str_replace. The /u scan doubles as
+     *   UTF-8 validation: invalid input returns false (not 0) and falls through to
+     *   the encoder, which substitutes bad bytes with �.
+     *
+     * Measured on PHP 8.1-8.5 x 5 platforms (.github/workflows/speed-matrix.yml,
+     * grid in .github/scripts/speed-results.md): short clean fields 15-80% faster,
+     * 1KB clean text 5-8x (13-20x on native Windows builds), ASCII HTML 2-5x,
+     * accented text 3-14x. Worst case is a short field containing a special (two
+     * scans + str_replace instead of one small encode, ~60ns); invalid UTF-8 ~even.
+     */
+    private const ENCODE_SKIP_REGEX = '/[\x00-\x08\x0B\x0E-\x1F"&\'<>\x7F-\xFF]/';
+
+    /**
+     * Tier 1's clean bytes as a list for strspn(): exactly the bytes ENCODE_SKIP_REGEX
+     * does NOT match (tab, LF, FF, CR, printable ASCII minus the five specials).
+     * The two must stay exact complements - EncodingCorpusTest verifies byte-by-byte.
+     */
+    private const ENCODE_CLEAN_CHARS = "\t\n\f\r !#\$%()*+,-./0123456789:;=?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+
+    // strspn() overtakes the preg scan at 64-128 bytes depending on platform; 128 is the
+    // lowest length that wins or ties on every 8.4+ cell (8-61% faster on 128-255B clean
+    // strings; at 64B it still loses on Linux x64 and macOS ARM). Windows is the
+    // exception: 64 wins 20-25% there, and its official PHP builds are x64-only, so the
+    // OS check implies the architecture. PHP_OS_FAMILY is known at compile time - the
+    // expression folds to a plain integer, and non-Windows platforms measured exact
+    // ties. See speed-results.md (tests: thresh-128-*, thresh-64-*, thresh-os-64b).
+    private const ENCODE_STRSPN_MIN_BYTES = PHP_OS_FAMILY === 'Windows' ? 64 : 128;
+
+    /** Control chars, DEL, or non-ASCII: no match = ASCII needing only the five specials encoded */
+    private const ENCODE_NON_ASCII_REGEX = '/[\x00-\x08\x0B\x0E-\x1F\x7F-\xFF]/';
+
+    /** HTML5-disallowed code points (C1 controls, noncharacters); /u also validates UTF-8 */
+    private const ENCODE_DISALLOWED_UTF8_REGEX =
+        '/[\x00-\x08\x0B\x0E-\x1F\x7F-\x9F\x{FDD0}-\x{FDEF}'
+        . '\x{FFFE}\x{FFFF}\x{1FFFE}\x{1FFFF}\x{2FFFE}\x{2FFFF}\x{3FFFE}\x{3FFFF}'
+        . '\x{4FFFE}\x{4FFFF}\x{5FFFE}\x{5FFFF}\x{6FFFE}\x{6FFFF}\x{7FFFE}\x{7FFFF}'
+        . '\x{8FFFE}\x{8FFFF}\x{9FFFE}\x{9FFFF}\x{AFFFE}\x{AFFFF}\x{BFFFE}\x{BFFFF}'
+        . '\x{CFFFE}\x{CFFFF}\x{DFFFE}\x{DFFFF}\x{EFFFE}\x{EFFFF}\x{FFFFE}\x{FFFFF}'
+        . '\x{10FFFE}\x{10FFFF}]/u';
+
+    /** What htmlspecialchars() with HTML_ENCODE_FLAGS does to the five specials (ENT_HTML5: ' is &apos;) */
+    private const ENCODE_SPECIALS_FROM = ['&', '<', '>', '"', "'"];
+    private const ENCODE_SPECIALS_TO   = ['&amp;', '&lt;', '&gt;', '&quot;', '&apos;'];
 
     //endregion
 }
