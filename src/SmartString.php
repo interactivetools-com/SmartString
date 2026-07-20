@@ -176,9 +176,13 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     //region Encoding
 
     /**
-     * Returns HTML-encoded string representation of the Value when object is accessed in string context.
+     * Returns the HTML-encoded value. PHP calls this automatically whenever the
+     * object is used as a string - echo $str, <?= $str ?>, and "Hello $str" all
+     * end up here.
      *
-     * @return string The HTML-encoded representation of the value.
+     * Missing values (null or "") return "".
+     *
+     * @return string The HTML-encoded value
      */
     public function __toString(): string
     {
@@ -205,6 +209,9 @@ final class SmartString implements JsonSerializable, IteratorAggregate
 
     /**
      * HTML-encodes the current value for safe output in an HTML context.
+     *
+     * Identical output to echoing the object, and slightly faster in huge
+     * loops: saves about 0.03s per million outputs.
      *
      * Missing values (null or "") return "".
      *

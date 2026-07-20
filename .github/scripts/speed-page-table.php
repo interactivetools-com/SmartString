@@ -27,7 +27,9 @@ use Itools\SmartString\SmartString;
 const FULL_FLAGS = ENT_QUOTES | ENT_SUBSTITUTE | ENT_DISALLOWED | ENT_HTML5;
 
 // The baseline: the standard safe call wrapped once per project (Laravel's e(),
-// Twig's escaper, your own helper) - the page's comparison target
+// Twig's escaper, your own helper) - the page's comparison target. Full flags
+// (ENT_DISALLOWED | ENT_HTML5) would slow this baseline ~50% on long strings
+// (ENT_DISALLOWED checks every character); we race the faster call.
 function e(string $text): string
 {
     return htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
