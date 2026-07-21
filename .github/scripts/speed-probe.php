@@ -544,6 +544,16 @@ final class ArrIterFast implements IteratorAggregate
 //endregion
 //region Input pools (runtime-built, never interned literals)
 
+// Specials and accent densities are corpus-measured (six Project Gutenberg
+// texts, ~5.5M chars: EN 1342/3300/84, FR 17489/4650/5097, plus published
+// letter-frequency tables): the apostrophe is the dominant special (~0.1-0.5%
+// of typed-English characters, ~1% of typed French - elision); & < > are
+// essentially absent from prose (they live in names and titles); French
+// accented characters are ~2.5% of all characters (é alone ~2%). Typeset
+// content uses U+2019 and guillemets, which need no encoding, so its
+// ASCII-specials rate is zero. Short units run denser than prose - a short
+// field with a special or accent is dense by definition.
+
 /** Deterministic pseudo-random ASCII word soup, safe bytes only */
 function build_clean(int $len, int $seed): string
 {
@@ -562,7 +572,7 @@ function build_clean(int $len, int $seed): string
 function build_pools(): array
 {
     $pools = ['clean10' => [], 'clean200' => [], 'clean1k' => [], 'dirty10' => [],
-              'dirty1k' => [], 'accented1k' => [], 'accented10' => [], 'mix' => [], 'memo_mix' => [],
+              'dirty1k' => [], 'accented1k' => [], 'accented10' => [], 'mix' => [], 'memo_mix' => [], 'prose1k' => [],
               'clean64' => [], 'clean128' => [], 'clean256' => [], 'clean512' => [],
               'invalid1k' => [], 'sparse1k' => [], 'clean96' => [], 'ints' => []];
 
@@ -576,12 +586,18 @@ function build_pools(): array
         $pools['clean128'][] = build_clean(128, 7100 + $i);
         $pools['clean256'][] = build_clean(256, 7200 + $i);
         $pools['clean512'][] = build_clean(512, 7300 + $i);
-        // dirty10: one special mid-string
-        $pools['dirty10'][] = substr(build_clean(9, 4000 + $i), 0, 4) . '&' . substr(build_clean(9, 4000 + $i), 5);
+        // dirty10: one special mid-string - an apostrophe, the dominant special in
+        // real text (corpus-measured; & < > are essentially absent from prose)
+        $pools['dirty10'][] = substr(build_clean(9, 4000 + $i), 0, 4) . "'" . substr(build_clean(9, 4000 + $i), 5);
         // dirty1k: HTML-ish, specials throughout (ASCII only, so the str_replace tier fires)
         $pools['dirty1k'][] = '<p class="x">' . str_replace(' ', ' & ', build_clean(950, 5000 + $i)) . "</p>\n";
-        // accented1k: clean multibyte text (é per word), no specials
-        $pools['accented1k'][] = str_replace('a', "\u{E9}", build_clean(900, 6000 + $i));
+        // accented1k: clean multibyte text at French prose density (~2.5-3% of
+        // characters accented, corpus-measured; 'a' is ~13% of these pools, so
+        // every 5th one becomes é), no specials
+        $accents = 0;
+        $pools['accented1k'][] = preg_replace_callback('/a/', static function () use (&$accents): string {
+            return ++$accents % 5 === 0 ? "\u{E9}" : 'a';
+        }, build_clean(900, 6000 + $i));
         // accented10: short accented field ("Café"-shaped); 'a' and 'o' both replaced
         // because every word has one of them, so no string stays pure ASCII
         $pools['accented10'][] = str_replace(['a', 'o'], "\u{E9}", build_clean(10, 6100 + $i));
@@ -592,19 +608,26 @@ function build_pools(): array
         // strtr's worst (full setup for a single hit); contrast pool for dirty1k (dense)
         $sparse = build_clean(1024, 9000 + $i);
         $pools['sparse1k'][] = substr($sparse, 0, 512) . '&' . substr($sparse, 513);
+        // prose1k: typed-prose specials density - one quoted phrase plus two
+        // apostrophes per KB (~0.4%, corpus-measured); the realistic "has specials"
+        // long field. dirty1k stays as the dense bound for tier/strtr worst cases.
+        $prose = build_clean(1020, 10000 + $i);
+        $pools['prose1k'][] = substr($prose, 0, 250) . '"' . substr($prose, 250, 50) . '"'
+            . substr($prose, 300, 300) . "'" . substr($prose, 600, 250) . "'" . substr($prose, 850);
         // ints: DB-shaped numeric values (ids, counts, timestamps) - stay ints, cast per call
         mt_srand(9500 + $i);
         $pools['ints'][] = [1, 42, 999, 100000, 1752934000, PHP_INT_MAX - 1000][$i % 6] + mt_rand(0, 999);
     }
 
-    // Realistic field mix: 70% clean-short, 15% clean-200B, 10% clean-1KB, 5% dirty-1KB
+    // Realistic field mix: 70% clean-short, 15% clean-200B, 10% clean-1KB,
+    // 5% prose-1KB (typed content with quotes at corpus density)
     for ($i = 0; $i < 64; $i++) {
         $r = $i % 20;
         $pools['mix'][] = match (true) {
             $r < 14 => $pools['clean10'][$i],
             $r < 17 => $pools['clean200'][$i],
             $r < 19 => $pools['clean1k'][$i],
-            default => $pools['dirty1k'][$i],
+            default => $pools['prose1k'][$i],
         };
     }
 

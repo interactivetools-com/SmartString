@@ -69,10 +69,24 @@ function pool(string $unit, int $bytes): array
 
 // Category units. Rotation keeps every character in every entry, so each specials
 // entry keeps its & and ' and each accented entry keeps its multibyte characters.
+// Densities are corpus-measured (Gutenberg EN/FR + published letter-frequency
+// tables): the apostrophe is the dominant special in real text (~0.1-0.5% of
+// typed-English characters, ~1% of typed French); & < > are essentially absent
+// from prose (they live in names and titles); French accented characters are
+// ~2.5% of all characters. Short units are denser than prose because a short
+// field with a special or accent is dense by definition.
 const UNIT_CLEAN    = 'Annual Report 2026 Sales Data ';
 const UNIT_SPECIALS = "O'Brien & Co Ltd";                                  // exactly 16 bytes: every 16B rotation keeps both specials
 const UNIT_ACCENTED = "Caf\xC3\xA9 Montr\xC3\xA9al QC";                    // "Café Montréal QC", 16 bytes, no specials
-const UNIT_PROSE    = "The company's Q3 report, prepared by O'Brien & Co, shows steady growth this year. "; // realistic apostrophe density for paragraph/article rows
+// One quoted phrase and an apostrophe per ~220 chars (~1.3% specials - prose
+// that HAS specials, at typed-content density)
+const UNIT_PROSE    = "The company's third-quarter report shows steady growth in every region, and the board called the results \"very encouraging\" in its letter to shareholders. Management expects the same pace next year as new locations open. ";
+// French prose at measured density (~3% accented characters, elision uses the
+// typographic apostrophe U+2019, which needs no encoding): "La société précise
+// que l'équipe prévoit des résultats stables pour les trois prochaines années.
+// Le conseil salue ce travail et confirme les grandes lignes du plan, avec un
+// point complet sur les ventes au printemps prochain."
+const UNIT_ACCENTED_PROSE = "La soci\xC3\xA9t\xC3\xA9 pr\xC3\xA9cise que l\xE2\x80\x99\xC3\xA9quipe pr\xC3\xA9voit des r\xC3\xA9sultats stables pour les trois prochaines ann\xC3\xA9es. Le conseil salue ce travail et confirme les grandes lignes du plan, avec un point complet sur les ventes au printemps prochain. ";
 
 /** Die unless every entry matches the row's category definition */
 function checkCategory(array $strings, string $category): void
@@ -142,7 +156,7 @@ $opts  = getopt('', ['scale::']);
 $scale = max(0.01, (float)($opts['scale'] ?? 1.0));
 
 // [category, bytes label, example, pool, iterations]
-$mixLabel = '70% 16B clean, 15% 200B, 10% 1KB, 5% 1KB with quotes';
+$mixLabel = '70% 16B (two of 45 are names with specials), 15% 200B, 10% 1KB, 5% 1KB with quotes';
 $rows     = [];
 
 // Numbers first: ints and floats skip the scan entirely
@@ -174,13 +188,17 @@ foreach ([['clean', UNIT_CLEAN], ['specials', UNIT_SPECIALS], ['accented', UNIT_
     $label = match ($category) {
         'clean'    => 'Clean text - no `& < > " \'`',
         'specials' => 'Has `& < > " \'`',
-        'accented' => 'Accented text - no specials',
+        'accented' => 'Accented text - no `& < > " \'`',
     };
     foreach ([16 => 200000, 1024 => 30000, 10240 => 4000] as $bytes => $iterations) {
-        // Paragraph/article rows use realistic prose density (an apostrophe or two
-        // per sentence); the 16B row keeps the dense unit - a short field with a
-        // special is dense by definition
-        $poolUnit = ($category === 'specials' && $bytes > 16) ? UNIT_PROSE : $unit;
+        // Paragraph/article rows use prose units at corpus density; the 16B rows
+        // keep the dense units - a short field with a special or accent is dense
+        // by definition
+        $poolUnit = match (true) {
+            $category === 'specials' && $bytes > 16 => UNIT_PROSE,
+            $category === 'accented' && $bytes > 16 => UNIT_ACCENTED_PROSE,
+            default                                 => $unit,
+        };
         $strings  = pool($poolUnit, $bytes);
         checkCategory($strings, $category);
         $sizeLabel = $bytes >= 1024 ? sprintf('%d KB', intdiv($bytes, 1024)) : sprintf('%d B', $bytes);
@@ -191,7 +209,8 @@ foreach ([['clean', UNIT_CLEAN], ['specials', UNIT_SPECIALS], ['accented', UNIT_
 // Page mixes: proportions of a 64-entry pool; every iteration cycles the pool so
 // the measured cost is the weighted average of one field output
 $standardMix = array_merge(
-    array_slice(pool(UNIT_CLEAN, 16), 0, 45),
+    array_slice(pool(UNIT_CLEAN, 16), 0, 43),
+    array_slice(pool(UNIT_SPECIALS, 16), 0, 2),   // a couple of short fields are names with specials
     array_slice(pool(UNIT_CLEAN, 200), 0, 10),
     array_slice(pool(UNIT_CLEAN, 1024), 0, 6),
     array_slice(pool(UNIT_PROSE, 1024), 0, 3),

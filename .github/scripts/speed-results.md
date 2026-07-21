@@ -12,6 +12,14 @@ To regenerate: dispatch the Speed Matrix workflow (Actions tab or
 `gh workflow run speed-matrix.yml`), download the probe-* artifacts, then
 `php speed-merge.php probes/*.json`.
 
+Pool re-tune (2026-07-21): pool densities match measured corpus rates -
+accented1k carries ~2.5-3% accented characters (French prose density), the
+mix's 5% specials share is prose1k (one quoted phrase plus two apostrophes
+per KB, typed-content density), and dirty10's special is an apostrophe.
+Grid rows that read dirty10, accented1k, or mix (see build_tests in
+speed-probe.php) predate the re-tune - re-run before citing them; clean-pool
+rows are unaffected.
+
 Verdicts from this run (details in the per-test rows below):
 
 ### Adopted
