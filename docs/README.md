@@ -21,7 +21,7 @@ one before. The rest are standalone: open whichever matches your task.
 
 - [Method Reference](method-reference.md) - Every method in one place, grouped by what it returns.
 - [Troubleshooting](troubleshooting.md) - Common error messages and behavior gotchas, with fixes.
-- [Performance](performance.md) - How SmartString is 2-4x faster than calling `htmlspecialchars()` yourself.
+- [Performance](performance.md) - How our automatic encoding is 4x faster than calling `htmlspecialchars()` yourself.
 - [AI Reference](ai-reference.md) - The complete API in one dense file, written for AI coding assistants.
 
 ---

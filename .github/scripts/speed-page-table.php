@@ -14,7 +14,8 @@ declare(strict_types=1);
  *
  * To refresh docs/performance.md: dispatch the workflow
  * (`gh workflow run speed-page-table.yml`), paste the linux-x64 table into the
- * page verbatim, and update the run link below the table.
+ * page verbatim, update the run link below the table, and refresh the
+ * worked-example numbers from the raw timings block.
  *
  * Harness rules (same as speed-probe.php): runtime-built pools of 64 distinct
  * strings, interleaved A/B in one process, best-of-7, results consumed. Before any
@@ -70,7 +71,8 @@ function pool(string $unit, int $bytes): array
 // Category units. Rotation keeps every character in every entry, so each specials
 // entry keeps its & and ' and each accented entry keeps its multibyte characters.
 // Densities are corpus-measured (Gutenberg EN/FR + published letter-frequency
-// tables): the apostrophe is the dominant special in real text (~0.1-0.5% of
+// tables; modern Wikipedia articles in both languages measure the same rates):
+// the apostrophe is the dominant special in real text (~0.1-0.5% of
 // typed-English characters, ~1% of typed French); & < > are essentially absent
 // from prose (they live in names and titles); French accented characters are
 // ~2.5% of all characters. Short units are denser than prose because a short
@@ -156,7 +158,7 @@ $opts  = getopt('', ['scale::']);
 $scale = max(0.01, (float)($opts['scale'] ?? 1.0));
 
 // [category, bytes label, example, pool, iterations]
-$mixLabel = '70% 16B (two of 45 are names with specials), 15% 200B, 10% 1KB, 5% 1KB with quotes';
+$mixLabel = '55% short 16 B, 10% numbers, 5% empty, 15% 200 B, 15% 1 KB; a few fields have quotes or apostrophes';
 $rows     = [];
 
 // Numbers first: ints and floats skip the scan entirely
@@ -209,16 +211,22 @@ foreach ([['clean', UNIT_CLEAN], ['specials', UNIT_SPECIALS], ['accented', UNIT_
 // Page mixes: proportions of a 64-entry pool; every iteration cycles the pool so
 // the measured cost is the weighted average of one field output
 $standardMix = array_merge(
-    array_slice(pool(UNIT_CLEAN, 16), 0, 43),
+    array_slice(pool(UNIT_CLEAN, 16), 0, 34),
     array_slice(pool(UNIT_SPECIALS, 16), 0, 2),   // a couple of short fields are names with specials
+    array_slice($numbers, 0, 6),                  // ids, counts, prices
+    array_slice($empties, 0, 3),                  // blank optional fields
     array_slice(pool(UNIT_CLEAN, 200), 0, 10),
     array_slice(pool(UNIT_CLEAN, 1024), 0, 6),
     array_slice(pool(UNIT_PROSE, 1024), 0, 3),
 );
-$rows[] = ['Realistic page mix', 'mixed', $mixLabel, $standardMix, 60000];
+// Measured for the bottom line's per-platform numbers; kept out of the docs
+// table - the worked example on the page is the page-level illustration
+$rows[] = ['Realistic page mix', 'mixed', $mixLabel, $standardMix, 60000, false];
 
+// Measured for the record but kept out of the docs table: a second weighted-average
+// mix number reads as contradicting the first (the article's higher ratio pulls it up)
 $articleMix = array_merge(array_slice($standardMix, 0, 63), array_slice(pool(UNIT_PROSE, 10240), 0, 1));
-$rows[] = ['Page mix + one 10 KB article', 'mixed', 'the mix above plus an article with quotes', $articleMix, 60000];
+$rows[] = ['Page mix + one 10 KB article', 'mixed', 'the mix above plus an article with quotes', $articleMix, 60000, false];
 
 #endregion
 #region Run and report
@@ -233,7 +241,7 @@ printf(
     $opcache ? '' : ' - NOT CITABLE, short-string rows dominated by unoptimized call overhead'
 );
 
-$table   = "| Content | Size | Example | SmartString speed |\n|---|---|---|---|\n";
+$table   = "| Content | Size | Example | Speed vs `htmlspecialchars()` |\n|---|---|---|---|\n";
 $rawLines = [];
 foreach ($rows as $row) {
     [$label, $sizeLabel, $example, $values, $iterations] = $row;
@@ -250,7 +258,7 @@ foreach ($rows as $row) {
 }
 
 echo $table;
-echo "\n2x = SmartString outputs the value in half the time `htmlspecialchars()` takes; 1.0x = same speed; below 1x = slower.\n";
+echo "\n2x = twice as fast as calling `htmlspecialchars()` yourself; 1.0x = same speed; below 1x = slower.\n";
 echo "Measured on " . PHP_OS_FAMILY . ' ' . php_uname('m') . ", PHP " . PHP_VERSION . ".\n";
 echo "\nRaw timings (per call, best of 7):\n" . implode("\n", $rawLines) . "\n";
 

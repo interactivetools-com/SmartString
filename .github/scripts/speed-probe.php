@@ -546,7 +546,8 @@ final class ArrIterFast implements IteratorAggregate
 
 // Specials and accent densities are corpus-measured (six Project Gutenberg
 // texts, ~5.5M chars: EN 1342/3300/84, FR 17489/4650/5097, plus published
-// letter-frequency tables): the apostrophe is the dominant special (~0.1-0.5%
+// letter-frequency tables; modern Wikipedia articles in both languages measure
+// the same rates): the apostrophe is the dominant special (~0.1-0.5%
 // of typed-English characters, ~1% of typed French - elision); & < > are
 // essentially absent from prose (they live in names and titles); French
 // accented characters are ~2.5% of all characters (é alone ~2%). Typeset
