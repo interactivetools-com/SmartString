@@ -18,7 +18,7 @@
 ### Performance
 
 - HTML-encoded output (echo and `htmlEncode()`) is about 4x faster across a
-  typical page (up to 43x on Windows): values are scanned first and only
+  typical page (up to 45x on Windows): values are scanned first and only
   encoded when something needs encoding.
   Output stays byte-identical to `htmlspecialchars()`, verified against every
   possible string up to 4 bytes (4.3 billion inputs) on PHP 8.1-8.5. Benchmarks

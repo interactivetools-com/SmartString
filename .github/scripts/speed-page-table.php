@@ -6,8 +6,9 @@ declare(strict_types=1);
  *
  *     php .github/scripts/speed-page-table.php [--scale=1.0]
  *
- * Loads the real SmartString class from src/ (no composer install needed) so the
- * numbers include true object and method-call overhead. Run via the Speed Page Table
+ * Loads the real SmartString class from src/ (no composer install needed). Each
+ * SmartString timing creates the object and outputs it, so the numbers carry the
+ * full construction and method-call overhead. Run via the Speed Page Table
  * workflow for citable numbers: CI enables opcache like production; this script
  * warns when opcache is off because short-string rows are then dominated by
  * unoptimized call overhead.
@@ -114,12 +115,14 @@ function checkCategory(array $strings, string $category): void
 
 /**
  * Best-of-7 interleaved A/B over a pool; returns [a_ns, b_ns] per call.
- * $objects are prebuilt (construction isn't what the table measures).
+ * The SmartString side times construction PLUS output - `new SmartString`
+ * then a (string) cast, which invokes __toString exactly like echo does -
+ * so the multiplier is the full cost of each approach per value.
  */
-function bench(array $strings, array $objects, int $iterations): array
+function bench(array $strings, array $values, int $iterations): array
 {
     foreach ($strings as $k => $s) {  // byte-identity gate before any timing
-        if ((string)$objects[$k] !== htmlspecialchars($s, FULL_FLAGS, 'UTF-8')) {
+        if ((string)(new SmartString($values[$k])) !== htmlspecialchars($s, FULL_FLAGS, 'UTF-8')) {
             fwrite(STDERR, "MISMATCH: SmartString output differs from htmlspecialchars: " . var_export($s, true) . "\n");
             exit(1);
         }
@@ -134,7 +137,7 @@ function bench(array $strings, array $objects, int $iterations): array
         }
         $t1 = hrtime(true);
         for ($i = 0; $i < $iterations; $i++) {
-            $sink += strlen((string)$objects[$i % $count]);
+            $sink += strlen((string)(new SmartString($values[$i % $count])));
         }
         $t2    = hrtime(true);
         $bestA = min($bestA, ($t1 - $t0) / $iterations);
@@ -168,8 +171,8 @@ for ($i = 0; $i < 32; $i++) {
     $numbers[] = round(9.99 + $i * 1.37, 2);
 }
 // Measured for the record but kept out of the docs table: both sides are a handful
-// of nanoseconds, so the ratio reads as alarming while the absolute cost (~60ns of
-// object overhead per field) is noise at page scale
+// of nanoseconds, so the ratio reads as alarming while the absolute cost (~0.1µs
+// of object overhead per field) is noise at page scale
 $rows[] = ['Numbers - int, float', 'any', '`1499`, `24.99`', $numbers, 300000, false];
 
 // Empty fields: null skips everything via the non-string cast, "" runs the scan
@@ -246,11 +249,10 @@ $rawLines = [];
 foreach ($rows as $row) {
     [$label, $sizeLabel, $example, $values, $iterations] = $row;
     $inTable = $row[5] ?? true;
-    // Helper side gets strings (a template's implicit cast); SmartString stores the
-    // original type, so the Numbers row exercises the non-string fast path
+    // Helper side gets strings (a template's implicit cast); SmartString gets the
+    // original values, so the Numbers row exercises the non-string fast path
     $strings = array_map(static fn($v): string => (string)$v, $values);
-    $objects = array_map(static fn($v): SmartString => new SmartString($v), $values);
-    [$a, $b] = bench($strings, $objects, max(1, (int)($iterations * $scale)));
+    [$a, $b] = bench($strings, $values, max(1, (int)($iterations * $scale)));
     if ($inTable) {
         $table .= sprintf("| %s | %s | %s | %s |\n", $label, $sizeLabel, $example, ratioLabel($a / $b));
     }

@@ -12,8 +12,8 @@ runs. On a realistic page mix:
 
 - **Linux x64** - the most common web platform: **4.1x**
 - **Linux ARM** - Graviton-class hosts: **2.9x**
-- **Windows** - its PHP builds encode slowest: **11x**, and long clean fields
-  reach 43x
+- **Windows** - its PHP builds encode slowest: **12x**, and long clean fields
+  reach 45x
 
 ## How It Works
 
@@ -39,7 +39,9 @@ Every path either does less work than `htmlspecialchars()` or *is*
 
 This section compares the common approach, calling `htmlspecialchars()` through
 a small helper function (Laravel's `e()`, Twig's escaper, or one you wrote
-yourself), against echoing a SmartString, which encodes itself automatically.
+yourself), against creating a SmartString and outputting it - it encodes itself
+automatically. Both sides are timed in full: the helper call, and the
+SmartString's construction plus output.
 
 ```php
 // The helper being timed - the standard safe call, wrapped once per project
@@ -48,10 +50,8 @@ function e(string $text): string
     return htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-$title = SmartString::new("Annual Report 2026");
-
-echo e("Annual Report 2026");   // helper: runs the full encoder on every call
-echo $title;                    // SmartString: scans first, encodes only if needed
+echo e("Annual Report 2026");                  // helper: runs the full encoder on every call
+echo new SmartString("Annual Report 2026");    // SmartString: object created, value scanned, output
 ```
 
 Measured on Linux x64, PHP 8.5 with opcache, on GitHub Actions' standard cloud
@@ -63,10 +63,10 @@ and current text.
 | Content                        | Size  | Example                         | Speed vs `htmlspecialchars()` |
 |--------------------------------|-------|---------------------------------|-------------------------------|
 | Clean text - no `& < > " '`    | 16 B  | `Annual Report 2026`            | 1.0x                          |
-| Clean text - no `& < > " '`    | 1 KB  | a plain-text paragraph          | 9.4x                          |
+| Clean text - no `& < > " '`    | 1 KB  | a plain-text paragraph          | 9.5x                          |
 | Clean text - no `& < > " '`    | 10 KB | a long field, nothing to encode | 13x                           |
 | Has `& < > " '`                | 16 B  | `O'Brien & Co Ltd`              | 0.5x                          |
-| Has `& < > " '`                | 1 KB  | a paragraph with quotes         | 3.6x                          |
+| Has `& < > " '`                | 1 KB  | a paragraph with quotes         | 3.5x                          |
 | Has `& < > " '`                | 10 KB | a 1,500-word article            | 4.4x                          |
 | Accented text - no `& < > " '` | 16 B  | `Café Montréal QC`              | 0.4x                          |
 | Accented text - no `& < > " '` | 1 KB  | a French paragraph              | 3.8x                          |
@@ -99,7 +99,7 @@ about 0.2 microseconds per field - you'd need 5,000 of them on one page to
 lose a millisecond - and the wins everywhere else repay it many times over.
 
 These numbers come from the repo's Speed Page Table workflow
-([this run](https://github.com/interactivetools-com/SmartString/actions/runs/29868668475));
+([this run](https://github.com/interactivetools-com/SmartString/actions/runs/29876136289));
 you can run it yourself any time to confirm the numbers.
 
 ## How We Know It's Safe
@@ -135,14 +135,26 @@ Reading is cheaper than transforming, and most values only need to be read. Ever
 scan threshold comes from A/B benchmarks across PHP 8.1-8.5 on five OS and CPU
 combinations, recorded in the repo at `.github/scripts/speed-results.md`.
 
-Three notes for careful readers. The baseline helper runs the common faster
-flags while SmartString always produces the stronger full-flag output; full
-flags would slow the baseline about 50% on long strings, so the multipliers
-above understate the win. Timings cover output, not construction - values
-from SmartArray or ZenDB arrive already wrapped, and constructing one
-yourself adds about 60ns per field. And a full pass of the benchmark matrix
-with opcache's tracing JIT enabled produced the same verdicts as the JIT-off
-runs shown here.
+Three benchmark choices, stated plainly:
+
+- **Every number above understates the win.** The helper is timed with the
+  common flags, but SmartString always produces the stronger full-flag
+  output:
+
+  ```php
+  htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');                                   // what we time against
+  htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE | ENT_DISALLOWED | ENT_HTML5, 'UTF-8');      // what we actually produce
+  ```
+
+  The extra flags slow `htmlspecialchars()` itself by roughly 40% (they check
+  every character). Timed against the matching full-flag call, the worked
+  example's 4.2x page is roughly 6x.
+- **Timings include creating the object.** Every SmartString in the loop is
+  built fresh (`new SmartString($value)`) and then output - the multiplier is
+  the full cost of each approach per value, nothing left out.
+- **JIT changes nothing.** A full pass of the benchmark matrix with opcache's
+  tracing JIT enabled produced the same verdicts as the JIT-off runs shown
+  here.
 
 Most libraries and frameworks run the full encoder on every value, every time.
 Checking first and skipping the work when there is nothing to do is, as far as
