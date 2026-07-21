@@ -447,6 +447,89 @@ final class ArrDirect
     }
 }
 
+/** Shipped SmartArray 3.0 shape: folded __get beside the full get() chain
+ *  (func_num_args -> empty -> offsetExists -> getElement -> offsetExists again) */
+final class ArrShipped
+{
+    private array $data;
+    private bool $useSmartStrings = true;
+    public function __construct(array $data)
+    {
+        $this->data = $data;
+    }
+    public function __get(string $key): static|NullMini|SSCurrent|string|int|float|bool|null
+    {
+        $value = $this->data[$key] ?? null;
+        if ($value !== null || array_key_exists($key, $this->data)) {
+            return $this->useSmartStrings && !is_object($value)
+                ? new SSCurrent($value)
+                : $value;
+        }
+        return new NullMini();
+    }
+    public function get(string $key, mixed $default = null): static|NullMini|SSCurrent|string|int|float|bool|null
+    {
+        if (func_num_args() >= 2 && !$this->offsetExists($key)) {
+            return new SSCurrent($default);
+        }
+        if (empty($this->data)) {
+            return new NullMini();
+        }
+        if ($this->offsetExists($key)) {
+            return $this->getElement($key);
+        }
+        return new NullMini();
+    }
+    private function getElement(string $key): static|NullMini|SSCurrent|string|int|float|bool|null
+    {
+        if ($this->offsetExists($key)) {
+            $value = $this->data[$key];
+            return $this->useSmartStrings && !$value instanceof self
+                ? new SSCurrent($value)
+                : $value;
+        }
+        return new NullMini();
+    }
+    public function offsetExists(mixed $offset): bool
+    {
+        return array_key_exists($offset, $this->data);
+    }
+}
+
+/** List iteration, today's shape: getIterator() is a generator with a per-element
+ *  wrap check that never fires for row lists (rows are nested arrays, yielded as-is) */
+final class ArrIterGen implements IteratorAggregate
+{
+    private array $data;
+    private bool $useSmartStrings = true;
+    public function __construct(array $data)
+    {
+        $this->data = $data;
+    }
+    public function getIterator(): Iterator
+    {
+        foreach ($this->data as $key => $value) {
+            yield $key => $this->useSmartStrings && !$value instanceof self
+                ? new SSCurrent($value)
+                : $value;
+        }
+    }
+}
+
+/** List iteration, candidate: hand foreach a plain ArrayIterator when no element needs wrapping */
+final class ArrIterFast implements IteratorAggregate
+{
+    private array $data;
+    public function __construct(array $data)
+    {
+        $this->data = $data;
+    }
+    public function getIterator(): Iterator
+    {
+        return new ArrayIterator($this->data);
+    }
+}
+
 //endregion
 //region Input pools (runtime-built, never interned literals)
 
@@ -468,7 +551,7 @@ function build_clean(int $len, int $seed): string
 function build_pools(): array
 {
     $pools = ['clean10' => [], 'clean200' => [], 'clean1k' => [], 'dirty10' => [],
-              'dirty1k' => [], 'accented1k' => [], 'mix' => [], 'memo_mix' => [],
+              'dirty1k' => [], 'accented1k' => [], 'accented10' => [], 'mix' => [], 'memo_mix' => [],
               'clean64' => [], 'clean128' => [], 'clean256' => [], 'clean512' => [],
               'invalid1k' => [], 'sparse1k' => [], 'clean96' => [], 'ints' => []];
 
@@ -488,6 +571,9 @@ function build_pools(): array
         $pools['dirty1k'][] = '<p class="x">' . str_replace(' ', ' & ', build_clean(950, 5000 + $i)) . "</p>\n";
         // accented1k: clean multibyte text (é per word), no specials
         $pools['accented1k'][] = str_replace('a', "\u{E9}", build_clean(900, 6000 + $i));
+        // accented10: short accented field ("Café"-shaped); 'a' and 'o' both replaced
+        // because every word has one of them, so no string stays pure ASCII
+        $pools['accented10'][] = str_replace(['a', 'o'], "\u{E9}", build_clean(10, 6100 + $i));
         // invalid1k: the real-world invalid-UTF-8 case - legacy Latin-1 bytes (bare
         // 0xE9 'é') embedded in clean ASCII; every tier must miss, encoder substitutes
         $pools['invalid1k'][] = str_replace('o', "\xE9", build_clean(1024, 8000 + $i));
@@ -719,6 +805,9 @@ function build_tests(array $pools): array
         ['stack-miss-short', 'short', 'htmlspecialchars', 'three-tier stacked',
             looped(static fn(string $v): int => strlen(enc_baseline($v)), $pools['dirty10']),
             looped(static fn(string $v): int => strlen(enc_three_tier($v)), $pools['dirty10']), ['enc_three_tier']],
+        ['stack-accented-short', 'short', 'htmlspecialchars', 'three-tier stacked',
+            looped(static fn(string $v): int => strlen(enc_baseline($v)), $pools['accented10']),
+            looped(static fn(string $v): int => strlen(enc_three_tier($v)), $pools['accented10']), ['enc_three_tier']],
         ['stack-invalid-1kb', 'long', 'htmlspecialchars', 'three-tier stacked',
             looped(static fn(string $v): int => strlen(enc_baseline($v)), $pools['invalid1k']),
             looped(static fn(string $v): int => strlen(enc_three_tier($v)), $pools['invalid1k']), ['enc_three_tier']],
@@ -733,6 +822,12 @@ function build_tests(array $pools): array
         ['no-object', 'short', 'object + __toString', 'direct encoded string',
             row_loop(ArrCurrent::class, $pools['clean10']),
             row_loop(ArrDirect::class, $pools['clean10']), []],
+        ['arr-get-method', 'short', '->get(key) full chain', '->key folded __get',
+            row_get_loop(ArrShipped::class, $pools['clean10']),
+            row_loop(ArrShipped::class, $pools['clean10']), []],
+        ['arr-foreach', 'long', 'generator getIterator', 'ArrayIterator over rows',
+            iter_loop(ArrIterGen::class, $pools['clean10']),
+            iter_loop(ArrIterFast::class, $pools['clean10']), []],
 
         // --- Output idiom + rejected candidate ---
         ['idiom', 'short', '(string) cast', '->htmlEncode()',
@@ -760,6 +855,46 @@ function row_loop(string $cls, array $pool): callable
         $acc = 0;
         for ($i = 0; $i < $iters; $i++) {
             $acc += strlen((string)$rows[$i % $n]->$key);
+        }
+        $GLOBALS['sink'] += $acc;
+    };
+}
+
+/** row_loop variant calling ->get($key) instead of property access */
+function row_get_loop(string $cls, array $pool): callable
+{
+    $key  = 'title' . substr((string)crc32($cls), 0, 2);
+    $rows = [];
+    foreach ($pool as $v) {
+        $rows[] = new $cls([$key => $v]);
+    }
+    return static function (int $iters) use ($rows, $key): void {
+        $n = count($rows);
+        $acc = 0;
+        for ($i = 0; $i < $iters; $i++) {
+            $acc += strlen((string)$rows[$i % $n]->get($key));
+        }
+        $GLOBALS['sink'] += $acc;
+    };
+}
+
+/**
+ * Timed loop over a 64-row list (rows are nested list objects of the same class,
+ * so the generator's wrap check never fires) - one full foreach pass per iteration.
+ */
+function iter_loop(string $cls, array $pool): callable
+{
+    $rows = [];
+    foreach ($pool as $v) {
+        $rows[] = new $cls(['title' => $v]);
+    }
+    $list = new $cls($rows);
+    return static function (int $iters) use ($list): void {
+        $acc = 0;
+        for ($i = 0; $i < $iters; $i++) {
+            foreach ($list as $row) {
+                $acc += (int)($row !== null);
+            }
         }
         $GLOBALS['sink'] += $acc;
     };

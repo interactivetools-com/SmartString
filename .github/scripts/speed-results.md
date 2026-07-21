@@ -95,6 +95,16 @@ Verdicts from this run (details in the per-test rows below):
   3.3-14.4x.
 - **idiom**: ->htmlEncode() is a few percent faster than (string) cast - a
   docs tip, not a code change.
+- **specials-content break-even vs the helper** (interpolated from Speed Page
+  Table run 29719029200): on fields containing specials, SmartString pulls
+  ahead of the plain htmlspecialchars helper above ~60B on linux-x64, ~95B on
+  linux-arm, ~20B on windows. Density- and platform-dependent; add 64B/256B
+  specials rows if it ever needs pinning.
+- **jit=tracing confirmation** (run 29864749405, 2026-07-21): all 25 cells
+  re-run with opcache JIT tracing - no adopted verdict changes; every range
+  shifts within noise (cast-int's 6.23x darwin-x64 outlier normalizes to ~2x,
+  cast-guard-short stays a scattered tie). The JIT-off grid below remains the
+  citable source.
 
 ## Speed matrix: B-vs-A ratios (>1.00 = candidate faster)
 
