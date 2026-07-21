@@ -12,6 +12,10 @@ declare(strict_types=1);
  * warns when opcache is off because short-string rows are then dominated by
  * unoptimized call overhead.
  *
+ * To refresh docs/performance.md: dispatch the workflow
+ * (`gh workflow run speed-page-table.yml`), paste the linux-x64 table into the
+ * page verbatim, and update the run link below the table.
+ *
  * Harness rules (same as speed-probe.php): runtime-built pools of 64 distinct
  * strings, interleaved A/B in one process, best-of-7, results consumed. Before any
  * timing, every pool entry is checked against its category definition and

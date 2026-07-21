@@ -7,6 +7,17 @@ declare(strict_types=1);
  *
  *     php speed-probe.php [--json=out.json] [--filter=id1,id2] [--scale=1.0] [--skip-corpus]
  *
+ * The CI matrix (speed-results.md) is the citable source; local runs are for
+ * direction checks only. A plain `php` run is invalid twice over: opcache's
+ * optimizer is off for CLI by default (short rows drown in unoptimized call
+ * overhead) and a loaded xdebug distorts everything (the header warns). For an
+ * optimized local run:
+ *
+ *     php -n -d zend_extension=opcache -d opcache.enable_cli=1 -d opcache.jit=off speed-probe.php
+ *
+ * (-n skips conf.d, which keeps xdebug out; the jit flag keeps the header label
+ * honest - jit_buffer_size defaults to 0, so JIT is off either way.)
+ *
  * Design rules:
  * - Every number is a ratio from interleaved A/B pairs in one process (A,B,A,B...),
  *   best-of-7 per side, so shared-VM speed wobble cancels out.

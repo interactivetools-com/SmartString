@@ -1,4 +1,4 @@
-# Speed Matrix results - full runs 2026-07-18 (29670857386) and 2026-07-19 (29675354782, 29676033393 current grid below; repeated tests reproduced run 1 within noise). Filtered runs 29690005430 and 29690465062 (2026-07-19) added the thresh-128-*/strtr-* and thresh-64/os/arch rows; run 29715636255 (2026-07-20) added the cast-* rows.
+# Speed Matrix results - full runs 2026-07-18 (29670857386) and 2026-07-19 (29675354782, 29676033393 current grid below; repeated tests reproduced run 1 within noise). Filtered runs 29690005430 and 29690465062 (2026-07-19) added the thresh-128-*/strtr-* and thresh-64/os/arch rows; run 29715636255 (2026-07-20) added the cast-* rows; run 29866984899 (2026-07-21) added the stack-accented-short, arr-get-method, and arr-foreach rows.
 
 Note: the workflow's `filter` input takes exact test ids, comma-separated
 (`-f filter=cast-int,cast-guard-short`) - prefixes match nothing.
@@ -28,8 +28,10 @@ Verdicts from this run (details in the per-test rows below):
   platforms: realistic mix 2.2-2.6x baseline (3.8x Linux x64, 7-8x Windows),
   accented text 3-14x. Bounded losses: short fields containing specials pay
   ~40-90ns extra (stack-miss-short, Windows mildest); short accented fields
-  ~90-115ns (all three scans miss or reach tier 3; measured locally 2026-07-19,
-  one 1KB accented win repays ~30 of them); invalid UTF-8 ~even (stack-invalid-1kb).
+  ~90-135ns on Linux, ~15-140ns on macOS, ~even on Windows
+  (stack-accented-short, run 29866984899; all three scans miss or reach
+  tier 3; one 1KB accented win repays ~30 of them); invalid UTF-8 ~even
+  (stack-invalid-1kb).
 - **gate-hybrid-len** (adopted 2026-07-19): tier 1 routes long strings to strspn
   on PHP 8.4+ (`PHP_VERSION_ID >= 80400 && strlen >= ENCODE_STRSPN_MIN_BYTES`);
   see ENCODE_CLEAN_CHARS in src/SmartString.php. On 8.1-8.3 every cell is an
@@ -105,6 +107,15 @@ Verdicts from this run (details in the per-test rows below):
   shifts within noise (cast-int's 6.23x darwin-x64 outlier normalizes to ~2x,
   cast-guard-short stays a scattered tie). The JIT-off grid below remains the
   citable source.
+- **arr-get-method** (run 29866984899): `->key` (folded __get) beats
+  `->get('key')` (the 4-call chain) 1.12-1.63x on all 25 cells. Docs angle:
+  property access is both the recommended and the fast form; a get() fold
+  would narrow the gap (queued in SmartArray's todo).
+- **arr-foreach** (run 29866984899): returning ArrayIterator($data) from
+  getIterator() instead of the per-element generator wins 1.22-1.62x on all
+  25 cells for a foreach pass over a 64-row list (rows are nested arrays,
+  so the generator's wrap check never fires). Adoption candidate queued in
+  SmartArray's todo.
 
 ## Speed matrix: B-vs-A ratios (>1.00 = candidate faster)
 
@@ -155,6 +166,9 @@ Correctness: every encoder byte-identical on every cell.
 | thresh-arch-short | 1.00x | 1.00x | 1.00x | 0.97x | 0.96x | 0.92x (slower) | **1.05x** | 1.03x | 0.96x | 0.95x (slower) | 1.02x | 1.03x | 0.99x | 0.99x | 0.97x | **1.07x** | 0.97x | 0.99x | 0.99x | 0.88x (slower) | 0.99x | 0.99x | 1.00x | 1.00x | 0.99x |
 | cast-int | **2.06x** | **1.91x** | **2.06x** | **1.73x** | **1.97x** | **2.06x** | **1.80x** | **6.23x** | **1.76x** | **1.81x** | **2.36x** | **2.29x** | **2.36x** | **2.16x** | **2.29x** | **2.08x** | **1.98x** | **2.09x** | **2.11x** | **2.22x** | **1.88x** | **1.98x** | **2.08x** | **1.85x** | **1.90x** |
 | cast-guard-short | 1.01x | 0.98x | 0.99x | **1.17x** | 0.99x | **1.08x** | 0.99x | 0.89x (slower) | 1.02x | 0.99x | 1.02x | 0.98x | 0.99x | 1.00x | 0.99x | 0.99x | 0.95x | 0.98x | 0.94x (slower) | 1.01x | 0.87x (slower) | 0.92x (slower) | 0.90x (slower) | 1.00x | 1.02x |
+| stack-accented-short | 0.68x (slower) | 0.66x (slower) | 0.69x (slower) | 0.76x (slower) | 0.91x (slower) | 0.60x (slower) | 0.66x (slower) | 0.64x (slower) | 0.62x (slower) | 0.78x (slower) | 0.56x (slower) | 0.56x (slower) | 0.52x (slower) | 0.53x (slower) | 0.56x (slower) | 0.67x (slower) | 0.49x (slower) | 0.50x (slower) | 0.56x (slower) | 0.56x (slower) | 0.98x | **1.09x** | 0.99x | **1.08x** | 1.03x |
+| arr-get-method | **1.14x** | **1.16x** | **1.22x** | **1.17x** | **1.21x** | **1.24x** | **1.28x** | **1.28x** | **1.26x** | **1.63x** | **1.27x** | **1.15x** | **1.24x** | **1.18x** | **1.17x** | **1.20x** | **1.12x** | **1.14x** | **1.19x** | **1.24x** | **1.32x** | **1.30x** | **1.31x** | **1.29x** | **1.30x** |
+| arr-foreach | **1.29x** | **1.31x** | **1.47x** | **1.29x** | **1.54x** | **1.38x** | **1.35x** | **1.35x** | **1.31x** | **1.26x** | **1.49x** | **1.48x** | **1.53x** | **1.60x** | **1.59x** | **1.42x** | **1.36x** | **1.44x** | **1.33x** | **1.34x** | **1.22x** | **1.42x** | **1.57x** | **1.62x** | **1.56x** |
 
 <details><summary>Test legend (A vs B)</summary>
 
@@ -186,6 +200,9 @@ Correctness: every encoder byte-identical on every cell.
 - **stack-invalid-1kb**: htmlspecialchars vs three-tier stacked
 - **arr-get**: current 3-call chain vs folded single-lookup __get
 - **arr-get-mixed**: tuned, union return vs tuned, mixed return
+- **arr-get-method**: ->get(key) full chain vs ->key folded __get (same object)
+- **arr-foreach**: generator getIterator vs ArrayIterator, one pass over a 64-row list
+- **stack-accented-short**: htmlspecialchars vs three-tier stacked, short accented fields
 - **no-object**: object + __toString vs direct encoded string
 - **idiom**: (string) cast vs ->htmlEncode()
 - **memo-mix**: gate only vs gate + memo cache
