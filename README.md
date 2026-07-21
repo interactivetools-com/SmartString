@@ -47,7 +47,7 @@ Full guides and references ([browse on GitHub](https://github.com/interactivetoo
 - **Lookup**
     - [Method Reference](docs/method-reference.md) - every method, grouped by what it returns
     - [Troubleshooting](docs/troubleshooting.md) - common error messages and gotchas, with fixes
-    - [Performance](docs/performance.md) - how SmartString HTML-encodes 2-4x faster than calling `htmlspecialchars()` yourself
+    - [Performance](docs/performance.md) - how SmartString is 2-4x faster than calling `htmlspecialchars()` yourself
     - [AI Reference](docs/ai-reference.md) - the complete API in one dense file, written for AI coding assistants
 
 ## You're Never Locked In
