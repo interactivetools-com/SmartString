@@ -49,32 +49,36 @@ Measured on Linux x64, PHP 8.5 with opcache, on GitHub Actions' standard cloud
 servers; output was verified byte-identical before every timing run. Timings are identical
 whether you write `<?= $title ?>` or `echo $title;`.
 
-| Content | Size | Example | SmartString speed |
-|---|---|---|---|
-| Clean text - no `& < > " '` | 16 B | `Annual Report 2026` | 1.1x |
-| Clean text - no `& < > " '` | 1 KB | a plain-text paragraph | 11x |
-| Clean text - no `& < > " '` | 10 KB | a long field, nothing to encode | 15x |
-| Has `& < > " '` | 16 B | `O'Brien & Co Ltd` | 0.4x |
-| Has `& < > " '` | 1 KB | a paragraph with quotes | 3.2x |
-| Has `& < > " '` | 10 KB | a 1,500-word article | 4.1x |
-| Accented text - no specials | 16 B | `Café Montréal QC` | 0.4x |
-| Accented text - no specials | 1 KB | a French paragraph | 4.0x |
-| Accented text - no specials | 10 KB | a French article | 5.5x |
-| Realistic page mix | mixed | 70% 16B clean, 15% 200B, 10% 1KB, 5% 1KB with quotes | 4.3x |
-| Page mix + one 10 KB article | mixed | the mix above plus an article with quotes | 4.2x |
+| Content                        | Size  | Example                                                                            | SmartString speed |
+|--------------------------------|-------|------------------------------------------------------------------------------------|-------------------|
+| Clean text - no `& < > " '`    | 16 B  | `Annual Report 2026`                                                               | 1.0x              |
+| Clean text - no `& < > " '`    | 1 KB  | a plain-text paragraph                                                             | 9.4x              |
+| Clean text - no `& < > " '`    | 10 KB | a long field, nothing to encode                                                    | 13x               |
+| Has `& < > " '`                | 16 B  | `O'Brien & Co Ltd`                                                                 | 0.5x              |
+| Has `& < > " '`                | 1 KB  | a paragraph with quotes                                                            | 3.6x              |
+| Has `& < > " '`                | 10 KB | a 1,500-word article                                                               | 4.4x              |
+| Accented text - no `& < > " '` | 16 B  | `Café Montréal QC`                                                                 | 0.4x              |
+| Accented text - no `& < > " '` | 1 KB  | a French paragraph                                                                 | 3.8x              |
+| Accented text - no `& < > " '` | 10 KB | a French article                                                                   | 4.8x              |
+| Realistic page mix             | mixed | 70% 16B (two of 45 are names with specials), 15% 200B, 10% 1KB, 5% 1KB with quotes | 4.1x              |
+| Page mix + one 10 KB article   | mixed | the mix above plus an article with quotes                                          | 4.3x              |
 
 2x = SmartString outputs the value in half the time `htmlspecialchars()` takes;
 1.0x = same speed; below 1x = slower.
 
-**The bottom line: a realistic page encodes 2-4x faster on Linux (2.7x on ARM,
-4.3x on x64) and 11x on Windows, whose PHP builds encode slowly (long clean
-fields reach 40x there).** SmartString is slower in one case: short fields with
-quotes or accents, where the quick scan finds something and full encoding has to
-run anyway. That wastes about 0.2 microseconds per field - you'd need 5,000 of
-them on one page to lose a millisecond - and the wins everywhere else pay it
-back many times over; even a long article in the mix barely moves the page
-total. This table comes from the repo's Speed Page Table workflow
-([this run](https://github.com/interactivetools-com/SmartString/actions/runs/29719029200));
+**The bottom line: a realistic page encodes 2-4x faster on Linux (2.9x on ARM,
+4.1x on x64) and 11x on Windows, whose PHP builds encode slowly (long clean
+fields reach 43x there).** The content mix matches measured corpus rates: the
+apostrophe is the only special that commonly appears in real text, `& < >`
+live in names rather than prose, and the French rows carry accents at true
+French density (~3% of characters). SmartString is slower in one case: short
+fields with quotes or accents, where the quick scan finds something and full
+encoding has to run anyway. That wastes about 0.2 microseconds per field -
+you'd need 5,000 of them on one page to lose a millisecond - and the wins
+everywhere else pay it back many times over; even a long article in the mix
+barely moves the page total. This table comes from the repo's Speed Page Table
+workflow
+([this run](https://github.com/interactivetools-com/SmartString/actions/runs/29868668475));
 run it yourself any time for fresh numbers.
 
 ## How We Know It's Safe
