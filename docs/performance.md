@@ -92,11 +92,11 @@ and current text.
 | Accented text - no `& < > " '`   | 200 B | a French sentence or two        | 1,017 ns             | 618 ns      | 1.6x                          |
 | Accented text - no `& < > " '`   | 1 KB  | a French paragraph              | 4,813 ns             | 1,363 ns    | 3.5x                          |
 | Accented text - no `& < > " '`   | 10 KB | a French article                | 47,358 ns            | 9,949 ns    | 4.8x                          |
-| News-article page                | mixed | *                               | 8,967 ns             | 2,316 ns    | 3.9x                          |
+| News-article page                | mixed | *                               | 53,800 ns            | 13,900 ns   | 3.9x                          |
 
-\* News-article page: a 16 B quoted headline; author, category, and date (16 B plain); a 200 B caption; and a 10 KB body with quotes.
+\* News-article page: a 16 B quoted headline; author, category, and date (16 B plain); a 200 B caption; and a 10 KB body with quotes. This row is the whole page - all six fields together.
 
-Per call, best of 7, measured on Linux x86_64, PHP 8.5.8.
+Per call (per page for the News-article row), best of 7, measured on Linux x86_64, PHP 8.5.8.
 
 The News-article page row is those rows combined - here it is field by field,
 every line taken from the table above:
@@ -109,17 +109,11 @@ every line taken from the table above:
 | Date                         | Clean text - no `& < > " '`, 16 B  | 0.13 µs              | 0.18 µs      | 0.8x                          |
 | Photo caption                | Clean text - no `& < > " '`, 200 B | 1.0 µs               | 0.29 µs      | 3.6x                          |
 | Article body with quotes     | Has `& < > " '`, 10 KB             | 52.1 µs              | 12.1 µs      | 4.3x                          |
-| **Whole page**               | News-article page (measured)       | **53.8 µs**          | **13.9 µs**  | **3.9x**                      |
+| **Whole page**               | All of the above                   | **53.8 µs** (0.0000538 s) | **13.9 µs** (0.0000139 s) | **3.9x**                      |
 
-The bold line is the measured News-article page row, not a hand sum - the
-component rows above add up to it within noise. The body settles the outcome:
-the five short fields together cost under two microseconds on either side -
-short fields are where SmartString pays its object overhead - and the body
-alone saves 40 µs. A body pasted with smart quotes would contain none of
-`& < > " '`, land on the clean 10 KB row, and save even more. Pages with no
-long text lean the other way: nothing but short fields sits near the 16 B
-rows (break-even to a small loss), and by 100 B every content type is at or
-past break-even.
+The longer the text, the bigger the win. This page is 3.9x faster because
+almost all of its time is in the 10 KB body - short fields roughly break
+even, and by 100 B per field everything is ahead.
 
 Where SmartString is slower: short fields, where creating the object costs
 more than the tiny encoding it replaces - about 0.05 microseconds extra on a
