@@ -4,7 +4,7 @@
 # Exclude dev files from Packagist, Composer, and git archives for leaner installs.
 .editorconfig    export-ignore
 .gitattributes   export-ignore
-.github          export-ignore
+.github/**       export-ignore
 .gitignore       export-ignore
 docs/**          export-ignore
 logo.svg         export-ignore
@@ -14,3 +14,9 @@ tests            export-ignore
 # Except the AI reference: coding assistants read vendor/itools/smartstring/ locally,
 # and this one file teaches them the whole API.
 docs/ai-reference.md -export-ignore
+
+# And the benchmark: the performance page invites everyone to run it, so it
+# ships in Composer installs too (the directory line un-prunes the path so the
+# file rule below can apply).
+.github/scripts -export-ignore
+.github/scripts/speed-page-table.php -export-ignore

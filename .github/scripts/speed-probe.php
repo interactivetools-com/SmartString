@@ -8,10 +8,10 @@ declare(strict_types=1);
  *     php speed-probe.php [--json=out.json] [--filter=id1,id2] [--scale=1.0] [--skip-corpus]
  *
  * The CI matrix (speed-results.md) is the citable source; local runs are for
- * direction checks only. A plain `php` run is invalid twice over: opcache's
- * optimizer is off for CLI by default (short rows drown in unoptimized call
- * overhead) and a loaded xdebug distorts everything (the header warns). For an
- * optimized local run:
+ * direction checks only. The big local hazard is a loaded xdebug - it taxes
+ * every PHP call several-fold and the header warns about it. Opcache's
+ * optimizer moves these loops only a few percent, but keep it on so the
+ * configuration matches production and CI. For a clean local run:
  *
  *     php -n -d zend_extension=opcache -d opcache.enable_cli=1 -d opcache.jit=off speed-probe.php
  *

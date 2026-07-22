@@ -9,14 +9,16 @@ declare(strict_types=1);
  * Loads the real SmartString class from src/ (no composer install needed). Each
  * SmartString timing creates the object and outputs it, so the numbers carry the
  * full construction and method-call overhead. Run via the Speed Page Table
- * workflow for citable numbers: CI enables opcache like production; this script
- * warns when opcache is off because short-string rows are then dominated by
- * unoptimized call overhead.
+ * workflow for citable numbers: CI enables opcache like production. The script
+ * checks its own environment - opcache off costs only a few percent here but
+ * is not the production configuration, and a loaded xdebug taxes every PHP
+ * call several-fold, so numbers measured under it are flagged invalid.
  *
  * To refresh docs/performance.md: dispatch the workflow
  * (`gh workflow run speed-page-table.yml`), paste the linux-x64 table into the
  * page verbatim, update the run link below the table, and refresh the
- * worked-example numbers from the raw timings block.
+ * worked-example breakdown and platform bullets from the same table (the
+ * News-article page row is the whole-page multiplier the bullets cite).
  *
  * Harness rules (same as speed-probe.php): runtime-built pools of 64 distinct
  * strings, interleaved A/B in one process, best-of-7, results consumed. Before any
@@ -84,6 +86,11 @@ const UNIT_ACCENTED = "Caf\xC3\xA9 Montr\xC3\xA9al QC";                    // "C
 // One quoted phrase and an apostrophe per ~220 chars (~1.3% specials - prose
 // that HAS specials, at typed-content density)
 const UNIT_PROSE    = "The company's third-quarter report shows steady growth in every region, and the board called the results \"very encouraging\" in its letter to shareholders. Management expects the same pace next year as new locations open. ";
+// Sentence-length variants (< 100 bytes) for the 100 B rows: every 100 B window
+// of a rotation must still contain the category's characters
+const UNIT_PROSE_SHORT    = "The company's report shows steady growth and the board called it \"very encouraging\" this year. ";
+// "La société précise que l'équipe prévoit des résultats stables ces trois prochaines années."
+const UNIT_ACCENTED_SHORT = "La soci\xC3\xA9t\xC3\xA9 pr\xC3\xA9cise que l\xE2\x80\x99\xC3\xA9quipe pr\xC3\xA9voit des r\xC3\xA9sultats stables ces trois prochaines ann\xC3\xA9es. ";
 // French prose at measured density (~3% accented characters, elision uses the
 // typographic apostrophe U+2019, which needs no encoding): "La société précise
 // que l'équipe prévoit des résultats stables pour les trois prochaines années.
@@ -115,29 +122,52 @@ function checkCategory(array $strings, string $category): void
 
 /**
  * Best-of-7 interleaved A/B over a pool; returns [a_ns, b_ns] per call.
- * The SmartString side times construction PLUS output - `new SmartString`
- * then a (string) cast, which invokes __toString exactly like echo does -
- * so the multiplier is the full cost of each approach per value.
+ * Both sides receive original-typed values and pay their own to-string
+ * conversion in the loop: the helper casts then encodes (a template's
+ * `e($row['price'])`), SmartString is constructed then output - the (string)
+ * cast invokes __toString exactly like echo does. The multiplier is the full
+ * cost of each approach per value.
  */
-function bench(array $strings, array $values, int $iterations): array
+function bench(array $values, int $iterations, string $ssPath = 'echo'): array
 {
-    foreach ($strings as $k => $s) {  // byte-identity gate before any timing
-        if ((string)(new SmartString($values[$k])) !== htmlspecialchars($s, FULL_FLAGS, 'UTF-8')) {
-            fwrite(STDERR, "MISMATCH: SmartString output differs from htmlspecialchars: " . var_export($s, true) . "\n");
+    foreach ($values as $v) {  // byte-identity gate before any timing
+        if ((string)(new SmartString($v)) !== htmlspecialchars((string)$v, FULL_FLAGS, 'UTF-8')) {
+            fwrite(STDERR, "MISMATCH: SmartString output differs from htmlspecialchars: " . var_export($v, true) . "\n");
             exit(1);
         }
     }
-    $count = count($strings);
+    $count = count($values);
     $bestA = $bestB = PHP_FLOAT_MAX;
     $sink  = 0;
     for ($rep = 0; $rep < 7; $rep++) {
         $t0 = hrtime(true);
-        for ($i = 0; $i < $iterations; $i++) {
-            $sink += strlen(e($strings[$i % $count]));
+        if ($ssPath !== 'new') {  // construction-only rows have no helper side
+            for ($i = 0; $i < $iterations; $i++) {
+                $sink += strlen(e((string)$values[$i % $count]));
+            }
         }
         $t1 = hrtime(true);
-        for ($i = 0; $i < $iterations; $i++) {
-            $sink += strlen((string)(new SmartString($values[$i % $count])));
+        // Each path is its own literal loop so no closure-dispatch cost pollutes the timing
+        switch ($ssPath) {
+            case 'new':
+                for ($i = 0; $i < $iterations; $i++) {
+                    new SmartString($values[$i % $count]);
+                }
+                break;
+            case 'int':
+                for ($i = 0; $i < $iterations; $i++) {
+                    $sink += strlen((string)(new SmartString($values[$i % $count]))->int());
+                }
+                break;
+            case 'float':
+                for ($i = 0; $i < $iterations; $i++) {
+                    $sink += strlen((string)(new SmartString($values[$i % $count]))->float());
+                }
+                break;
+            default:
+                for ($i = 0; $i < $iterations; $i++) {
+                    $sink += strlen((string)(new SmartString($values[$i % $count])));
+                }
         }
         $t2    = hrtime(true);
         $bestA = min($bestA, ($t1 - $t0) / $iterations);
@@ -146,12 +176,41 @@ function bench(array $strings, array $values, int $iterations): array
     if ($sink === -1) {
         echo '';  // consume so the loops can't be optimized away
     }
-    return [$bestA, $bestB];
+    return [$ssPath === 'new' ? null : $bestA, $bestB];
 }
 
 function ratioLabel(float $ratio): string
 {
     return $ratio >= 9.5 ? sprintf('%.0fx', $ratio) : sprintf('%.1fx', $ratio);
+}
+
+/** Character count without mbstring: bytes minus UTF-8 continuation bytes */
+function charWidth(string $s): int
+{
+    return strlen($s) - preg_match_all('/[\x80-\xBF]/', $s);
+}
+
+/** Markdown table with every column padded so the pipes line up (multibyte-safe) */
+function alignedTable(array $rows): string
+{
+    $widths = [];
+    foreach ($rows as $row) {
+        foreach ($row as $i => $cell) {
+            $widths[$i] = max($widths[$i] ?? 0, charWidth($cell));
+        }
+    }
+    $out = '';
+    foreach ($rows as $n => $row) {
+        $cells = [];
+        foreach ($row as $i => $cell) {
+            $cells[] = $cell . str_repeat(' ', $widths[$i] - charWidth($cell));
+        }
+        $out .= '| ' . implode(' | ', $cells) . " |\n";
+        if ($n === 0) {
+            $out .= '|' . implode('|', array_map(static fn(int $w): string => str_repeat('-', $w + 2), $widths)) . "|\n";
+        }
+    }
+    return $out;
 }
 
 #endregion
@@ -161,19 +220,11 @@ $opts  = getopt('', ['scale::']);
 $scale = max(0.01, (float)($opts['scale'] ?? 1.0));
 
 // [category, bytes label, example, pool, iterations]
-$mixLabel = '55% short 16 B, 10% numbers, 5% empty, 15% 200 B, 15% 1 KB; a few fields have quotes or apostrophes';
-$rows     = [];
+$rows = [];
 
-// Numbers first: ints and floats skip the scan entirely
-$numbers = [];
-for ($i = 0; $i < 32; $i++) {
-    $numbers[] = 1000000 + $i * 12345;
-    $numbers[] = round(9.99 + $i * 1.37, 2);
-}
-// Measured for the record but kept out of the docs table: both sides are a handful
-// of nanoseconds, so the ratio reads as alarming while the absolute cost (~0.1µs
-// of object overhead per field) is noise at page scale
-$rows[] = ['Numbers - int, float', 'any', '`1499`, `24.99`', $numbers, 300000, false];
+// Construction alone, no output - the object-overhead floor every SmartString
+// number below includes; there is no helper side to compare against
+$rows[] = ['Create a SmartString - no output', 'any', '`new SmartString($value)`', pool(UNIT_CLEAN, 16), 300000, 'new'];
 
 // Empty fields: null skips everything via the non-string cast, "" runs the scan
 // and finds nothing - both cost pure call overhead
@@ -182,27 +233,44 @@ for ($i = 0; $i < 32; $i++) {
     $empties[] = null;
     $empties[] = '';
 }
-$rows[] = ['Empty - null or ""', 'any', 'a blank optional field', $empties, 300000, false];
+$rows[] = ['Empty - null or ""', 'any', 'a blank optional field', $empties, 300000];
+
+// Numbers: ints and floats skip the scan entirely; each side pays its own
+// to-string conversion inside the timed loop
+$ints = $floats = [];
+for ($i = 0; $i < 64; $i++) {
+    $ints[]   = 1000000 + $i * 12345;
+    $floats[] = round(9.99 + $i * 1.37, 2);
+}
+$rows[] = ['Numbers - int', 'any', '`1499`', $ints, 300000];
+$rows[] = ['Numbers - float', 'any', '`24.99`', $floats, 300000];
+// Same int/float pools output through the typed accessors instead of __toString:
+// echo $row->qty->int() returns the raw number, no encoding path at all
+$rows[] = ['Numbers - via `->int()`', 'any', '`1499`', $ints, 300000, 'int'];
+$rows[] = ['Numbers - via `->float()`', 'any', '`24.99`', $floats, 300000, 'float'];
 
 $examples = [
-    'clean'    => [16 => '`Annual Report 2026`', 1024 => 'a plain-text paragraph', 10240 => 'a long field, nothing to encode'],
-    'specials' => [16 => "`O'Brien & Co Ltd`", 1024 => 'a paragraph with quotes', 10240 => 'a 1,500-word article'],
-    'accented' => [16 => "`Caf\xC3\xA9 Montr\xC3\xA9al QC`", 1024 => 'a French paragraph', 10240 => 'a French article'],
+    'clean'    => [16 => '`Annual Report 2026`', 100 => 'a short sentence', 200 => 'a sentence or two', 1024 => 'a plain-text paragraph', 10240 => 'a long field, nothing to encode'],
+    'specials' => [16 => "`O'Brien & Co Ltd`", 100 => 'a sentence with quotes', 200 => 'a sentence or two with quotes', 1024 => 'a paragraph with quotes', 10240 => 'a 1,500-word article'],
+    'accented' => [16 => "`Caf\xC3\xA9 Montr\xC3\xA9al QC`", 100 => 'a short French sentence', 200 => 'a French sentence or two', 1024 => 'a French paragraph', 10240 => 'a French article'],
 ];
+$sizes = [16 => 200000, 100 => 180000, 200 => 150000, 1024 => 30000, 10240 => 4000];
 foreach ([['clean', UNIT_CLEAN], ['specials', UNIT_SPECIALS], ['accented', UNIT_ACCENTED]] as [$category, $unit]) {
     $label = match ($category) {
         'clean'    => 'Clean text - no `& < > " \'`',
         'specials' => 'Has `& < > " \'`',
         'accented' => 'Accented text - no `& < > " \'`',
     };
-    foreach ([16 => 200000, 1024 => 30000, 10240 => 4000] as $bytes => $iterations) {
-        // Paragraph/article rows use prose units at corpus density; the 16B rows
+    foreach ($sizes as $bytes => $iterations) {
+        // Sentence/paragraph rows use prose units at corpus density; the 16B rows
         // keep the dense units - a short field with a special or accent is dense
         // by definition
         $poolUnit = match (true) {
-            $category === 'specials' && $bytes > 16 => UNIT_PROSE,
-            $category === 'accented' && $bytes > 16 => UNIT_ACCENTED_PROSE,
-            default                                 => $unit,
+            $category === 'specials' && $bytes === 100 => UNIT_PROSE_SHORT,
+            $category === 'specials' && $bytes > 100   => UNIT_PROSE,
+            $category === 'accented' && $bytes === 100 => UNIT_ACCENTED_SHORT,
+            $category === 'accented' && $bytes > 100   => UNIT_ACCENTED_PROSE,
+            default                                    => $unit,
         };
         $strings  = pool($poolUnit, $bytes);
         checkCategory($strings, $category);
@@ -211,57 +279,66 @@ foreach ([['clean', UNIT_CLEAN], ['specials', UNIT_SPECIALS], ['accented', UNIT_
     }
 }
 
-// Page mixes: proportions of a 64-entry pool; every iteration cycles the pool so
-// the measured cost is the weighted average of one field output
-$standardMix = array_merge(
-    array_slice(pool(UNIT_CLEAN, 16), 0, 34),
-    array_slice(pool(UNIT_SPECIALS, 16), 0, 2),   // a couple of short fields are names with specials
-    array_slice($numbers, 0, 6),                  // ids, counts, prices
-    array_slice($empties, 0, 3),                  // blank optional fields
-    array_slice(pool(UNIT_CLEAN, 200), 0, 10),
-    array_slice(pool(UNIT_CLEAN, 1024), 0, 6),
-    array_slice(pool(UNIT_PROSE, 1024), 0, 3),
-);
-// Measured for the bottom line's per-platform numbers; kept out of the docs
-// table - the worked example on the page is the page-level illustration
-$rows[] = ['Realistic page mix', 'mixed', $mixLabel, $standardMix, 60000, false];
-
-// Measured for the record but kept out of the docs table: a second weighted-average
-// mix number reads as contradicting the first (the article's higher ratio pulls it up)
-$articleMix = array_merge(array_slice($standardMix, 0, 63), array_slice(pool(UNIT_PROSE, 10240), 0, 1));
-$rows[] = ['Page mix + one 10 KB article', 'mixed', 'the mix above plus an article with quotes', $articleMix, 60000, false];
+// News-article page: the page the performance page prices field by field - a
+// quoted headline, three clean shorts, a 200 B caption, and a 10 KB body per
+// six-field cycle. The measured ratio IS the whole-page multiplier the docs
+// bullets cite; the per-field rows above are its components.
+$sp16  = pool(UNIT_SPECIALS, 16);
+$cl16  = pool(UNIT_CLEAN, 16);
+$cl200 = pool(UNIT_CLEAN, 200);
+$body  = pool(UNIT_PROSE, 10240);
+$page  = [];
+for ($i = 0; $i < 12; $i++) {
+    $page[] = $sp16[$i];
+    $page[] = $cl16[$i];
+    $page[] = $cl16[$i + 12];
+    $page[] = $cl16[$i + 24];
+    $page[] = $cl200[$i];
+    $page[] = $body[$i];
+}
+$rows[] = ['News-article page', 'mixed', '*', $page, 12000];
 
 #endregion
 #region Run and report
 
 $opcache = function_exists('opcache_get_status') && opcache_get_status() !== false;
+// xdebug.mode=off removes xdebug's per-call tax (measured identical to not
+// loading it); any active mode invalidates every short-row timing.
+// xdebug_info('mode') lists the active modes - empty means off, regardless of
+// whether that came from -d, the ini file, or the XDEBUG_MODE env var.
+/** @disregard P1010 xdebug_info() is guarded by function_exists(); xdebug stubs may be absent */
+$xdebugModes = extension_loaded('xdebug') && function_exists('xdebug_info') ? xdebug_info('mode') : null;
+$xdebugLabel = match (true) {
+    !extension_loaded('xdebug') => ' | xdebug off',
+    $xdebugModes === []         => ' | xdebug loaded, mode off',
+    default                     => ' | xdebug ACTIVE - NOT CITABLE, xdebug taxes every PHP call (retry with -d xdebug.mode=off added to the command)',
+};
 printf(
-    "PHP %s | %s %s | opcache %s%s\n\n",
+    "PHP %s | %s %s | opcache %s%s%s\n\n",
     PHP_VERSION,
     PHP_OS_FAMILY,
     php_uname('m'),
     $opcache ? 'on' : 'OFF',
-    $opcache ? '' : ' - NOT CITABLE, short-string rows dominated by unoptimized call overhead'
+    $opcache ? '' : ' - not the production configuration; retry with -d opcache.enable_cli=1',
+    $xdebugLabel
 );
 
-$table   = "| Content | Size | Example | Speed vs `htmlspecialchars()` |\n|---|---|---|---|\n";
-$rawLines = [];
+$tableRows = [['Content', 'Size', 'Example', '`htmlspecialchars()`', 'SmartString', 'Speed vs `htmlspecialchars()`']];
 foreach ($rows as $row) {
     [$label, $sizeLabel, $example, $values, $iterations] = $row;
-    $inTable = $row[5] ?? true;
-    // Helper side gets strings (a template's implicit cast); SmartString gets the
-    // original values, so the Numbers row exercises the non-string fast path
-    $strings = array_map(static fn($v): string => (string)$v, $values);
-    [$a, $b] = bench($strings, $values, max(1, (int)($iterations * $scale)));
-    if ($inTable) {
-        $table .= sprintf("| %s | %s | %s | %s |\n", $label, $sizeLabel, $example, ratioLabel($a / $b));
-    }
-    $rawLines[] = sprintf('%-30s %8s  helper %8.0f ns  SmartString %8.0f ns', $label, $sizeLabel, $a, $b);
+    [$a, $b] = bench($values, max(1, (int)($iterations * $scale)), $row[5] ?? 'echo');
+    $tableRows[] = [
+        $label,
+        $sizeLabel,
+        $example,
+        $a === null ? '-' : number_format($a) . ' ns',
+        number_format($b) . ' ns',
+        $a === null ? '-' : ratioLabel($a / $b),
+    ];
 }
 
-echo $table;
-echo "\n2x = twice as fast as calling `htmlspecialchars()` yourself; 1.0x = same speed; below 1x = slower.\n";
-echo "Measured on " . PHP_OS_FAMILY . ' ' . php_uname('m') . ", PHP " . PHP_VERSION . ".\n";
-echo "\nRaw timings (per call, best of 7):\n" . implode("\n", $rawLines) . "\n";
+echo alignedTable($tableRows);
+echo "\n\\* News-article page: a 16 B quoted headline; author, category, and date (16 B plain); a 200 B caption; and a 10 KB body with quotes.\n";
+echo "\nPer call, best of 7, measured on " . PHP_OS_FAMILY . ' ' . php_uname('m') . ", PHP " . PHP_VERSION . ".\n";
 
 #endregion

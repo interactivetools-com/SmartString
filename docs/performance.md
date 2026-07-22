@@ -6,14 +6,23 @@ values don't need encoding, and proving that with a scan costs less than encodin
 them anyway. This page shows how that works, the
 measurements, and the tests that keep the shortcut honest.
 
-The exact multiplier depends on the platform: our scans cost about the same
+The multiplier depends on the platform: our scans cost about the same
 everywhere, so the win tracks how slowly each platform's `htmlspecialchars()`
-runs. On a realistic page mix:
+runs. Based on the real-world page measured below:
 
-- **Linux x64** - the most common web platform: **4.1x**
+- **Linux x64** - the most common web platform: **4.8x**
 - **Linux ARM** - Graviton-class hosts: **2.9x**
-- **Windows** - its PHP builds encode slowest: **12x**, and long clean fields
-  reach 45x
+- **Windows** - its PHP builds encode slowest: **11x**, and long clean fields
+  reach 40x
+
+And you can benchmark your own machine any time with this command:
+
+```bash
+php -d opcache.enable_cli=1 -d xdebug.mode=off .github/scripts/speed-page-table.php
+```
+
+In a Composer project the script is at
+`vendor/itools/smartstring/.github/scripts/speed-page-table.php`.
 
 ## How It Works
 
@@ -62,15 +71,15 @@ and current text.
 
 | Content                        | Size  | Example                         | Speed vs `htmlspecialchars()` |
 |--------------------------------|-------|---------------------------------|-------------------------------|
-| Clean text - no `& < > " '`    | 16 B  | `Annual Report 2026`            | 1.0x                          |
-| Clean text - no `& < > " '`    | 1 KB  | a plain-text paragraph          | 9.5x                          |
-| Clean text - no `& < > " '`    | 10 KB | a long field, nothing to encode | 13x                           |
-| Has `& < > " '`                | 16 B  | `O'Brien & Co Ltd`              | 0.5x                          |
-| Has `& < > " '`                | 1 KB  | a paragraph with quotes         | 3.5x                          |
-| Has `& < > " '`                | 10 KB | a 1,500-word article            | 4.4x                          |
-| Accented text - no `& < > " '` | 16 B  | `Café Montréal QC`              | 0.4x                          |
-| Accented text - no `& < > " '` | 1 KB  | a French paragraph              | 3.8x                          |
-| Accented text - no `& < > " '` | 10 KB | a French article                | 4.8x                          |
+| Clean text - no `& < > " '`    | 16 B  | `Annual Report 2026`            | 0.6x                          |
+| Clean text - no `& < > " '`    | 1 KB  | a plain-text paragraph          | 9.3x                          |
+| Clean text - no `& < > " '`    | 10 KB | a long field, nothing to encode | 15x                           |
+| Has `& < > " '`                | 16 B  | `O'Brien & Co Ltd`              | 0.4x                          |
+| Has `& < > " '`                | 1 KB  | a paragraph with quotes         | 3.8x                          |
+| Has `& < > " '`                | 10 KB | a 1,500-word article            | 5.2x                          |
+| Accented text - no `& < > " '` | 16 B  | `Café Montréal QC`              | 0.3x                          |
+| Accented text - no `& < > " '` | 1 KB  | a French paragraph              | 4.0x                          |
+| Accented text - no `& < > " '` | 10 KB | a French article                | 5.9x                          |
 
 Real pages combine those rows. Here is a news-article page priced field by
 field (the ~200 B caption sits between the measured sizes, so its numbers are
@@ -78,29 +87,32 @@ interpolated):
 
 | Field                        | Table row              | `htmlspecialchars()` | SmartString  | Speed vs `htmlspecialchars()` |
 |------------------------------|------------------------|----------------------|--------------|-------------------------------|
-| Headline - `Mayor Says 'No'` | Has `& < > " '`, 16 B  | 0.12 µs              | 0.26 µs      | 0.5x                          |
-| Author                       | Clean text, 16 B       | 0.11 µs              | 0.12 µs      | 1.0x                          |
-| Category                     | Clean text, 16 B       | 0.11 µs              | 0.12 µs      | 1.0x                          |
-| Date                         | Clean text, 16 B       | 0.11 µs              | 0.12 µs      | 1.0x                          |
-| Photo caption                | Clean text, ~200 B     | ~1 µs                | ~0.2 µs      | ~5x                           |
-| Article body with quotes     | Has `& < > " '`, 10 KB | 52.1 µs              | 11.9 µs      | 4.4x                          |
-| **Whole page**               |                        | **~53.6 µs**         | **~12.7 µs** | **4.2x**                      |
+| Headline - `Mayor Says 'No'` | Has `& < > " '`, 16 B  | 0.14 µs              | 0.37 µs      | 0.4x                          |
+| Author                       | Clean text, 16 B       | 0.13 µs              | 0.20 µs      | 0.6x                          |
+| Category                     | Clean text, 16 B       | 0.13 µs              | 0.20 µs      | 0.6x                          |
+| Date                         | Clean text, 16 B       | 0.13 µs              | 0.20 µs      | 0.6x                          |
+| Photo caption                | Clean text, ~200 B     | ~1 µs                | ~0.3 µs      | ~4x                           |
+| Article body with quotes     | Has `& < > " '`, 10 KB | 57.2 µs              | 11.1 µs      | 5.2x                          |
+| **Whole page**               |                        | **~58.8 µs**         | **~12.3 µs** | **4.8x**                      |
 
 The body settles the outcome: the five short fields together cost under two
-microseconds on either side, the quoted headline is the one field SmartString
-loses (by 0.14 µs), and the body alone saves 40 µs. A body pasted with smart
+microseconds on either side - short fields are where SmartString pays its
+object overhead - and the body alone saves 46 µs. A body pasted with smart
 quotes would contain none of `& < > " '`, land on the clean 10 KB row, and
-save even more. The measured page mix behind the bullets at the top prices
-out the same way.
+save even more. Pages with no long text lean the other way: a measured
+64-field short-heavy mix (55% short fields, 10% numbers, 5% empty, 30%
+sentence-to-paragraph text, no article) lands at 3.6x on Linux x64.
 
-The one case where SmartString is slower: short fields with quotes or accents,
-where the scan finds something and full encoding has to run anyway. That costs
-about 0.2 microseconds per field - you'd need 5,000 of them on one page to
-lose a millisecond - and the wins everywhere else repay it many times over.
+Where SmartString is slower: short fields, where creating the object costs
+more than the tiny encoding it replaces - about 0.07 microseconds extra on a
+clean short field, about 0.24 when quotes or accents force a full encode.
+You'd need 4,000 of the worst case on one page to lose a millisecond, and a
+single clean 1 KB paragraph repays about 20 of them.
 
 These numbers come from the repo's Speed Page Table workflow
-([this run](https://github.com/interactivetools-com/SmartString/actions/runs/29876136289));
-you can run it yourself any time to confirm the numbers.
+([this run](https://github.com/interactivetools-com/SmartString/actions/runs/29877062841));
+the command at the top of the page reproduces them on any machine. JIT on or
+off makes no difference (see The Fine Print).
 
 ## How We Know It's Safe
 
