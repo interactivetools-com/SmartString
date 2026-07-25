@@ -71,6 +71,10 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     /**
      * Returns a SmartString object for a value.
      *
+     * Same as `new SmartString()`, but chainable on every supported PHP version:
+     * before PHP 8.4, `new SmartString($value)->trim()` is a syntax error without
+     * wrapping parentheses; `SmartString::new($value)->trim()` works everywhere.
+     *
      *     $str  = SmartString::new("Hello, World!");   // single value as SmartString
      *     $user = SmartArrayHtml::new($record);        // whole array as SmartStrings (companion library)
      *
@@ -80,7 +84,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     public static function new(string|int|float|bool|null|array $value): SmartArrayHtml|SmartString
     {
         if (is_array($value)) {
-            self::logDeprecation("Replace SmartString::new(\$array) with SmartArrayHtml::new(\$array)");
+            self::logDeprecation('Replace SmartString::new($array) with SmartArrayHtml::new($array)');
             return new SmartArrayHtml($value);
         }
         return new self($value);
@@ -993,7 +997,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         // show help information for first instance
         static $callCounter = 0;
         if (++$callCounter === 1) {
-            $output['README:private'] = "Call \$obj->help() for more information and method examples.";
+            $output['README:private'] = 'Call $obj->help() for more information and method examples.';
         }
 
         $value                     = $this->rawData;
