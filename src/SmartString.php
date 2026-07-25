@@ -986,29 +986,12 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     }
 
     /**
-     * Show useful developer info about object when print_r() is used to examine object
-     *
-     * @return array An associative array containing debugging information.
+     * Shows just the stored value in print_r() and var_dump() output, hiding internal
+     * properties. The key matches the public accessor: call ->value() to get it.
      */
     public function __debugInfo(): array
     {
-        $output = [];
-
-        // show help information for first instance
-        static $callCounter = 0;
-        if (++$callCounter === 1) {
-            $output['README:private'] = 'Call $obj->help() for more information and method examples.';
-        }
-
-        $value                     = $this->rawData;
-        $output['rawData:private'] = match (true) {
-            is_string($value) => sprintf('"%s"', $value),
-            is_bool($value)   => ($value ? "TRUE" : "FALSE"),
-            is_null($value)   => "NULL, // Either value is NULL or field doesn't exist",
-            default           => $value, // includes ints and floats
-        };
-
-        return $output;
+        return ['value' => $this->rawData];
     }
 
     //endregion

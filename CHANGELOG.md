@@ -54,6 +54,11 @@ These still work, they're just no longer featured in the docs - no changes requi
 
 ### Behavior changes
 
+- `print_r()` and `var_dump()` now show just the stored value, keyed by the
+  accessor that returns it (`[value] => Jean O'Brien`, see `->value()`) - the
+  one-time README help line and the value formatting (added quotes,
+  `TRUE`/`FALSE`/`NULL` annotations) are gone, so dumps read like native PHP
+  output. Matches the same change in SmartArray.
 - Math: a failed step (missing value, non-numeric input, divide by zero) returns
   null, and a fallback like `or()` now fully recovers the chain - previously any
   math after the fallback still returned null:

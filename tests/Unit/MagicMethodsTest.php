@@ -8,7 +8,6 @@ use Itools\SmartArray\SmartArrayHtml;
 use Itools\SmartString\CallerException;
 use Itools\SmartString\SmartString;
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use Tests\Support\SmartStringTestCase;
 
 /**
@@ -190,32 +189,19 @@ class MagicMethodsTest extends SmartStringTestCase
     //region __debugInfo()
 
     /**
-     * The README hint appears only on the first print_r per process
-     * (static counter), so this test needs its own process.
+     * Dumps show the stored value as-is under the public accessor's name
+     * (->value()) - no injected help text, no type formatting.
      */
-    #[RunInSeparateProcess]
-    public function testDebugInfoShowsReadmeHintOnlyOnFirstCall(): void
+    public function testDebugInfoReturnsRawValueOnly(): void
     {
-        $first  = print_r(SmartString::new('first'), true);
-        $second = print_r(SmartString::new('second'), true);
+        $debugInfoFor = static fn($value) => SmartString::new($value)->__debugInfo();
 
-        $this->assertStringContainsString('README:private', $first);
-        $this->assertStringContainsString('Call $obj->help() for more information and method examples.', $first);
-        $this->assertStringNotContainsString('README:private', $second);
-    }
-
-    public function testDebugInfoFormatsRawDataByType(): void
-    {
-        SmartString::new('burn')->__debugInfo(); // consume the one-time README hint if this process hasn't yet
-
-        $rawDataFor = static fn($value) => SmartString::new($value)->__debugInfo()['rawData:private'];
-
-        $this->assertSame('"test value"', $rawDataFor('test value'));
-        $this->assertSame(42, $rawDataFor(42));
-        $this->assertSame(3.14, $rawDataFor(3.14));
-        $this->assertSame('TRUE', $rawDataFor(true));
-        $this->assertSame('FALSE', $rawDataFor(false));
-        $this->assertSame("NULL, // Either value is NULL or field doesn't exist", $rawDataFor(null));
+        $this->assertSame(['value' => 'test value'], $debugInfoFor('test value'));
+        $this->assertSame(['value' => 42], $debugInfoFor(42));
+        $this->assertSame(['value' => 3.14], $debugInfoFor(3.14));
+        $this->assertSame(['value' => true], $debugInfoFor(true));
+        $this->assertSame(['value' => false], $debugInfoFor(false));
+        $this->assertSame(['value' => null], $debugInfoFor(null));
     }
 
     //endregion

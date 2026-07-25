@@ -103,10 +103,8 @@ class DocsExamplesTest extends SmartStringTestCase
         $name   = SmartString::new("Jean O'Brien");
         $output = print_r($name, true);
 
-        // README:private appears only on the first print_r per process, so
-        // only the always-present parts are asserted here
-        $this->assertStringContainsString('rawData:private', $output);
-        $this->assertStringContainsString('"Jean O\'Brien"', $output);
+        $this->assertStringContainsString("[value] => Jean O'Brien", $output);
+        $this->assertStringNotContainsString('README', $output);
     }
 
     //endregion

@@ -253,8 +253,7 @@ print_r($name);
 
 // Itools\SmartString\SmartString Object
 // (
-//     [README:private] => Call $obj->help() for more information and method examples.
-//     [rawData:private] => "Jean O'Brien"
+//     [value] => Jean O'Brien
 // )
 ```
 
