@@ -53,7 +53,8 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           coverage: none
-          ini-values: opcache.enable_cli=1
+          # JIT off explicitly: runner images ship a non-zero jit_buffer_size
+          ini-values: opcache.enable_cli=1, opcache.jit=off, opcache.jit_buffer_size=0
 
       - name: Lengths 1-3 (16.8 million strings)
         run: php .github/scripts/check-all-strings-up-to-4-bytes-match-htmlspecialchars.php --len=3

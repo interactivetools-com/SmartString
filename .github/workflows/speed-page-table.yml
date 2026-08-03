@@ -73,7 +73,8 @@ jobs:
         with:
           php-version: ${{ inputs.php }}
           coverage: none
-          ini-values: opcache.enable_cli=1
+          # JIT off explicitly: runner images ship a non-zero jit_buffer_size
+          ini-values: opcache.enable_cli=1, opcache.jit=off, opcache.jit_buffer_size=0
 
       - name: Generate table
         run: |
