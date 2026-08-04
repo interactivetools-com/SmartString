@@ -58,9 +58,9 @@ trait Deprecations
      * @deprecated Use map() - same behavior, new name
      */
     #[Deprecated(reason: 'renamed to map() in v3.0', replacement: '%class%->map(%parametersList%)')]
-    public function apply(callable|string $func, mixed ...$args): SmartString
+    public function apply(callable|string $callback, mixed ...$args): SmartString
     {
-        return $this->map($func, ...$args);
+        return $this->map($callback, ...$args);
     }
 
     /**

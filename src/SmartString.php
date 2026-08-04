@@ -915,16 +915,16 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      * array_map() and SmartArray::map(). Chain ->ifNull('') first when using
      * built-ins that require a string.
      *
-     * @param callable|string $func    The function to call with the value
-     * @param mixed           ...$args Additional arguments to pass to the function
+     * @param callable|string $callback The function to call with the value
+     * @param mixed           ...$args  Additional arguments to pass to the function
      */
-    public function map(callable|string $func, mixed ...$args): SmartString
+    public function map(callable|string $callback, mixed ...$args): SmartString
     {
-        if (!is_callable($func)) {
-            throw new CallerException("Function '$func' is not callable");
+        if (!is_callable($callback)) {
+            throw new CallerException("Function '$callback' is not callable");
         }
 
-        $newValue = $func($this->rawData, ...$args);
+        $newValue = $callback($this->rawData, ...$args);
         if (!is_null($newValue) && !is_scalar($newValue)) {
             throw new CallerException("map() callback must return a scalar value (string, int, float, bool, or null), got " . get_debug_type($newValue));
         }

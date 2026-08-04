@@ -55,14 +55,18 @@ Full lists of what changed per release: [CHANGELOG.md](CHANGELOG.md).
 >
 > ->orDie(message: 'Not found')     // before (same for or404, orThrow)
 > ->orDie(text: 'Not found')        // after
+>
+> ->map(func: strtoupper(...))      // before
+> ->map(callback: strtoupper(...))  // after - matches array_map() and SmartArray::map()
 > ```
 >
 > Fix:
 >
 > - Search `zeroFallback:` and replace with `ifZero:`
 > - Search `message:` and replace with `text:` on or404/orDie/orThrow calls
+> - Search `func:` and replace with `callback:` on map/apply calls
 >
-> Regex: `->percent\([^)]*zeroFallback:|->(orDie|or404|orThrow)\(\s*message:`
+> Regex: `->(percent\([^)]*zeroFallback:|(orDie|or404|orThrow)\(\s*message:|(map|apply)\(\s*func:)`
 
 ### Silent changes
 

@@ -125,7 +125,7 @@ want.*
 
 | Method                   | Description                                                                                                                |
 |--------------------------|----------------------------------------------------------------------------------------------------------------------------|
-| `->map($func, ...$args)` | Calls your function with the original value and returns the result as a new SmartString - runs even when the value is null |
+| `->map($callback, ...$args)` | Calls your function with the original value and returns the result as a new SmartString - runs even when the value is null |
 
 **Working with arrays?** [SmartArray](https://github.com/interactivetools-com/SmartArray)
 is the companion library that handles arrays (like database rows) as collections of

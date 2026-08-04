@@ -99,6 +99,7 @@ These still work, they're just no longer featured in the docs - no changes requi
   - `percent(ifZero:)` was `zeroFallback:`
   - `ifTrue(newValue:)` was `valueIfTrue:`
   - `or404()`/`orDie()`/`orThrow()` take `text:` (was `message:`)
+  - `map(callback:)` was `func:` - matches `array_map()` and `SmartArray::map()`
 
 ### Fixed
 

@@ -243,13 +243,13 @@ Terminal: return plain `bool`.
 ## Custom Functions
 
 ```php
-map(callable|string $func, mixed ...$args): SmartString
+map(callable|string $callback, mixed ...$args): SmartString
 ```
 
-Calls `$func($rawValue, ...$args)` and wraps the result. The callback ALWAYS
+Calls `$callback($rawValue, ...$args)` and wraps the result. The callback ALWAYS
 runs, null included (matches `array_map()`); chain `->ifNull('')` first for
 built-ins that reject null. Callback must return scalar or null; other
-return types throw CallerException. Non-callable `$func` throws
+return types throw CallerException. Non-callable `$callback` throws
 CallerException.
 
 ```php

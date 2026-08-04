@@ -299,7 +299,7 @@ value, and whatever it returns becomes a new SmartString so you can keep
 chaining:
 
 ```php
-// map($func, ...$args)
+// map($callback, ...$args)
 $name = SmartString::new('John Doe');
 
 echo $name->map('mb_strtoupper');                      // JOHN DOE (mb_ case functions handle accents too: josé → JOSÉ)
