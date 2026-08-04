@@ -1,45 +1,45 @@
 {
-  "name": "itools/smartstring",
-  "description": "Enhanced PHP strings with automatic HTML encoding and chainable transformation methods",
-  "keywords": ["SmartArray", "chainable", "encoding", "escape", "fluent", "format", "html", "json", "manipulation", "methods", "multibyte", "sanitize", "security", "string", "strip", "trim", "truncate", "urlencode", "utf", "utf8", "xss"],
-  "type": "library",
-  "homepage": "https://github.com/interactivetools-com/SmartString",
-  "license": "MIT",
-  "readme": "README.md",
-  "support": {
-    "issues": "https://github.com/interactivetools-com/SmartString/issues",
-    "source": "https://github.com/interactivetools-com/SmartString"
-  },
-  "authors": [
-    {
-      "name": "interactivetools.com",
-      "homepage": "https://interactivetools.com/"
+    "name": "itools/smartstring",
+    "description": "Enhanced PHP strings with automatic HTML encoding and chainable transformation methods",
+    "keywords": ["SmartArray", "chainable", "encoding", "escape", "fluent", "format", "html", "json", "manipulation", "methods", "multibyte", "sanitize", "security", "string", "strip", "trim", "truncate", "urlencode", "utf", "utf8", "xss"],
+    "type": "library",
+    "homepage": "https://github.com/interactivetools-com/SmartString",
+    "license": "MIT",
+    "readme": "README.md",
+    "support": {
+        "issues": "https://github.com/interactivetools-com/SmartString/issues",
+        "source": "https://github.com/interactivetools-com/SmartString"
+    },
+    "authors": [
+        {
+            "name": "interactivetools.com",
+            "homepage": "https://interactivetools.com/"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Itools\\SmartString\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "platform": {
+            "php": "8.1"
+        }
+    },
+    "require": {
+        "php": "^8.1",
+        "ext-mbstring": "*"
+    },
+    "require-dev": {
+        "itools/smartarray": "*",
+        "phpunit/phpunit": "^10.5"
+    },
+    "suggest": {
+        "itools/smartarray": "Enhanced arrays with automatic HTML encoding and chainable collection methods"
     }
-  ],
-  "autoload": {
-    "psr-4": {
-      "Itools\\SmartString\\": "src/"
-    }
-  },
-  "autoload-dev": {
-    "psr-4": {
-      "Tests\\": "tests/"
-    }
-  },
-  "config": {
-    "platform": {
-      "php": "8.1"
-    }
-  },
-  "require": {
-    "php": "^8.1",
-    "ext-mbstring": "*"
-  },
-  "require-dev": {
-    "itools/smartarray": "*",
-    "phpunit/phpunit": "^10.5"
-  },
-  "suggest": {
-    "itools/smartarray": "Enhanced arrays with automatic HTML encoding and chainable collection methods"
-  }
 }

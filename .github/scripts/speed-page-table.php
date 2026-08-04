@@ -26,8 +26,8 @@ declare(strict_types=1);
  * SmartString output is verified byte-identical to full-flag htmlspecialchars().
  */
 
-require __DIR__ . '/../../src/DeprecatedAliases.php';
-require __DIR__ . '/../../src/ErrorHelpersTrait.php';
+require __DIR__ . '/../../src/Deprecations.php';
+require __DIR__ . '/../../src/SharedHelpers.php';
 require __DIR__ . '/../../src/SmartString.php';
 
 use Itools\SmartString\SmartString;

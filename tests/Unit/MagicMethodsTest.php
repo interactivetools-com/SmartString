@@ -5,9 +5,9 @@ namespace Tests\Unit;
 
 use Error;
 use Itools\SmartArray\SmartArrayHtml;
-use Itools\SmartString\CallerException;
 use Itools\SmartString\SmartString;
 use PHPUnit\Framework\Attributes\DataProvider;
+use RuntimeException;
 use Tests\Support\SmartStringTestCase;
 
 /**
@@ -218,8 +218,8 @@ class MagicMethodsTest extends SmartStringTestCase
             foreach (SmartString::new('red,green,blue') as $tag) {
                 $this->fail("foreach body should never run, got: $tag");
             }
-            $this->fail('Expected CallerException was not thrown');
-        } catch (CallerException $e) {
+            $this->fail('Expected RuntimeException was not thrown');
+        } catch (RuntimeException $e) {
             $this->assertStringContainsString('Can\'t foreach over SmartString "red,green,blue"', $e->getMessage());
             $this->assertStringContainsString('single value, not a collection', $e->getMessage());
         }

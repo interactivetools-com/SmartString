@@ -81,13 +81,8 @@ Full lists of what changed per release: [CHANGELOG.md](CHANGELOG.md).
 > later `or()` fallback shows instead of a date
 > - `orDie()` exits with code 1 (was 0) - cron and CLI wrappers that check
 > exit codes now see the failure
-> - `pregReplace()` with an invalid pattern throws an exception naming your
-> file and line (was a PHP warning and a null result)
-> - `orRedirect()` with headers already sent throws CallerException (an
-> InvalidArgumentException subclass) instead of RuntimeException - the only
-> exception whose catch type changed in this release. A specific
-> `catch (RuntimeException)` around it no longer matches; `catch (Exception)`
-> and `catch (Throwable)` work in both versions
+> - `pregReplace()` with an invalid pattern throws an InvalidArgumentException
+> that includes PHP's compile error (was a PHP warning and a null result)
 > - Constructor and `new()` no longer accept a `$properties` array (carried
 > an internal flag; nothing outside the class used it)
 

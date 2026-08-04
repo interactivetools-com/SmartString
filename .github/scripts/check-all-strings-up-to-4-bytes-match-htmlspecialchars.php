@@ -34,8 +34,8 @@ declare(strict_types=1);
  * bytes); that path is covered by EncodingCorpusTest's boundary strings.
  */
 
-require dirname(__DIR__, 2) . '/src/ErrorHelpersTrait.php';
-require dirname(__DIR__, 2) . '/src/DeprecatedAliases.php';
+require dirname(__DIR__, 2) . '/src/SharedHelpers.php';
+require dirname(__DIR__, 2) . '/src/Deprecations.php';
 require dirname(__DIR__, 2) . '/src/SmartString.php';
 
 use Itools\SmartString\SmartString;

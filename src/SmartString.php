@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Itools\SmartString;
 
 use Error;
+use InvalidArgumentException;
 use Iterator;
 use IteratorAggregate;
 use Itools\SmartArray\SmartArray;
@@ -27,7 +28,7 @@ use RuntimeException;
 final class SmartString implements JsonSerializable, IteratorAggregate
 {
     use Deprecations;
-    use ErrorHelpersTrait;
+    use SharedHelpers;
 
     /**
      * The raw stored value, exactly as passed to the constructor.
@@ -105,7 +106,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     /**
      * Converts Smart* objects to their original values, recursing into arrays; scalars and
      * null are returned as-is. Useful if you don't know the type but want the original
-     * value. Any other type (objects, resources) throws CallerException.
+     * value. Any other type (objects, resources) throws InvalidArgumentException.
      */
     public static function getRawValue(mixed $value): mixed
     {
@@ -116,7 +117,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
             is_scalar($value)                => $value,
             is_null($value)                  => $value,
             is_array($value)                 => array_map([self::class, 'getRawValue'], $value), // for manually passed in arrays
-            default                          => throw new CallerException("Unsupported value type: " . get_debug_type($value)),
+            default                          => throw new InvalidArgumentException("Unsupported value type: " . get_debug_type($value)),
         };
     }
 
@@ -891,13 +892,13 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      *
      * @param string $url The URL to redirect to if value is missing
      * @return self Returns $this for method chaining if not missing, redirects if missing
-     * @throws CallerException If headers have already been sent (an InvalidArgumentException that reports your file:line)
+     * @throws RuntimeException If headers have already been sent
      */
     public function orRedirect(string $url): self
     {
         // Check early so developers find out immediately, not only when isMissing()
         if (headers_sent($file, $line)) {
-            throw new CallerException("orRedirect(): headers already sent in $file on line $line");
+            throw new RuntimeException("orRedirect(): headers already sent in $file on line $line");
         }
 
         if ($this->isMissing()) {
@@ -924,12 +925,12 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     public function map(callable|string $callback, mixed ...$args): SmartString
     {
         if (!is_callable($callback)) {
-            throw new CallerException("Function '$callback' is not callable");
+            throw new InvalidArgumentException("Function '$callback' is not callable");
         }
 
         $newValue = $callback($this->rawData, ...$args);
         if (!is_null($newValue) && !is_scalar($newValue)) {
-            throw new CallerException("map() callback must return a scalar value (string, int, float, bool, or null), got " . get_debug_type($newValue));
+            throw new InvalidArgumentException("map() callback must return a scalar value (string, int, float, bool, or null), got " . get_debug_type($newValue));
         }
         return new self($newValue);
     }
@@ -946,7 +947,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      * @param string $pattern     Regex pattern
      * @param string $replacement Replacement string (supports backreferences)
      * @return SmartString A new SmartString with the replaced value
-     * @throws CallerException If the pattern is invalid or matching fails (an InvalidArgumentException that reports your file:line)
+     * @throws InvalidArgumentException If the pattern is invalid or matching fails
      */
     public function pregReplace(string $pattern, string $replacement): SmartString
     {
@@ -958,7 +959,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         $newValue = @preg_replace($pattern, $replacement, (string)$this->rawData); // @: PHP warning becomes the exception below
         if (is_null($newValue)) {
             $reason = error_get_last()['message'] ?? preg_last_error_msg();
-            throw new CallerException("pregReplace(): $reason");
+            throw new InvalidArgumentException("pregReplace(): $reason");
         }
         return new self($newValue);
     }
@@ -1038,7 +1039,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         // SECURITY: encode < > & in the preview - exception handlers often echo messages into pages (see orThrow).
         // No ENT_QUOTES: the preview's own quotes stay readable in logs and CLI stack traces.
         $preview = htmlspecialchars($this->valuePreview(), ENT_SUBSTITUTE | ENT_DISALLOWED | ENT_HTML5, 'UTF-8');
-        throw new CallerException(
+        throw new RuntimeException(
             "Can't foreach over SmartString $preview - it holds a single value, not a collection. " .
             "Did you mean to loop the SmartArray row or result set it came from?",
         );
@@ -1170,40 +1171,6 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         $error     = "Call to undefined method $baseClass::$method(), call ->help() for available methods.\n";
         $error     .= self::occurredInFile();
         throw new Error($error);
-    }
-
-    /**
-     * Wrap output in <xmp> tag if text/html and not called from a function that already added <xmp>
-     * @noinspection SpellCheckingInspection // ignore all lowercase strtolower function name
-     */
-    private static function xmpWrap(string $output): string
-    {
-        $output = trim($output, "\n");
-        $plain  = "\n$output\n";
-
-        // terminals show <xmp> literally; CGI builds misreport SAPI on some hosts, so check more than PHP_SAPI
-        $inCli = PHP_SAPI === 'cli'
-                 || ($_SERVER['SESSIONNAME'] ?? '') === 'Console' // Windows console
-                 || empty($_SERVER['SCRIPT_NAME']);               // only web servers set SCRIPT_NAME
-        if ($inCli) {
-            return $plain;
-        }
-
-        // non-HTML responses (json, plain text, etc.) stay unwrapped
-        $headersList    = implode("\n", headers_list());
-        $hasContentType = (bool)preg_match('|^\s*Content-Type:\s*|im', $headersList);                          // assume no content type will default to html
-        $isTextHtml     = !$hasContentType || preg_match('|^\s*Content-Type:\s*text/html\b|im', $headersList); // match: text/html or ...;charset=utf-8
-        if (!$isTextHtml) {
-            return $plain;
-        }
-
-        // showme() debug helper adds its own <xmp>
-        $backtraceFunctions = array_map('strtolower', array_column(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS), 'function'));
-        if (in_array('showme', $backtraceFunctions, true)) {
-            return $plain;
-        }
-
-        return "\n<xmp>\n$output\n</xmp>\n";
     }
 
     /**

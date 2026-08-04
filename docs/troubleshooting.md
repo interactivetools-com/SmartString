@@ -179,14 +179,6 @@ for a missing value.
 line where output started; the usual culprits are `echo` statements and
 whitespace before `<?php`.
 
-### CallerException Errors
-
-**What happened:** A developer mistake, like a bad regex in
-`pregReplace()`. The message says what's wrong, and the file and line
-point at your call site rather than the library's internals, so the named
-line is the one to fix. It's a normal `InvalidArgumentException` subclass,
-so existing catch blocks work.
-
 ## Debugging
 
 Two tools cover most "what is this value?" questions:

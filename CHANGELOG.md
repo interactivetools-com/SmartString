@@ -83,15 +83,9 @@ These still work, they're just no longer featured in the docs - no changes requi
   later `or()` fallback
 - `pregReplace()` throws on a bad pattern - was a PHP warning and a null result;
   now an InvalidArgumentException that includes PHP's compile error
-- Developer-mistake exceptions report your file:line instead of the library's:
-  `pregReplace()` (bad pattern), `map()` (bad callback or return type),
-  `getRawValue()` (unsupported type), and `orRedirect()` (headers already sent,
-  was RuntimeException) throw CallerException, an
-  InvalidArgumentException subclass - existing catch blocks still work, and the
-  library's throw site stays available in `$e->thrownInFile`/`$e->thrownInLine`
 - `dateFormat()` on booleans returns null - like any other value that isn't a date
 - `orDie()` and `or404()` exit with code 1 - CLI and cron scripts see the failure
-- foreach over a SmartString throws a CallerException showing the value and
+- foreach over a SmartString throws a RuntimeException showing the value and
   suggesting the SmartArray row - previously the loop silently ran zero times
   (PHP iterates accessible properties, and there are none)
 - Parameter renames - these only matter if you use named arguments,

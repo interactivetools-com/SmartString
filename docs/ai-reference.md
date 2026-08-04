@@ -110,7 +110,7 @@ Terminal methods; they return plain PHP values and end the chain.
 | `float(): float`                                  | `(float)` cast                                                                                                                                                          | 0.0        |
 | `bool(): bool`                                    | `(bool)` cast                                                                                                                                                           | false      |
 | `string(): string`                                | `(string)` cast, NOT HTML-encoded                                                                                                                                       | ""         |
-| `SmartString::getRawValue(mixed): mixed` (static) | Unwraps SmartString → value, SmartArray → array, SmartNull → null; scalars/null/arrays pass through (arrays unwrapped recursively); other objects throw CallerException | null       |
+| `SmartString::getRawValue(mixed): mixed` (static) | Unwraps SmartString → value, SmartArray → array, SmartNull → null; scalars/null/arrays pass through (arrays unwrapped recursively); other objects throw InvalidArgumentException | null       |
 
 ## Encoding Methods
 
@@ -150,7 +150,7 @@ through unchanged, so a later `or()` still works.
 | `trim(...$args): SmartString`                                    | PHP `trim()` semantics incl. custom char list (a SmartString char list unwraps)                                                  |
 | `maxWords(int $max, string $ellipsis = '...'): SmartString`      | Word limit; `$ellipsis` only if cut; trailing punctuation stripped before ellipsis                                               |
 | `maxChars(int $max, string $ellipsis = '...'): SmartString`      | Char limit breaking at last whole word; whitespace runs collapse to single spaces; trailing punctuation stripped before ellipsis |
-| `pregReplace(string $pattern, string $replacement): SmartString` | `preg_replace()`; invalid pattern throws CallerException                                                                         |
+| `pregReplace(string $pattern, string $replacement): SmartString` | `preg_replace()`; invalid pattern throws InvalidArgumentException                                                                |
 
 Arguments to `append`/`prepend`/`wrap` accept
 `int|float|string|bool|null|SmartString|SmartNull`.
@@ -222,7 +222,7 @@ HTML-encoded automatically (messages often interpolate user input).
 | `or404(?string $text = null): self` | HTTP 404 + minimal HTML page + `exit`. Default text "The requested URL was not found on this server."                                                    |
 | `orDie(string $text): self`         | Echo encoded text + `exit(1)` (failure code for CLI/cron)                                                                                                |
 | `orThrow(string $text): self`       | `throw new RuntimeException($encodedText)`. Decode for logs/CLI with `htmlspecialchars_decode($msg, ENT_QUOTES \| ENT_SUBSTITUTE \| ENT_HTML5)`          |
-| `orRedirect(string $url): self`     | 302 + `Location: $url` + `exit`. Checks `headers_sent()` IMMEDIATELY (throws CallerException even when value present, so misuse fails on first request)  |
+| `orRedirect(string $url): self`     | 302 + `Location: $url` + `exit`. Checks `headers_sent()` IMMEDIATELY (throws RuntimeException even when value present, so misuse fails on first request) |
 
 ```php
 $article->num->or404("Article not found");
@@ -249,8 +249,8 @@ map(callable|string $callback, mixed ...$args): SmartString
 Calls `$callback($rawValue, ...$args)` and wraps the result. The callback ALWAYS
 runs, null included (matches `array_map()`); chain `->ifNull('')` first for
 built-ins that reject null. Callback must return scalar or null; other
-return types throw CallerException. Non-callable `$callback` throws
-CallerException.
+return types throw InvalidArgumentException. Non-callable `$callback` throws
+InvalidArgumentException.
 
 ```php
 echo $name->map('mb_strtoupper');
@@ -277,15 +277,10 @@ print_r($str);        // shows rawData (original value) + one-time help() hint
 
 ## Errors and Exceptions
 
-- **CallerException** (`Itools\SmartString\CallerException`, extends
-  `InvalidArgumentException`): thrown for developer mistakes:
-  `pregReplace()` invalid pattern, `map()` non-callable or non-scalar
-  return, `getRawValue()` unsupported type, `orRedirect()` when headers
-  already sent. Reports the CALLER's file:line
-  via `getFile()`/`getLine()`; the library's real throw site is in public
-  readonly `$thrownInFile`/`$thrownInLine`. Catch as
-  InvalidArgumentException.
-- **RuntimeException**: `orThrow()` (message HTML-encoded).
+- **InvalidArgumentException**: `pregReplace()` invalid pattern, `map()`
+  non-callable or non-scalar return, `getRawValue()` unsupported type.
+- **RuntimeException**: `orThrow()` (message HTML-encoded), `orRedirect()`
+  when headers already sent, foreach over a SmartString.
 - **Error** (PHP native): undefined method calls, with did-you-mean
   suggestions for ~100 common alias names (`truncate` → `maxChars`,
   `escapeHtml` → `htmlEncode`, `fallback` → `or`, ...).
