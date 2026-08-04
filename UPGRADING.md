@@ -79,12 +79,11 @@ Full lists of what changed per release: [CHANGELOG.md](CHANGELOG.md).
 > Only affects code that relied on null carrying past a mid-chain fallback.
 > - `dateFormat()` on a boolean returns null (was undefined behavior) - a
 > later `or()` fallback shows instead of a date
-> - `orDie()` exits with code 1 (was 0) - cron and CLI wrappers that check
-> exit codes now see the failure
-> - `pregReplace()` with an invalid pattern throws an InvalidArgumentException
-> that includes PHP's compile error (was a PHP warning and a null result)
-> - Constructor and `new()` no longer accept a `$properties` array (carried
-> an internal flag; nothing outside the class used it)
+> - `pregReplace()` passes `""` through unchanged, like null - previously an
+> empty-matching pattern could turn a missing value into content, so a later
+> `or()` fallback can now show where it previously didn't
+> - `orDie()` and `or404()` exit with code 1 (was 0) - cron and CLI wrappers
+> that check exit codes now see the failure
 
 ## v2.6.3
 
@@ -96,13 +95,13 @@ Full lists of what changed per release: [CHANGELOG.md](CHANGELOG.md).
 > `<br>` in method arguments or data now prints as literal text. This is the
 > only rendering change - all other output is identical, so these swaps are
 > the complete check:
->
-> | Before                                  | After                                   |
-> |-----------------------------------------|-----------------------------------------|
-> | `->and(",<br>\n")`                      | `->appendHtml(",<br>\n")`               |
-> | `->andPrefix("<br>Tel: ")`              | `->wrapHtml('<br>Tel: ', '')`           |
-> | `echo $field` where the data has `<br>` | `echo $field->textToHtml(keepBr: true)` |
->
+
+| Before                                  | After                                   |
+|-----------------------------------------|-----------------------------------------|
+| `->and(",<br>\n")`                      | `->appendHtml(",<br>\n")`               |
+| `->andPrefix("<br>Tel: ")`              | `->wrapHtml('<br>Tel: ', '')`           |
+| `echo $field` where the data has `<br>` | `echo $field->textToHtml(keepBr: true)` |
+
 > Regex: `->\w+\(['"][^'"]*<br` finds `<br` inside method arguments
 
 ### Removed settings (only existed v2.1.2 - v2.6.2)
@@ -154,14 +153,14 @@ Full lists of what changed per release: [CHANGELOG.md](CHANGELOG.md).
 > No required changes: every v1 method name still works and raises a
 > deprecation notice naming its replacement (visible in error handlers like
 > CMS Builder's developer log). Renaming is optional cleanup:
->
-> | Old name (still works)     | Current name                                                                                                  |
-> |----------------------------|---------------------------------------------------------------------------------------------------------------|
-> | `->stripTags()`            | `->textOnly()`                                                                                                |
-> | `->toString()`             | `->htmlEncode()` or `->string()`                                                                              |
-> | `->noEncode()`             | `->rawHtml()`                                                                                                 |
-> | `->jsEncode()`             | `->jsonEncode()` - different output, refactor when convenient; the old name keeps the old behavior until then |
-> | `SmartString::fromArray()` | `SmartArrayHtml::new()`                                                                                       |
+
+| Old name (still works)     | Current name                                                                                                  |
+|----------------------------|---------------------------------------------------------------------------------------------------------------|
+| `->stripTags()`            | `->textOnly()`                                                                                                |
+| `->toString()`             | `->htmlEncode()` or `->string()`                                                                              |
+| `->noEncode()`             | `->rawHtml()`                                                                                                 |
+| `->jsEncode()`             | `->jsonEncode()` - different output, refactor when convenient; the old name keeps the old behavior until then |
+| `SmartString::fromArray()` | `SmartArrayHtml::new()`                                                                                       |
 
 ---
 

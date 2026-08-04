@@ -6,6 +6,13 @@
 
 ## [3.0.0] - [UNRELEASED]
 
+> **Bundled with CMS Builder v3.85**
+
+The headlines: HTML-encoded output is 3x faster or better, method names now
+match SmartArray (old names keep working), and new `wrap()`/`wrapHtml()`
+replace the `if` statements around optional fields. Everything else is
+hardening and fixes.
+
 ### Added
 
 | Method                        | Returns     | Description                                                                                                                                                               |
@@ -19,10 +26,9 @@
 
 - HTML-encoded output (echo and `htmlEncode()`) is 3x faster or better across
   a typical page (up to 43x on Windows): values are scanned first and only
-  encoded when something needs encoding.
-  Output stays byte-identical to `htmlspecialchars()`, verified against every
-  possible string up to 4 bytes (4.3 billion inputs) on PHP 8.1-8.5. Benchmarks
-  and details: [docs/performance.md](docs/performance.md)
+  encoded when something needs encoding. Output stays byte-identical to
+  `htmlspecialchars()`. Benchmarks and verification:
+  [docs/performance.md](docs/performance.md)
 
 ### Renamed
 
@@ -38,6 +44,17 @@ IDEs like PHPStorm show them in strikethrough and offer a one-click rename.
 | `if()`                     | `ifTrue()`                 |                                                                          |
 | `textToHtml()`             | `nl2br()`                  |                                                                          |
 | `textToHtml(keepBr: true)` | (no new name - keep as-is) | preserves `<br>` tags already in the value; `nl2br()` takes no arguments |
+
+### Parameter renames (named arguments only)
+
+These only matter if you write parameter names in calls, e.g.
+`->percent(2, ifZero: '-')` - calls using an old name fail with a clear
+"Unknown named parameter" Error:
+
+- `percent(ifZero:)` was `zeroFallback:`
+- `ifTrue(newValue:)` was `valueIfTrue:`
+- `or404()`/`orDie()`/`orThrow()` take `text:` (was `message:`)
+- `map(callback:)` was `func:` - matches `array_map()` and `SmartArray::map()`
 
 ### Deprecated
 
@@ -55,23 +72,29 @@ These still work, they're just no longer featured in the docs - no changes requi
 
 ### Behavior changes
 
-- `print_r()` and `var_dump()` now show just the stored value, keyed by the
-  accessor that returns it (`[value] => Jean O'Brien`, see `->value()`) - the
-  one-time README help line and the value formatting (added quotes,
-  `TRUE`/`FALSE`/`NULL` annotations) are gone, so dumps read like native PHP
-  output. Matches the same change in SmartArray.
+- `nl2br()` ends the chain - it returns a string now, so echo it directly;
+  anything chained after it (`->nl2br()->value()`) is an error - move those
+  calls before it
+- `percent()` and `percentOf()` format with your `$numberFormatDecimal` and
+  `$numberFormatThousands` settings, same as `numberFormat()` - previously
+  hardcoded '.' and ','
+- `pregReplace()`:
+  - passes `""` through unchanged, like null - previously an empty-matching
+    pattern could turn a missing value into content, defeating a later `or()`
+    fallback
+  - throws on a bad pattern - was a PHP warning and a null result; now an
+    InvalidArgumentException that includes PHP's compile error
+- `dateFormat()` on booleans returns null - like any other value that isn't a date
 - Math: a failed step (missing value, non-numeric input, divide by zero) returns
   null, and a fallback like `or()` now fully recovers the chain - previously any
   math after the fallback still returned null:
   - `SmartString::new(null)->add(5)->or(10)->add(5)` returns 15 (was null)
   - `null`, `bool`, and `SmartNull` arguments no longer throw TypeError (same
     fix for the conditional methods)
-- `percent()` and `percentOf()` format with your `$numberFormatDecimal` and
-  `$numberFormatThousands` settings, same as `numberFormat()` - previously
-  hardcoded '.' and ','
-- `nl2br()` ends the chain - it returns a string now, so echo it directly;
-  anything chained after it (`->nl2br()->value()`) is an error - move those
-  calls before it
+- `print_r()` and `var_dump()` show just the stored value, keyed by the
+  accessor that returns it (`[value] => Jean O'Brien`, see `->value()`) - no
+  help line or added quotes/`TRUE`/`FALSE`/`NULL` annotations, so dumps read
+  like native PHP. Matches the same change in SmartArray.
 - `jsonEncode()` hardening:
   - malformed UTF-8 bytes become � instead of throwing - one corrupt byte no
     longer breaks the page (same fix for `json_encode($smartString)`, which
@@ -79,22 +102,9 @@ These still work, they're just no longer featured in the docs - no changes requi
   - invisible Unicode (zero-width, bidi, tag chars) is re-escaped as visible
     `\uXXXX` so nothing can hide in page source - lossless, JavaScript sees
     the identical value
-- `pregReplace()` passes `""` through unchanged, like null - previously an
-  empty-matching pattern could turn a missing value into content, defeating a
-  later `or()` fallback
-- `pregReplace()` throws on a bad pattern - was a PHP warning and a null result;
-  now an InvalidArgumentException that includes PHP's compile error
-- `dateFormat()` on booleans returns null - like any other value that isn't a date
 - `orDie()` and `or404()` exit with code 1 - CLI and cron scripts see the failure
 - foreach over a SmartString throws a RuntimeException showing the value and
   suggesting the SmartArray row - previously the loop silently ran zero times
-  (PHP iterates accessible properties, and there are none)
-- Parameter renames - these only matter if you use named arguments,
-  e.g. `->percent(2, ifZero: '-')`:
-  - `percent(ifZero:)` was `zeroFallback:`
-  - `ifTrue(newValue:)` was `valueIfTrue:`
-  - `or404()`/`orDie()`/`orThrow()` take `text:` (was `message:`)
-  - `map(callback:)` was `func:` - matches `array_map()` and `SmartArray::map()`
 
 ### Fixed
 
