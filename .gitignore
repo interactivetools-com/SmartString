@@ -1,8 +1,17 @@
-.claude/
-.idea/
+# Composer
+composer.lock
+composer.bat
+composer.*.json
+composer*.phar
+vendor/
+
+# PHPUnit
 .phpunit.cache/
 .phpunit.result.cache
-composer.lock
-composer.phar
+phpunit.xml
+
+# IDE and local dev files
+.claude/
+.idea/
 test.php
-vendor/
+*.sh
