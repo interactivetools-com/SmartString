@@ -1283,7 +1283,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      *   Tab, LF, FF, CR are legal in HTML5 and deliberately excluded from the pattern.
      *   On PHP 8.4+, strings of ENCODE_STRSPN_MIN_BYTES or more run this same check
      *   via strspn(ENCODE_CLEAN_CHARS) instead - 8.4 rewrote strspn to scan in blocks,
-     *   making it 1.3-2.2x faster than the preg scan on 1KB clean text. Before 8.4 the
+     *   making it 1.5-2.3x faster than the preg scan on 1KB clean text. Before 8.4 the
      *   version branch compiles away entirely (verified as exact ties in the matrix).
      * - Tier 2 (ENCODE_NON_ASCII_REGEX): plain ASCII where only the five specials
      *   need encoding - str_replace beats the full encoder pass.
@@ -1292,11 +1292,13 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      *   UTF-8 validation: invalid input returns false (not 0) and falls through to
      *   the encoder, which substitutes bad bytes with �.
      *
-     * Measured on PHP 8.1-8.5 x 5 platforms (.github/workflows/speed-matrix.yml,
-     * grid in .github/scripts/speed-results.md): short clean fields 15-80% faster,
-     * 1KB clean text 5-8x (13-20x on native Windows builds), ASCII HTML 2-5x,
-     * accented text 3-14x. Worst case is a short field containing a special (two
-     * scans + str_replace instead of one small encode, ~60ns); invalid UTF-8 ~even.
+     * Measured on PHP 8.1-8.5 x 5 platforms with opcache on and JIT off, the
+     * production config (.github/workflows/speed-matrix.yml, grid in
+     * .github/scripts/speed-results.md): short clean fields 8-73% faster,
+     * 1KB clean text 5-8x (12-17x on native Windows builds), text with specials
+     * 1-4x, accented text 3-11x. Worst case is a short field containing a special
+     * (two scans + str_replace instead of one small encode, ~15-130ns extra);
+     * invalid UTF-8 ~even.
      */
     private const ENCODE_SKIP_REGEX = '/[\x00-\x08\x0B\x0E-\x1F"&\'<>\x7F-\xFF]/';
 
@@ -1307,14 +1309,13 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      */
     private const ENCODE_CLEAN_CHARS = "\t\n\f\r !#\$%()*+,-./0123456789:;=?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
 
-    // strspn() overtakes the preg scan at 64-128 bytes depending on platform; 128 is the
-    // lowest length that wins or ties on every 8.4+ cell (8-61% faster on 128-255B clean
-    // strings; at 64B it still loses on Linux x64 and macOS ARM). Windows is the
-    // exception: 64 wins 20-25% there, and its official PHP builds are x64-only, so the
-    // OS check implies the architecture. PHP_OS_FAMILY is known at compile time - the
-    // expression folds to a plain integer, and non-Windows platforms measured exact
-    // ties. See speed-results.md (tests: thresh-128-*, thresh-64-*, thresh-os-64b).
-    private const ENCODE_STRSPN_MIN_BYTES = PHP_OS_FAMILY === 'Windows' ? 64 : 128;
+    // strspn() overtakes the preg scan at 64 bytes on Linux and Windows: 5-28% faster
+    // on 64-127B clean strings on every 8.4+ cell, measured with opcache on and JIT
+    // off (the production config). macOS ARM still loses ~8% at 64B, so Darwin waits
+    // until 128; unmeasured families (BSD, Solaris) get the Linux value. PHP_OS_FAMILY
+    // is known at compile time - the expression folds to a plain integer. See
+    // speed-results.md (tests: thresh-64-*, thresh-128-*, scan-cross-64).
+    private const ENCODE_STRSPN_MIN_BYTES = PHP_OS_FAMILY === 'Darwin' ? 128 : 64;
 
     /** Control chars, DEL, or non-ASCII: no match = ASCII needing only the five specials encoded */
     private const ENCODE_NON_ASCII_REGEX = '/[\x00-\x08\x0B\x0E-\x1F\x7F-\xFF]/';
