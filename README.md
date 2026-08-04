@@ -7,11 +7,11 @@ Reading this on the web instead? Same file:
 https://github.com/interactivetools-com/SmartString/blob/main/docs/ai-reference.md
 -->
 
-# SmartString: Secure and Simple String Handling for PHP
+# SmartString: PHP Strings That HTML-Encode Themselves
 
 SmartString lets you write template code that's shorter, easier to read, and XSS-safe by default.
-The whole library is built around a single idea: the easiest way to output data should also be the
-safest way.
+Values HTML-encode themselves the moment you echo, interpolate, or concatenate them, so one
+forgotten htmlspecialchars() can't become an injection.
 
 Instead of writing code like this:
 
