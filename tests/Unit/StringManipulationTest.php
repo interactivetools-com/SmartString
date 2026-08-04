@@ -166,8 +166,10 @@ class StringManipulationTest extends SmartStringTestCase
             'null input'                => [null, 3, '...', null],
             'numeric input'             => [12345, 2, '...', '12345'],
             'very large max words'      => ['Short sentence', 1000, '...', 'Short sentence'],
-            'max words 0 pins ellipsis' => ['Test sentence', 0, '...', '...'], // pinned: bare ellipsis, not ''
+            'max words 0 shows ellipsis' => ['Test sentence', 0, '...', '...'], // nothing shown, ellipsis marks the hidden content
             'max words 0 on empty'      => ['', 0, '...', ''], // missing passes through before ellipsis logic
+            'negative max clamps to 0'  => ['Test sentence', -5, '...', '...'], // same answer as 0: even less than none
+            'whitespace-only, max 0'    => ['   ', 0, '...', ''], // no words exist, so no ellipsis
             'custom ellipsis'           => ['The quick brown fox jumps over the lazy dog', 4, ' [...]', 'The quick brown fox [...]'],
             'multiple spaces collapse'  => ['Word1    Word2     Word3', 2, '...', 'Word1 Word2...'],
             'leading/trailing spaces'   => ['  Trimmed input test  ', 2, '...', 'Trimmed input...'],
@@ -199,8 +201,10 @@ class StringManipulationTest extends SmartStringTestCase
             'null input'                => [null, 10, '...', null],
             'numeric input'             => [12345, 3, '...', '123...'],
             'very large max chars'      => ['Short sentence', 1000, '...', 'Short sentence'],
-            'max chars 0 pins ellipsis' => ['Test sentence', 0, '...', '...'], // pinned: bare ellipsis, not ''
+            'max chars 0 shows ellipsis' => ['Test sentence', 0, '...', '...'], // nothing shown, ellipsis marks the hidden content
             'max chars 0 on empty'      => ['', 0, '...', ''], // missing passes through before ellipsis logic
+            'negative max clamps to 0'  => ['Test sentence', -5, '...', '...'], // was 'Test sen...' via mb_substr negative-length semantics
+            'whitespace-only, max 0'    => ['   ', 0, '...', ''], // collapses to no content, so no ellipsis
             'custom ellipsis'           => ['The quick brown fox!', 15, ' [...]', 'The quick brown [...]'],
             'multiple spaces collapse'  => ['Word1    Word2     Word3', 12, '...', 'Word1 Word2...'],
             'leading/trailing spaces'   => ['  Trimmed  input test  ', 10, '...', 'Trimmed...'],

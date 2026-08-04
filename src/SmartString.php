@@ -416,6 +416,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
 
     /**
      * Limit words to $max, if truncated adds ... (override with second parameter).
+     * Limits of 0 or less show nothing; the ellipsis still marks the hidden content.
      * Invalid UTF-8 bytes (Latin-1 data that was never converted, or a string cut
      * mid-character) are replaced with � (like htmlEncode/jsonEncode).
      *
@@ -427,8 +428,9 @@ final class SmartString implements JsonSerializable, IteratorAggregate
             return new self($this->rawData);
         }
 
+        $max      = max(0, $max); // negative limits clamp to 0: show nothing, ellipsis marks the hidden content
         $text     = trim(self::substituteInvalidUtf8((string)$this->rawData));
-        $words    = preg_split('/\s+/u', $text);
+        $words    = preg_split('/\s+/u', $text, -1, PREG_SPLIT_NO_EMPTY); // whitespace-only input = no words, no ellipsis
         $newValue = implode(' ', array_slice($words, 0, $max));
         if (count($words) > $max) {
             $newValue = preg_replace('/\p{P}+$/u', '', $newValue); // Strip trailing Unicode punctuation before ellipsis
@@ -441,6 +443,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     /**
      * Limit chars to $max breaking at the last whole word, if truncated adds ... (override
      * with second parameter). Whitespace runs collapse to single spaces before measuring.
+     * Limits of 0 or less show nothing; the ellipsis still marks the hidden content.
      * Invalid UTF-8 bytes (Latin-1 data that was never converted, or a string cut
      * mid-character) are replaced with � (like htmlEncode/jsonEncode).
      *
@@ -452,6 +455,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
             return new self($this->rawData);
         }
 
+        $max  = max(0, $max); // negative limits clamp to 0: show nothing, ellipsis marks the hidden content
         $text = preg_replace('/\s+/u', ' ', trim(self::substituteInvalidUtf8((string)$this->rawData)));
 
         if (mb_strlen($text, 'UTF-8') <= $max) {
@@ -467,7 +471,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
             $newValue = preg_replace('/\p{P}+$/u', '', $slice); // Strip trailing Unicode punctuation before ellipsis
             $newValue .= $ellipsis;
         } else {
-            $newValue = mb_substr($text, 0, $max, 'UTF-8') . $ellipsis;
+            $newValue = $ellipsis; // $max is 0 and content exists: nothing shown, ellipsis marks it
         }
 
         return new self($newValue);
