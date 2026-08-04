@@ -1165,8 +1165,8 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         // throw unknown method Error
         // PHP Default Error: Fatal error: Uncaught Error: Call to undefined method SmartString::method() in /path/to/template.php:17
         $suggestion ??= "see the SmartString docs for available methods.";
-        $error      = sprintf("Call to undefined method %s->$method(), $suggestion\n", self::stripNamespace(self::class));
-        $error      .= self::occurredInFile();
+        $class      = self::stripNamespace(self::class);
+        $error      = "Call to undefined method $class->$method(), $suggestion\n" . self::occurredInFile();
         throw new Error($error);
     }
 

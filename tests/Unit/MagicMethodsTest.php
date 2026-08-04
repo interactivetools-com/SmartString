@@ -155,6 +155,16 @@ class MagicMethodsTest extends SmartStringTestCase
         );
     }
 
+    public function testUnknownMethodNameWithPercentReportsCleanly(): void
+    {
+        // '%' in a dynamic method name must not parse as a format specifier
+        $method = 'get50%offPrice';
+        $this->assertUndefinedMethodError(
+            "Call to undefined method SmartString->get50%offPrice(), see the SmartString docs for available methods.\n",
+            fn() => SmartString::new('x')->$method()
+        );
+    }
+
     //endregion
     //region __callStatic()
 
