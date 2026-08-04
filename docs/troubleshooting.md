@@ -181,16 +181,14 @@ whitespace before `<?php`.
 
 ## Debugging
 
-Two tools cover most "what is this value?" questions:
+`print_r()` covers most "what is this value?" questions:
 
 ```php
 print_r($name);  // shows the raw stored value
-$name->help();   // prints the full method reference (also: SmartString::help())
 ```
 
-The `print_r()` output shows `rawData` (the original, unencoded value) plus
-a one-time hint about `help()`. To see a value mid-chain, `print_r()` any
-link of it; chains are just objects.
+The `print_r()` output shows the original, unencoded value. To see a value
+mid-chain, `print_r()` any link of it; chains are just objects.
 
 ---
 

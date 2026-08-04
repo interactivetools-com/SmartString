@@ -7,49 +7,36 @@ use Itools\SmartString\SmartString;
 use Tests\Support\SmartStringTestCase;
 
 /**
- * help(): output content, $value passthrough, both call forms, and plain
- * (no <xmp>) output on CLI. The <xmp> wrap only happens for text/html web
- * responses, which can't be simulated in-process (xmpWrap reads PHP_SAPI).
+ * help() is deprecated: it prints links to the online docs, plain (no <xmp>)
+ * on CLI. The <xmp> wrap only happens for text/html web responses, which
+ * can't be simulated in-process (xmpWrap reads PHP_SAPI).
  *
  * n/a dimensions: encoding, global settings, immutability, argument matrix
  * ($value passes through untouched by design).
  */
 class HelpTest extends SmartStringTestCase
 {
-    public function testHelpOutputsDocumentationPlainOnCli(): void
+    public function testHelpPrintsDocLinksPlainOnCli(): void
     {
-        [$result, $output] = $this->captureOutput(fn() => SmartString::new('test')->help());
+        [$result, $output] = $this->captureOutput(fn() => SmartString::help());
 
         $this->assertNull($result);
         $this->assertStringNotContainsString('<xmp>', $output);
-        $this->assertStringContainsString('SmartString: XSS-Safe Strings', $output);
-        $this->assertStringContainsString('Basics', $output);
-        $this->assertStringContainsString('Type Conversion', $output);
-        $this->assertStringContainsString('Dates & Numbers', $output);
-    }
-
-    public function testHelpReturnsValuePassthrough(): void
-    {
-        [$result, ] = $this->captureOutput(fn() => SmartString::new('test')->help('original value'));
-        $this->assertSame('original value', $result);
+        $this->assertStringContainsString('https://github.com/interactivetools-com/SmartString#readme', $output);
+        $this->assertStringContainsString('https://github.com/interactivetools-com/SmartString/blob/main/docs/method-reference.md', $output);
     }
 
     /**
-     * help() is static so both documented call forms work.
+     * help() is static so both documented call forms work; $value passes through
+     * so help() can be dropped into an expression without changing the result.
      */
-    public function testHelpWorksAsStaticCall(): void
+    public function testHelpReturnsValuePassthroughOnBothCallForms(): void
     {
-        [$result, $output] = $this->captureOutput(fn() => SmartString::help('passthrough'));
+        [$staticResult, $staticOutput]     = $this->captureOutput(fn() => SmartString::help('passthrough'));
+        [$instanceResult, $instanceOutput] = $this->captureOutput(fn() => SmartString::new('x')->help('original value'));
 
-        $this->assertSame('passthrough', $result);
-        $this->assertStringContainsString('SmartString: XSS-Safe Strings', $output);
-    }
-
-    public function testHelpInstanceAndStaticOutputMatch(): void
-    {
-        [, $staticOutput]   = $this->captureOutput(fn() => SmartString::help());
-        [, $instanceOutput] = $this->captureOutput(fn() => SmartString::new('x')->help());
-
+        $this->assertSame('passthrough', $staticResult);
+        $this->assertSame('original value', $instanceResult);
         $this->assertSame($staticOutput, $instanceOutput);
     }
 }

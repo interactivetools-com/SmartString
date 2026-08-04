@@ -25,7 +25,7 @@ Contents:
 - Value Checks - isEmpty(), isNotEmpty(), isMissing(), isNull()
 - Custom Functions - map()
 - Static Configuration
-- Debugging - help(), print_r()
+- Debugging - print_r()
 - Errors and Exceptions
 - Gotchas Quick Reference
 
@@ -271,8 +271,7 @@ SmartString::$dateFormat            = 'Y-m-d';  // default 'Y-m-d' (dateFormat()
 ## Debugging
 
 ```php
-SmartString::help();  // prints the method reference (also $str->help(); works on any instance)
-print_r($str);        // shows rawData (original value) + one-time help() hint
+print_r($str);        // shows the original (raw) value
 ```
 
 ## Errors and Exceptions

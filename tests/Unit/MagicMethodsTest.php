@@ -147,10 +147,10 @@ class MagicMethodsTest extends SmartStringTestCase
         ];
     }
 
-    public function testUnknownMethodPointsToHelp(): void
+    public function testUnknownMethodPointsToDocs(): void
     {
         $this->assertUndefinedMethodError(
-            "Call to undefined method SmartString->fooBar(), call ->help() for available methods.\n",
+            "Call to undefined method SmartString->fooBar(), see the SmartString docs for available methods.\n",
             fn() => SmartString::new('x')->fooBar()
         );
     }
@@ -177,10 +177,10 @@ class MagicMethodsTest extends SmartStringTestCase
         $this->assertSame('x', $result);
     }
 
-    public function testUnknownStaticMethodPointsToHelp(): void
+    public function testUnknownStaticMethodPointsToDocs(): void
     {
         $this->assertUndefinedMethodError(
-            "Call to undefined method SmartString::bogusStatic(), call ->help() for available methods.\n",
+            "Call to undefined method SmartString::bogusStatic(), see the SmartString docs for available methods.\n",
             fn() => SmartString::bogusStatic()
         );
     }

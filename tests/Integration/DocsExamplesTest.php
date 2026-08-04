@@ -9,7 +9,7 @@ use Itools\SmartString\SmartString;
 use Tests\Support\SmartStringTestCase;
 
 /**
- * Every docs/ page and help.txt example with a claimed output, executed and
+ * Every docs/ page example with a claimed output, executed and
  * asserted exactly. Docs are the spec: when one of these fails, either the
  * code broke or the docs went stale - both are findings.
  *
@@ -716,17 +716,6 @@ class DocsExamplesTest extends SmartStringTestCase
     {
         $this->assertSame('0.00', (string)SmartString::new(null)->or(0)->numberFormat(2));
         $this->assertSame('n/a', (string)SmartString::new(null)->numberFormat(2)->or('n/a'));
-    }
-
-    //endregion
-    //region src/help.txt
-
-    public function testHelpBasics(): void
-    {
-        $str = SmartString::new("It's easy!<hr>");
-
-        $this->assertSame('It&apos;s easy!&lt;hr&gt;', (string)$str);
-        $this->assertSame("It's easy!<hr>", $str->value());
     }
 
     //endregion

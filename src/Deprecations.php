@@ -83,6 +83,29 @@ trait Deprecations
     }
 
     /**
+     * Prints links to the online documentation.
+     *
+     * Static so both documented call forms work: SmartString::help() and $str->help().
+     *
+     * @deprecated Read the docs on GitHub instead - same content, easier to read:
+     *             https://github.com/interactivetools-com/SmartString#readme
+     *
+     * @param mixed $value Optional value to pass through
+     * @return mixed $value, unchanged - so help() can be dropped into an expression without changing the result
+     */
+    #[Deprecated(reason: 'retired - read the docs on GitHub instead')]
+    public static function help(mixed $value = null): mixed
+    {
+        $docs = <<<'__TEXT__'
+            SmartString docs: https://github.com/interactivetools-com/SmartString#readme
+            Method reference: https://github.com/interactivetools-com/SmartString/blob/main/docs/method-reference.md
+            __TEXT__;
+
+        echo self::xmpWrap("\n$docs\n\n");
+        return $value;
+    }
+
+    /**
      * @deprecated Use ifTrue() - same behavior, new name
      */
     #[Deprecated(reason: 'renamed to ifTrue() in v3.0', replacement: '%class%->ifTrue(%parametersList%)')]

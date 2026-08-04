@@ -46,6 +46,7 @@ These still work, they're just no longer featured in the docs - no changes requi
 - `dateTimeFormat()` - same as `dateFormat()` with a different default; pass the format instead
 - `ifBlank()` - use `or()`, which also covers null
 - `phoneFormat()` - North-America formats by default; `pregReplace()` covers custom needs
+- `help()` - the online docs replaced the built-in cheat sheet (`src/help.txt`); `help()` now prints doc links instead, and error messages say "see the SmartString docs" rather than suggesting it
 
 ### Removed
 

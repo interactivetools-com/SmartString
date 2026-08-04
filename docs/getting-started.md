@@ -243,7 +243,7 @@ number separators; see
 [Text and Formatting](text-and-formatting.md#formatting-numbers---numberformat)
 for how each setting is used.
 
-## Debugging and Help
+## Debugging
 
 Use `print_r()` on any SmartString to see the stored value:
 
@@ -257,9 +257,7 @@ print_r($name);
 // )
 ```
 
-Call `SmartString::help()` (or `$name->help()` on any instance) to print a
-quick reference of every method with examples, grouped the same way as the
-[Method Reference](method-reference.md).
+The [Method Reference](method-reference.md) lists every method with examples.
 
 ## What SmartString Guarantees
 

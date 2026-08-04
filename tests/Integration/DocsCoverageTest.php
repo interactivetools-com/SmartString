@@ -10,8 +10,8 @@ use ReflectionMethod;
 use Tests\Support\SmartStringTestCase;
 
 /**
- * Every public method must appear in the docs method reference and in
- * help.txt, so new methods can't ship undocumented.
+ * Every public method must appear in the docs method reference, so new
+ * methods can't ship undocumented.
  *
  * Exemptions:
  * - magic methods, jsonSerialize(), getIterator(): interface plumbing, never
@@ -22,7 +22,7 @@ use Tests\Support\SmartStringTestCase;
  */
 class DocsCoverageTest extends SmartStringTestCase
 {
-    private const EXEMPT = ['and', 'andPrefix', 'apply', 'dateTimeFormat', 'if', 'ifBlank', 'phoneFormat', 'textToHtml', 'jsonSerialize', 'getIterator'];
+    private const EXEMPT = ['and', 'andPrefix', 'apply', 'dateTimeFormat', 'help', 'if', 'ifBlank', 'phoneFormat', 'textToHtml', 'jsonSerialize', 'getIterator'];
 
     #[DataProvider('publicMethodsProvider')]
     public function testMethodIsInMethodReference(string $method): void
@@ -31,16 +31,6 @@ class DocsCoverageTest extends SmartStringTestCase
         $this->assertTrue(
             str_contains($reference, "->$method(") || str_contains($reference, "::$method("),
             "Public method $method() is not mentioned in docs/method-reference.md"
-        );
-    }
-
-    #[DataProvider('publicMethodsProvider')]
-    public function testMethodIsInHelpTxt(string $method): void
-    {
-        $helpText = file_get_contents(dirname(__DIR__, 2) . '/src/help.txt');
-        $this->assertTrue(
-            str_contains($helpText, "->$method(") || str_contains($helpText, "::$method("),
-            "Public method $method() is not mentioned in src/help.txt"
         );
     }
 

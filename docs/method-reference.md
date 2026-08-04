@@ -14,7 +14,6 @@ echo $str;           // It&​apos;s easy!&​lt;hr&​gt; (HTML-encoded automat
 echo $str->value();  // It's easy!<hr> (the original value)
 
 echo $str->trim()->maxChars(60)->or('None');  // methods chain left to right
-SmartString::help();                          // print a quick reference of all methods (works on values too: $str->help())
 ```
 
 Here `$str` is an object, not a string. Whenever PHP needs it as a string (echo, print,
