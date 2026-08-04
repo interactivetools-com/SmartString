@@ -52,9 +52,8 @@ Full guides and references ([browse on GitHub](https://github.com/interactivetoo
 
 ## You're Never Locked In
 
-SmartString is built for outputting HTML. For everything else (calculations, business logic, or
-anywhere you just prefer plain PHP), call `value()` and you have the original value back, in its
-original type:
+Use SmartString where it makes your code simpler, and plain PHP where you prefer it. The
+original value is always one call away:
 
 ```php
 // SmartString: ->value() returns the original value, in its original type
