@@ -1061,9 +1061,8 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      */
     public function getIterator(): Iterator
     {
-        // SECURITY: encode < > & in the preview - exception handlers often echo messages into pages (see orThrow).
-        // No ENT_QUOTES: the preview's own quotes stay readable in logs and CLI stack traces.
-        $preview = htmlspecialchars($this->valuePreview(), ENT_SUBSTITUTE | ENT_DISALLOWED | ENT_HTML5, 'UTF-8');
+        // SECURITY: encode the preview - exception handlers often echo messages into pages (see orThrow)
+        $preview = htmlspecialchars($this->valuePreview(), self::HTML_ENCODE_FLAGS, 'UTF-8');
         throw new RuntimeException(
             "Can't foreach over SmartString $preview - it holds a single value, not a collection. " .
             "Did you mean to loop the SmartArray row or result set it came from?",

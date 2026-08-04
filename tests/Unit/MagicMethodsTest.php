@@ -220,8 +220,24 @@ class MagicMethodsTest extends SmartStringTestCase
             }
             $this->fail('Expected RuntimeException was not thrown');
         } catch (RuntimeException $e) {
-            $this->assertStringContainsString('Can\'t foreach over SmartString "red,green,blue"', $e->getMessage());
+            // fully encoded, same flags as orThrow: exception handlers echo messages into pages
+            $this->assertStringContainsString('Can\'t foreach over SmartString &quot;red,green,blue&quot;', $e->getMessage());
             $this->assertStringContainsString('single value, not a collection', $e->getMessage());
+        }
+    }
+
+    public function testForeachExceptionEncodesQuotesInTheValue(): void
+    {
+        // a raw quote in a DB value must not survive into the message, or an error
+        // page echoing it into an attribute gets attribute breakout
+        try {
+            foreach (SmartString::new('" onmouseover=alert(1) x') as $tag) {
+                $this->fail("foreach body should never run, got: $tag");
+            }
+            $this->fail('Expected RuntimeException was not thrown');
+        } catch (RuntimeException $e) {
+            $this->assertStringNotContainsString('"', $e->getMessage());
+            $this->assertStringContainsString('&quot; onmouseover=', $e->getMessage()); // preview truncates at 20 chars
         }
     }
 
