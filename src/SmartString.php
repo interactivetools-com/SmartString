@@ -364,11 +364,15 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     //region String Manipulation
 
     /**
-     * Decodes HTML entities, removes tags, and trims whitespace. Entities are decoded
-     * first so entity-encoded tags (&lt;script&gt;) are removed too.
+     * Decodes HTML entities, removes tags, normalizes spaces, and trims whitespace.
+     * Entities are decoded first so entity-encoded tags (&lt;script&gt;) are removed too.
      *
      * Only "<" followed by a letter, "/", "!", or "?" counts as a tag (the same rule
      * browsers use), so prose like "Kids <12 eat free" or "I <3 PHP" keeps its "<".
+     *
+     * Non-breaking and other Unicode spaces become plain spaces, so an "empty" WYSIWYG
+     * value like "<p>&nbsp;</p>" trims to "" and ->or() fallbacks fire on it. Newlines
+     * and tabs are left alone.
      *
      * Missing values (null or "") pass through unchanged.
      */
@@ -378,10 +382,18 @@ final class SmartString implements JsonSerializable, IteratorAggregate
             return new self($this->rawData);
         }
 
-        $prose = "\xEE\x80\x80"; // U+E000 (private use), restored to "<" after strip_tags
-        $text  = html_entity_decode((string)$this->rawData, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8');
-        $text  = preg_replace('/<(?![a-zA-Z\/!?])/', $prose, $text); // hide prose "<" so strip_tags doesn't delete from it to the next ">" or end of string (no /u: byte-level is UTF-8-safe here and never fails on bad bytes)
-        $text  = str_replace($prose, '<', strip_tags($text));
+        // Prose "<" hides behind $prose so strip_tags doesn't delete from it to the next ">" or end
+        // of string. Doubling any marker the text already holds keeps the two apart: a lone marker is
+        // always one we added, so input can't supply its own and have it restored as a "<" below.
+        $marker  = "\xEE\x80\x80"; // U+E000, private use
+        $literal = $marker . $marker;
+        $prose   = $marker . "\x01";
+
+        $text = html_entity_decode((string)$this->rawData, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8');
+        $text = str_replace($marker, $literal, $text);
+        $text = preg_replace('/<(?![a-zA-Z\/!?])/', $prose, $text); // no /u: byte-level is UTF-8-safe here and never fails on bad bytes
+        $text = strtr(strip_tags($text), [$literal => $marker, $prose => '<']); // strtr, not str_replace: one left-to-right pass, so a doubled pair can't have its second half read as ours
+        $text = preg_replace('/\xC2\xA0|\xE1\x9A\x80|\xE2\x80[\x80-\x8A\xAF]|\xE2\x81\x9F|\xE3\x80\x80/', ' ', $text); // \p{Zs} minus U+0020, as bytes because /u returns null on invalid UTF-8
 
         return new self(trim($text));
     }

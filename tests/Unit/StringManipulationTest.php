@@ -46,6 +46,10 @@ class StringManipulationTest extends SmartStringTestCase
             'heart emoticon is prose'     => ['I <3 <b>bold</b> moves', 'I <3 bold moves'],
             'encoded script still strips' => ['&lt;script&gt;alert(1)&lt;/script&gt;Hi', 'alert(1)Hi'],
             '< letter still strips'       => ['price <ten dollars', 'price'],
+            'nbsp becomes space'          => ['&nbsp;hello&nbsp;', 'hello'],
+            'empty wysiwyg paragraph'     => ['<p>&nbsp;</p>', ''],
+            'thin space becomes space'    => ["a\xE2\x80\x89b", 'a b'],
+            'newlines and tabs kept'      => ["line1\nline2\ttab", "line1\nline2\ttab"],
         ];
     }
 
@@ -60,6 +64,39 @@ class StringManipulationTest extends SmartStringTestCase
         $original = SmartString::new('<b>bold</b>');
         $original->textOnly();
         $this->assertSame('<b>bold</b>', $original->value());
+    }
+
+    public function testTextOnlyMarkerCannotBeForged(): void
+    {
+        // Prose "<" hides behind a U+E000 marker while strip_tags runs. Input supplying its own
+        // U+E000 must not come back out as "<", which would rebuild a tag after stripping.
+        // Entities decode first, so &#xE000; reaches the marker logic the same way a raw one does.
+        $marker = "\xEE\x80\x80"; // U+E000
+
+        $this->assertSame("{$marker}img src=x onerror=alert(1)>", SmartString::new('&#xE000;img src=x onerror=alert(1)&gt;')->textOnly()->value());
+        $this->assertSame("{$marker}img src=x onerror=alert(1)>", SmartString::new("{$marker}img src=x onerror=alert(1)>")->textOnly()->value());
+
+        // A marker followed by the byte we pair it with: the doubled pair must be consumed as a
+        // pair, not have its second half read as the start of one of ours.
+        $this->assertSame("{$marker}\x01img src=x onerror=alert(1)>", SmartString::new("{$marker}\x01img src=x onerror=alert(1)>")->textOnly()->value());
+        $this->assertSame("{$marker}{$marker}{$marker}\x01x", SmartString::new("{$marker}{$marker}{$marker}\x01<b>x</b>")->textOnly()->value());
+    }
+
+    public function testTextOnlyPreservesPrivateUseCharacters(): void
+    {
+        // U+E000 is data, not markup, so it survives even when adjacent to a prose "<"
+        $marker = "\xEE\x80\x80"; // U+E000
+
+        $this->assertSame("hi $marker there",     SmartString::new("hi $marker there")->textOnly()->value());
+        $this->assertSame("two $marker$marker",   SmartString::new("two $marker$marker")->textOnly()->value());
+        $this->assertSame("$marker<12",           SmartString::new("$marker<12")->textOnly()->value());
+        $this->assertSame("<12$marker",           SmartString::new("<12$marker")->textOnly()->value());
+    }
+
+    public function testTextOnlyKeepsInvalidUtf8(): void
+    {
+        // space normalization runs byte-level: a /u pattern returns null on bad bytes and would blank the value
+        $this->assertSame("caf\xE9 bad bytes", SmartString::new("caf\xE9 bad bytes")->textOnly()->value());
     }
 
     //endregion
