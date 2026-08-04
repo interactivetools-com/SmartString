@@ -129,7 +129,7 @@ want.*
 **Working with arrays?** [SmartArray](https://github.com/interactivetools-com/SmartArray)
 is the companion library that handles arrays (like database rows) as collections of
 SmartStrings - `SmartArrayHtml::new($record)` wraps a whole record - and it has its own
-[method reference](https://github.com/interactivetools-com/SmartArray?tab=readme-ov-file#method-reference).
+[method reference](https://github.com/interactivetools-com/SmartArray/blob/main/docs/method-reference.md).
 
 ---
 
