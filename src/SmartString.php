@@ -501,6 +501,13 @@ final class SmartString implements JsonSerializable, IteratorAggregate
             default                    => strtotime($this->rawData), // int|false; is_int() below keeps timestamp 0 (the epoch) formatting
         };
 
+        // Timestamps outside years 1000-9999 return null so ->or() fallbacks fire - a JS
+        // millisecond timestamp or overflowed numeric would otherwise format as a nonsense
+        // year like 55338
+        if (is_int($timestamp) && ($timestamp < -30610224000 || $timestamp > 253402300799)) {
+            $timestamp = null;
+        }
+
         $newValue = is_int($timestamp) ? date($format, $timestamp) : null;
 
         return new self($newValue);

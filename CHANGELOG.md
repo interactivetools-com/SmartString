@@ -133,6 +133,10 @@ These still work, they're just no longer featured in the docs - no changes requi
 - `dateFormat()` formats date strings that parse to exactly the Unix epoch
   ("1970-01-01 00:00:00 UTC" previously returned null - timestamp 0 was
   mistaken for a parse failure)
+- `dateFormat()` returns null for timestamps outside years 1000-9999, so
+  `->or('Date not set')` fallbacks fire - a millisecond timestamp from
+  JavaScript or an overflowed numeric previously formatted as a nonsense year
+  like 55338
 - `percent(ifZero:)` and `trim()` accept SmartString arguments like every other
   value parameter (previously a TypeError under `strict_types`; in weak mode a
   SmartString `$ifZero` was stored HTML-encoded and double-encoded on output)

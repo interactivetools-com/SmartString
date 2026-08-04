@@ -47,6 +47,13 @@ class FormattingTest extends SmartStringTestCase
             'timezone offset in input'  => ['2023-05-15T14:30:00+02:00', 'Y-m-d H:i:s T', '2023-05-15 05:30:00 MST'],
             'bool true returns null'    => [true, 'Y-m-d T', null],  // bools take the null path
             'bool false returns null'   => [false, 'Y-m-d T', null], // bools take the null path
+            // range guard: timestamps outside years 1000-9999 (UTC) return null so ->or() fires
+            'JS millisecond timestamp'  => [1684159800000, 'Y-m-d', null], // ms where seconds expected - was year 55338
+            'overflow numeric'          => ['99999999999999999999', 'Y-m-d', null], // int cast saturates at PHP_INT_MAX - was year 292277026596
+            'year 9999 max boundary'    => [253402300799, 'Y', '9999'], // 9999-12-31 23:59:59 UTC
+            'above year 9999'           => [253402300800, 'Y-m-d', null],
+            'year 1000 still formats'   => [-30610000000, 'Y', '1000'],
+            'below year 1000'           => [-30610224001, 'Y-m-d', null],
         ];
     }
 
