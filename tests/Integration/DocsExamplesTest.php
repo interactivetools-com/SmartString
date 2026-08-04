@@ -1,12 +1,12 @@
 <?php
 declare(strict_types=1);
 
-namespace Tests\Integration;
+namespace Itools\SmartString\Tests\Integration;
 
 use Itools\SmartArray\SmartArray;
 use Itools\SmartArray\SmartArrayHtml;
 use Itools\SmartString\SmartString;
-use Tests\Support\SmartStringTestCase;
+use Itools\SmartString\Tests\Support\SmartStringTestCase;
 
 /**
  * Every docs/ page example with a claimed output, executed and

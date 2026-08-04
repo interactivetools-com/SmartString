@@ -1,11 +1,11 @@
 <?php
 declare(strict_types=1);
 
-namespace Tests\Unit;
+namespace Itools\SmartString\Tests\Unit;
 
 use Itools\SmartString\SmartString;
 use PHPUnit\Framework\Attributes\Depends;
-use Tests\Support\SmartStringTestCase;
+use Itools\SmartString\Tests\Support\SmartStringTestCase;
 
 /**
  * The five public statics: documented defaults, each honored by its methods,

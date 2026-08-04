@@ -1,13 +1,13 @@
 <?php
 declare(strict_types=1);
 
-namespace Tests\Unit;
+namespace Itools\SmartString\Tests\Unit;
 
 use Itools\SmartArray\SmartNull;
 use Itools\SmartString\SmartString;
 use PHPUnit\Framework\Attributes\DataProvider;
-use Tests\Support\Fixtures;
-use Tests\Support\SmartStringTestCase;
+use Itools\SmartString\Tests\Support\Fixtures;
+use Itools\SmartString\Tests\Support\SmartStringTestCase;
 
 /**
  * or(), append(), prepend(), wrap(), ifNull(), ifZero(), ifTrue(),

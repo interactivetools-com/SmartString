@@ -1,12 +1,12 @@
 <?php
 declare(strict_types=1);
 
-namespace Tests\Integration;
+namespace Itools\SmartString\Tests\Integration;
 
 use Itools\SmartArray\SmartArray;
 use Itools\SmartString\SmartString;
 use RuntimeException;
-use Tests\Support\SmartStringTestCase;
+use Itools\SmartString\Tests\Support\SmartStringTestCase;
 
 /**
  * Template idioms collected from a 31-site production sweep (2026-07-08),

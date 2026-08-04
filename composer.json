@@ -23,7 +23,7 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Tests\\": "tests/"
+            "Itools\\SmartString\\Tests\\": "tests/"
         }
     },
     "config": {

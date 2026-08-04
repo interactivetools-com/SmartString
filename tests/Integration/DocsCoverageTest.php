@@ -1,13 +1,13 @@
 <?php
 declare(strict_types=1);
 
-namespace Tests\Integration;
+namespace Itools\SmartString\Tests\Integration;
 
 use Itools\SmartString\SmartString;
 use PHPUnit\Framework\Attributes\DataProvider;
 use ReflectionClass;
 use ReflectionMethod;
-use Tests\Support\SmartStringTestCase;
+use Itools\SmartString\Tests\Support\SmartStringTestCase;
 
 /**
  * Every public method must appear in the docs method reference, so new

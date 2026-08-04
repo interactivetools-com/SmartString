@@ -1,14 +1,14 @@
 <?php
 declare(strict_types=1);
 
-namespace Tests\Unit;
+namespace Itools\SmartString\Tests\Unit;
 
 use Error;
 use Itools\SmartArray\SmartArrayHtml;
 use Itools\SmartString\SmartString;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
-use Tests\Support\SmartStringTestCase;
+use Itools\SmartString\Tests\Support\SmartStringTestCase;
 
 /**
  * __get(), __call(), __callStatic(), __debugInfo().

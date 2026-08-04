@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-namespace Tests\Support;
+namespace Itools\SmartString\Tests\Support;
 
 use Itools\SmartString\SmartString;
 use PHPUnit\Framework\TestCase;
