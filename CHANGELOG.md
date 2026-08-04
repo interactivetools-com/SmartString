@@ -140,6 +140,8 @@ These still work, they're just no longer featured in the docs - no changes requi
 - INF and NAN store as null, like any other failed math step, so `or()`
   fallbacks fire - a float overflow previously printed "INF" into the page,
   made `json_encode()` return false, and made `jsonEncode()` throw
+- `or404()` called mid-page discards the partial output and renders a clean
+  404 page, without "Cannot modify header" warnings
 - `percent(ifZero:)` and `trim()` accept SmartString arguments like every other
   value parameter (previously a TypeError under `strict_types`; in weak mode a
   SmartString `$ifZero` was stored HTML-encoded and double-encoded on output)

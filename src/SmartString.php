@@ -845,6 +845,9 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      * Sends 404 header and exits with status 1 if the current value is missing (null or ""), zero is not
      * considered missing. The non-zero exit status lets shell scripts and cron jobs see the failure.
      *
+     * Open output buffers are discarded so the 404 page renders clean. If output was already
+     * sent, the page still renders but the HTTP status stays whatever was sent.
+     *
      * @param string|null $text Plain-text message; HTML-encoded automatically before output. Defaults to "The requested URL was not found on this server."
      */
     public function or404(?string $text = null): self
@@ -853,8 +856,13 @@ final class SmartString implements JsonSerializable, IteratorAggregate
             return $this;
         }
 
-        http_response_code(404);
-        header("Content-Type: text/html; charset=utf-8");
+        if (!headers_sent()) { // late call: keep the page, lose the status - a 404 body under a 200 beats warnings mid-page
+            http_response_code(404);
+            header("Content-Type: text/html; charset=utf-8");
+        }
+        while (ob_get_level() > 0) {
+            ob_end_clean(); // discard the partial page so the 404 renders clean, not appended mid-layout
+        }
         $text ??= "The requested URL was not found on this server.";
         $text = htmlspecialchars($text, self::HTML_ENCODE_FLAGS, 'UTF-8');
 
@@ -988,6 +996,12 @@ final class SmartString implements JsonSerializable, IteratorAggregate
             return new self($this->rawData);
         }
 
+        // PHP only exposes the pattern compile error ("No ending delimiter '/' found") as
+        // a warning, so we @-suppress it and read it back with error_get_last(). Custom
+        // error handlers keep this working by returning false for @-suppressed calls
+        // (detect with: !(error_reporting() & $errno) - CMS Builder's handler does this).
+        // A handler that returns true for everything leaves error_get_last() empty, and
+        // bad patterns fall back to preg_last_error_msg()'s generic "Internal error".
         error_clear_last();
         $newValue = @preg_replace($pattern, $replacement, (string)$this->rawData); // @: PHP warning becomes the exception below
         if (is_null($newValue)) {

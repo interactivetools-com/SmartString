@@ -40,6 +40,15 @@ $present = SmartString::new('ok');
 $run = match ($method) {
     'or404-default'      => fn() => $missing->or404(),
     'or404'              => fn() => $missing->or404((string)$arg),
+    'or404-headers-sent' => function () use ($missing) {
+        echo "already-flushed\n"; // makes headers_sent() true before the call
+        $missing->or404();        // page still renders; the status can't change
+    },
+    'or404-ob-discard'   => function () use ($missing) {
+        ob_start();
+        echo "partial page content"; // buffered, not sent: headers_sent() stays false
+        $missing->or404();           // discards the buffer and sets the 404
+    },
     'orDie'              => fn() => $missing->orDie((string)$arg),
     'orThrow'            => fn() => $missing->orThrow((string)$arg),
     'orRedirect'         => fn() => $missing->orRedirect((string)$arg),

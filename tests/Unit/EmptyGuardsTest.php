@@ -110,6 +110,28 @@ class EmptyGuardsTest extends SmartStringTestCase
         $this->assertSame(1, $exitCode, 'or404() exits with status 1 like orDie(), so shells and cron see the failure');
     }
 
+    public function testOr404AfterOutputSentStillRendersThePage(): void
+    {
+        [$stdout, $stderr, $exitCode] = $this->runScript('or404-headers-sent');
+
+        $this->assertStringContainsString('<h1>Not Found</h1>', $stdout);
+        $this->assertStringNotContainsString('Cannot modify header information', $stdout . $stderr);
+        $this->assertStringContainsString('status=false', $stderr, 'headers already sent: the status cannot change, and no attempt is made');
+        $this->assertStringNotContainsString('NOT-REACHED', $stderr);
+        $this->assertSame(1, $exitCode);
+    }
+
+    public function testOr404DiscardsOpenOutputBuffers(): void
+    {
+        [$stdout, $stderr, $exitCode] = $this->runScript('or404-ob-discard');
+
+        $this->assertStringNotContainsString('partial page content', $stdout, 'the partial page is discarded, not shown above the 404');
+        $this->assertStringContainsString('<h1>Not Found</h1>', $stdout);
+        $this->assertStringContainsString('status=404', $stderr, 'buffered output was never sent, so the status still gets set');
+        $this->assertStringNotContainsString('NOT-REACHED', $stderr);
+        $this->assertSame(1, $exitCode);
+    }
+
     //endregion
     //region orDie() Exit Path (subprocess)
 
