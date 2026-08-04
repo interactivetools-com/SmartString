@@ -191,6 +191,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     public function __toString(): string
     {
         // speed: tiered fast paths, see ENCODE_SKIP_REGEX docblock
+        // Body mirrors htmlEncode() - kept inline, a shared helper costs a method call per output. Keep in sync.
         $text = $this->rawData;
         if (!is_string($text)) {
             return (string)$text; // int/float/bool/null cast to clean ASCII only - nothing to encode
@@ -224,6 +225,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     public function htmlEncode(): string
     {
         // speed: tiered fast paths, see ENCODE_SKIP_REGEX docblock
+        // Body mirrors __toString() - kept inline, a shared helper costs a method call per output. Keep in sync.
         $text = $this->rawData;
         if (!is_string($text)) {
             return (string)$text; // int/float/bool/null cast to clean ASCII only - nothing to encode
@@ -1257,6 +1259,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     /**
      * Flags for HTML-encoding output. ENT_DISALLOWED substitutes code points HTML5 forbids
      * (C1 controls, noncharacters) with � so they can't hide in page source.
+     * SmartArrayBase::htmlEncode() uses the same flags - keep in sync.
      */
     private const HTML_ENCODE_FLAGS = ENT_QUOTES | ENT_SUBSTITUTE | ENT_DISALLOWED | ENT_HTML5;
 
