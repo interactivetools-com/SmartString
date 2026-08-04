@@ -456,9 +456,15 @@ final class SmartString implements JsonSerializable, IteratorAggregate
 
         if (mb_strlen($text, 'UTF-8') <= $max) {
             $newValue = $text;
-        } elseif ($max > 0 && preg_match("/^.{1,$max}(?=\s|$)/u", $text, $matches)) {
-            $newValue = $matches[0];
-            $newValue = preg_replace('/\p{P}+$/u', '', $newValue); // Strip trailing Unicode punctuation before ellipsis
+        } elseif ($max > 0) {
+            // Last whole word within $max chars. mb-based: PCRE caps {1,n} quantifiers
+            // at 65535, so a regex quantifier would fail on large $max
+            $slice = mb_substr($text, 0, $max, 'UTF-8');
+            if (mb_substr($text, $max, 1, 'UTF-8') !== ' ') { // cut landed mid-word, back up to the last space
+                $lastSpace = mb_strrpos($slice, ' ', 0, 'UTF-8');
+                $slice     = $lastSpace === false ? $slice : mb_substr($slice, 0, $lastSpace, 'UTF-8');
+            }
+            $newValue = preg_replace('/\p{P}+$/u', '', $slice); // Strip trailing Unicode punctuation before ellipsis
             $newValue .= $ellipsis;
         } else {
             $newValue = mb_substr($text, 0, $max, 'UTF-8') . $ellipsis;

@@ -120,6 +120,9 @@ These still work, they're just no longer featured in the docs - no changes requi
   only `<` followed by a letter, `/`, `!`, or `?` counts as a tag, the same rule
   browsers use (previously everything from the `<` to the next `>` or the end of
   the string was removed, whether the `<` arrived raw or entity-encoded)
+- `maxChars()` works above 65535 characters - the word-boundary cut previously
+  hit PCRE's quantifier limit above that, leaking a "Compilation failed" warning
+  into the page or log and cutting mid-word
 - `maxChars()` counts UTF-8 characters regardless of `mb_internal_encoding()` -
   that global can be changed by any include in the request (previously a
   non-UTF-8 setting made multibyte text falsely truncate or slice mid-character)

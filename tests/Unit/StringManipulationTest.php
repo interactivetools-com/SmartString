@@ -214,7 +214,23 @@ class StringManipulationTest extends SmartStringTestCase
             'html entities as chars'    => ['&amp; &lt; &gt;', 5, '...', '&amp...'],
             'invalid utf8 becomes �'    => ["caf\xE9 latte and more words here", 10, '...', 'caf� latte...'],
             'invalid utf8 no truncate'  => ["caf\xE9", 10, '...', 'caf�'],
+            'punctuation at hard cut'   => ['abcde,fghijklmnop', 6, '...', 'abcde...'], // trailing punctuation strips on hard cuts too
         ];
+    }
+
+    /**
+     * PCRE caps {1,n} quantifiers at 65535. The old regex-based word cut emitted
+     * "Compilation failed: number too big in {} quantifier" above that and fell
+     * back to a mid-word hard cut.
+     */
+    public function testMaxCharsAbovePcreQuantifierLimit(): void
+    {
+        $text = trim(str_repeat('word ', 20000)); // 99,999 chars
+
+        foreach ([65535 => 65534, 65536 => 65534, 70000 => 69999] as $max => $cutAt) {
+            $expected = substr($text, 0, $cutAt) . '...';
+            $this->assertSame($expected, SmartString::new($text)->maxChars($max)->value(), "max=$max");
+        }
     }
 
     /**
