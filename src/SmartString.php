@@ -26,7 +26,7 @@ use RuntimeException;
  */
 final class SmartString implements JsonSerializable, IteratorAggregate
 {
-    use DeprecatedAliases;
+    use Deprecations;
     use ErrorHelpersTrait;
 
     /**

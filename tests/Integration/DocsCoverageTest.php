@@ -16,7 +16,7 @@ use Tests\Support\SmartStringTestCase;
  * Exemptions:
  * - magic methods, jsonSerialize(), getIterator(): interface plumbing, never
  *   called directly (getIterator only throws a foreach-misuse error)
- * - everything in the DeprecatedAliases trait: renamed and retired methods
+ * - everything in the Deprecations trait: renamed and retired methods
  *   keep working but stay out of the docs by design - docs show only the
  *   current names
  */

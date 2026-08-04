@@ -8,14 +8,14 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Support\SmartStringTestCase;
 
 /**
- * The DeprecatedAliases trait: old names delegate to the new methods with
+ * The Deprecations trait: old names delegate to the new methods with
  * identical output and zero runtime notices - the deprecation surface is
  * IDE/static-analysis only.
  *
  * textToHtml()'s output contract (incl. keepBr) stays in HtmlOutputTest;
  * this file only pins its silence and delegation.
  */
-class DeprecatedAliasesTest extends SmartStringTestCase
+class DeprecationsTest extends SmartStringTestCase
 {
 
     #[DataProvider('aliasProvider')]

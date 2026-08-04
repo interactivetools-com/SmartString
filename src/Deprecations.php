@@ -7,14 +7,15 @@ use Itools\SmartArray\SmartNull;
 use JetBrains\PhpStorm\Deprecated;
 
 /**
- * Old method names and retired methods, kept working forever.
+ * Old and retired method names, phased out in stages.
  *
- * No runtime notices: the #[Deprecated] attribute gives PHPStorm a strikethrough
+ * Everything here is still at the first, silent stage - no runtime notices:
+ * the #[Deprecated] attribute gives PHPStorm a strikethrough
  * and a one-click rewrite to the new name, and static analyzers report usages via
  * each method's deprecated docblock tag. PHP ignores attributes whose class isn't
  * loaded, so there is no runtime dependency.
  */
-trait DeprecatedAliases
+trait Deprecations
 {
     /**
      * Default format for dateTimeFormat() (for PHP date()).

@@ -17,7 +17,7 @@ use Tests\Support\SmartStringTestCase;
  * missing; zero in every form is present. The retired ifBlank() keeps its
  * column in the matrix - the matrix IS its behavior spec.
  *
- * The and()/andPrefix()/if() aliases are covered in DeprecatedAliasesTest.
+ * The and()/andPrefix()/if() aliases are covered in DeprecationsTest.
  *
  * n/a dimensions: encoding (conditionals transform the raw value), global
  * settings.
@@ -38,7 +38,7 @@ class ConditionalTest extends SmartStringTestCase
         $this->assertSmartString($expected['ifNull'], SmartString::new($value)->ifNull($fallback));
     }
 
-    /** ifBlank() is retired to DeprecatedAliases but keeps working - strictly '', not null */
+    /** ifBlank() is retired to Deprecations but keeps working - strictly '', not null */
     #[DataProvider('falsyMatrixProvider')]
     public function testIfBlank($value, $fallback, array $expected): void
     {

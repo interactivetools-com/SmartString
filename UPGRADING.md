@@ -2,8 +2,10 @@
 
 Most old code keeps working after an upgrade:
 
-- **Renamed methods keep their old names forever.** IDEs like PHPStorm show
-  the old name in strikethrough with a one-click rename.
+- **Renamed methods are removed slowly, never silently.** Old names keep
+  working while they step through deprecation stages over multiple releases
+  (IDE strikethrough, logged notice, visible notice, then a clear Error),
+  always naming their replacement.
 - **Breaking changes produce clear errors.** Removed methods and wrong named
   arguments throw an Error with your file and line, and deprecated calls raise
   a deprecation notice with their exact replacement, e.g. "Replace
