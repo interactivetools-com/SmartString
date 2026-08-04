@@ -137,6 +137,9 @@ These still work, they're just no longer featured in the docs - no changes requi
   `->or('Date not set')` fallbacks fire - a millisecond timestamp from
   JavaScript or an overflowed numeric previously formatted as a nonsense year
   like 55338
+- INF and NAN store as null, like any other failed math step, so `or()`
+  fallbacks fire - a float overflow previously printed "INF" into the page,
+  made `json_encode()` return false, and made `jsonEncode()` throw
 - `percent(ifZero:)` and `trim()` accept SmartString arguments like every other
   value parameter (previously a TypeError under `strict_types`; in weak mode a
   SmartString `$ifZero` was stored HTML-encoded and double-encoded on output)

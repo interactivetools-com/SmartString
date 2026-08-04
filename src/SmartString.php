@@ -60,10 +60,16 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      *
      *     $value = new SmartString('<b>Hello World!</b>');
      *
+     * INF and NAN store as null: they can't render, format, or JSON-encode, so they
+     * get the same answer as any other failed numeric step and or() fallbacks fire.
+     *
      * @param string|int|float|bool|null $value The value to store
      */
     public function __construct(string|int|float|bool|null $value)
     {
+        if (is_float($value) && !is_finite($value)) { // INF/NAN = failed numeric step, store as null
+            $value = null;
+        }
         $this->rawData = $value;
     }
 
@@ -528,10 +534,8 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      */
     public function numberFormat(int $decimals = 0): SmartString
     {
-        $newValue = match (true) {
-            !is_numeric($this->rawData) => null,
-            default                     => number_format((float)$this->rawData, $decimals, self::$numberFormatDecimal, self::$numberFormatThousands),
-        };
+        $value    = self::getFloatOrNull($this->rawData); // null for non-numerics and cast-time INF ('9e999')
+        $newValue = is_null($value) ? null : number_format($value, $decimals, self::$numberFormatDecimal, self::$numberFormatThousands);
         return new self($newValue);
     }
 
@@ -1215,16 +1219,18 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     }
 
     /**
-     * Helper to convert $value to a float or null.
+     * Helper to convert $value to a float or null. Non-finite results are null:
+     * a string like '9e999' passes is_numeric() but casts to INF.
      */
     private static function getFloatOrNull(mixed $value): ?float
     {
         $value = self::getRawValue($value);  // unwrap SmartStrings
-        return match (true) {
+        $float = match (true) {
             is_float($value)   => $value,
             is_numeric($value) => (float)$value,
             default            => null,
         };
+        return $float !== null && !is_finite($float) ? null : $float;
     }
 
     //endregion

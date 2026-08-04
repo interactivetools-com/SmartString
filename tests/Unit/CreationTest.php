@@ -46,6 +46,16 @@ class CreationTest extends SmartStringTestCase
         ];
     }
 
+    public function testConstructorStoresInfAndNanAsNull(): void
+    {
+        // INF/NAN can't render, format, or JSON-encode: they store as null so
+        // or() fallbacks fire like any other failed numeric step
+        $this->assertNull(SmartString::new(INF)->value());
+        $this->assertNull(SmartString::new(-INF)->value());
+        $this->assertNull(SmartString::new(NAN)->value());
+        $this->assertSame('n/a', SmartString::new(INF)->or('n/a')->value());
+    }
+
     //endregion
     //region new()
 

@@ -109,12 +109,15 @@ class MathTest extends SmartStringTestCase
         ];
     }
 
-    public function testMultiplyOverflowsToInf(): void
+    public function testMultiplyOverflowReturnsNullLikeAnyFailedStep(): void
     {
-        $this->assertInfinite(SmartString::new(1.7976931348623157e+308)->multiply(2)->value());
-        $negative = SmartString::new(-1.7976931348623157e+308)->multiply(2)->value();
-        $this->assertInfinite($negative);
-        $this->assertLessThan(0, $negative);
+        // overflow produces INF/NAN, which store as null - same contract as
+        // divide-by-zero, so a later or() recovers the chain
+        $this->assertNull(SmartString::new(1.7976931348623157e+308)->multiply(2)->value());
+        $this->assertNull(SmartString::new(-1.7976931348623157e+308)->multiply(2)->value());
+        $this->assertNull(SmartString::new(INF)->subtract(INF)->value()); // INF - INF = NAN
+        $this->assertSame('n/a', SmartString::new(1.7976931348623157e+308)->multiply(2)->or('n/a')->value());
+        $this->assertNull(SmartString::new('9e999')->add(1)->value(), "numeric strings that cast to INF are a failed step too");
     }
 
     //endregion

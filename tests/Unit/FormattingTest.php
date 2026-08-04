@@ -135,8 +135,8 @@ class FormattingTest extends SmartStringTestCase
             'bool true'            => [true, 0, null],
             'bool false'           => [false, 0, null],
             'formatted number'     => ['3,000', 0, null], // commas make it non-numeric to PHP
-            'INF float'            => [INF, 0, 'inf'],
-            'INF producer string'  => ['9e999', 2, 'inf'], // (float)'9e999' overflows to INF
+            'INF float'            => [INF, 0, null],   // INF stores as null in the constructor
+            'INF producer string'  => ['9e999', 2, null], // (float)'9e999' overflows to INF -> null, so or() fires
             'inf as word'          => ['inf', 0, null],    // is_numeric('inf') is false
         ];
     }

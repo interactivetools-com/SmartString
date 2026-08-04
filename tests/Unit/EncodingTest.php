@@ -162,6 +162,15 @@ class EncodingTest extends SmartStringTestCase
     //endregion
     //region jsonEncode()
 
+    public function testJsonEncodeInfAndNanEncodeAsNull(): void
+    {
+        // INF/NAN store as null in the constructor, so JSON output stays valid -
+        // previously jsonEncode() threw "Inf and NaN cannot be JSON encoded" and
+        // json_encode($smartString) returned false
+        $this->assertSame('null', SmartString::new(INF)->subtract(INF)->jsonEncode());
+        $this->assertSame('null', json_encode(SmartString::new(NAN)));
+    }
+
     /**
      * The jsonEncode hardening contract, ported as-is: malformed UTF-8 becomes �
      * instead of throwing, and invisible Unicode is re-escaped as visible
