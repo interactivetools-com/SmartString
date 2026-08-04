@@ -806,7 +806,8 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     //region Error Handling
 
     /**
-     * Sends 404 header and exits if the current value is missing (null or ""), zero is not considered missing
+     * Sends 404 header and exits with status 1 if the current value is missing (null or ""), zero is not
+     * considered missing. The non-zero exit status lets shell scripts and cron jobs see the failure.
      *
      * @param string|null $text Plain-text message; HTML-encoded automatically before output. Defaults to "The requested URL was not found on this server."
      */
@@ -833,7 +834,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
             </body>
             </html>
             __HTML__;
-        exit;
+        exit(1);
     }
 
     /**

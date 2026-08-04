@@ -90,7 +90,7 @@ These still work, they're just no longer featured in the docs - no changes requi
   InvalidArgumentException subclass - existing catch blocks still work, and the
   library's throw site stays available in `$e->thrownInFile`/`$e->thrownInLine`
 - `dateFormat()` on booleans returns null - like any other value that isn't a date
-- `orDie()` exits with code 1 - CLI and cron scripts see the failure
+- `orDie()` and `or404()` exit with code 1 - CLI and cron scripts see the failure
 - foreach over a SmartString throws a CallerException showing the value and
   suggesting the SmartArray row - previously the loop silently ran zero times
   (PHP iterates accessible properties, and there are none)

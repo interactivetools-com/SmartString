@@ -97,7 +97,7 @@ class EmptyGuardsTest extends SmartStringTestCase
         $this->assertStringContainsString('<p>The requested URL was not found on this server.</p>', $stdout);
         $this->assertStringContainsString('status=404', $stderr);
         $this->assertStringNotContainsString('NOT-REACHED', $stderr);
-        $this->assertSame(0, $exitCode);
+        $this->assertSame(1, $exitCode, 'or404() exits with status 1 like orDie(), so shells and cron see the failure');
     }
 
     public function testOr404EncodesCustomMessage(): void
@@ -107,7 +107,7 @@ class EmptyGuardsTest extends SmartStringTestCase
         $this->assertStringContainsString("<p>Bad &lt;id&gt; &amp; &apos;quote&apos;</p>", $stdout);
         $this->assertStringContainsString('status=404', $stderr);
         $this->assertStringNotContainsString('NOT-REACHED', $stderr);
-        $this->assertSame(0, $exitCode);
+        $this->assertSame(1, $exitCode, 'or404() exits with status 1 like orDie(), so shells and cron see the failure');
     }
 
     //endregion
