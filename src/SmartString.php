@@ -416,7 +416,8 @@ final class SmartString implements JsonSerializable, IteratorAggregate
 
     /**
      * Limit words to $max, if truncated adds ... (override with second parameter).
-     * Invalid UTF-8 bytes are substituted with � (like htmlEncode/jsonEncode).
+     * Invalid UTF-8 bytes (Latin-1 data that was never converted, or a string cut
+     * mid-character) are replaced with � (like htmlEncode/jsonEncode).
      *
      * Missing values (null or "") pass through unchanged.
      */
@@ -440,7 +441,8 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     /**
      * Limit chars to $max breaking at the last whole word, if truncated adds ... (override
      * with second parameter). Whitespace runs collapse to single spaces before measuring.
-     * Invalid UTF-8 bytes are substituted with � (like htmlEncode/jsonEncode).
+     * Invalid UTF-8 bytes (Latin-1 data that was never converted, or a string cut
+     * mid-character) are replaced with � (like htmlEncode/jsonEncode).
      *
      * Missing values (null or "") pass through unchanged.
      */

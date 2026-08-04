@@ -79,6 +79,9 @@ Full lists of what changed per release: [CHANGELOG.md](CHANGELOG.md).
 > Only affects code that relied on null carrying past a mid-chain fallback.
 > - `dateFormat()` on a boolean returns null (was undefined behavior) - a
 > later `or()` fallback shows instead of a date
+> - `textOnly()` turns non-breaking and other Unicode spaces into plain spaces
+> (newlines and tabs untouched), so "empty" WYSIWYG values like `<p>&nbsp;</p>`
+> now count as missing and `or()` fallbacks fire on them
 > - `pregReplace()` passes `""` through unchanged, like null - previously an
 > empty-matching pattern could turn a missing value into content, so a later
 > `or()` fallback can now show where it previously didn't

@@ -85,6 +85,10 @@ These still work, they're just no longer featured in the docs - no changes requi
   - throws on a bad pattern - was a PHP warning and a null result; now an
     InvalidArgumentException that includes PHP's compile error
 - `dateFormat()` on booleans returns null - like any other value that isn't a date
+- `textOnly()` converts non-breaking and other Unicode spaces to plain spaces
+  (newlines and tabs untouched), so an "empty" WYSIWYG value like
+  `<p>&nbsp;</p>` trims to `""` and a later `or()` fallback fires - previously
+  it returned a single invisible character that counted as content
 - Math: a failed step (missing value, non-numeric input, divide by zero) returns
   null, and a fallback like `or()` now fully recovers the chain - previously any
   math after the fallback still returned null:
