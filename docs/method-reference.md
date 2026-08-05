@@ -5,6 +5,18 @@
 Every method, grouped by what it returns and how it treats missing values.
 Each group heading links to the guide page that teaches those methods.
 
+Contents:
+
+- [Basic Usage](#basic-usage)
+- [Type Conversion](#type-conversion)
+- [Encoding](#encoding)
+- [String Manipulation](#string-manipulation)
+- [Dates & Numbers](#dates--numbers)
+- [Conditional Replacement](#conditional-replacement)
+- [Require a Value](#require-a-value)
+- [Value Checks](#value-checks)
+- [Custom Functions](#custom-functions)
+
 ### [Basic Usage](getting-started.md)
 
 ```php
