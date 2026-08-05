@@ -265,6 +265,9 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      */
     public function nl2br(): string
     {
+        // Deliberately bypasses htmlEncode()'s tiered fast path: multiline prose usually
+        // contains apostrophes or accents, and a failed clean-scan costs more than it saves
+        // (measured 2026-08-04: 1.4-1.7x slower on text with specials, faster only when clean)
         $encoded = htmlspecialchars((string)$this->rawData, self::HTML_ENCODE_FLAGS, 'UTF-8');
         return nl2br($encoded, false);
     }
