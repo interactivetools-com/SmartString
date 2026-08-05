@@ -278,7 +278,8 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      *
      *     echo $member->AddressLine1->appendHtml(",<br>\n");  // "12 High St,<br>\n", or "" when missing
      *
-     * Missing values (null or "") return "" - nothing is appended.
+     * Missing values (null or "") return "" - nothing is appended. False counts as
+     * present but prints as "", so it returns just $html.
      *
      * @param string $html Trusted markup, appended as-is (not encoded)
      * @return string HTML-safe output, or "" when the value is missing
@@ -302,7 +303,8 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      *
      *     echo $page->subheading->wrapHtml('<h2 class="lead">', '</h2>');  // whole <h2> vanishes when empty
      *
-     * Missing values (null or "") return "" - the wrapper is not added.
+     * Missing values (null or "") return "" - the wrapper is not added. False counts as
+     * present but prints as "", so it returns just the empty wrapper.
      *
      * @param string $before Trusted markup placed before the encoded value (not encoded)
      * @param string $after  Trusted markup placed after the encoded value (not encoded)
