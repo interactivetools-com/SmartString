@@ -341,13 +341,15 @@ class StringManipulationTest extends SmartStringTestCase
         });
         $this->assertNull($received, 'callback must receive raw null, not a coerced value');
 
-        $this->expectException(TypeError::class); // strict built-ins reject null - the documented ifNull('') case
+        $this->expectException(TypeError::class); // strict built-ins reject null - the docs say to convert with map('strval') first
         SmartString::new(null)->map('strtoupper');
     }
 
     public function testMapRescueFirstRecipe(): void
     {
-        $this->assertSmartString('', SmartString::new(null)->ifNull('')->map('strtoupper'));
+        // the documented recipe: map('strval') converts null AND numerics before strict built-ins
+        $this->assertSmartString('', SmartString::new(null)->map('strval')->map('strtoupper'));
+        $this->assertSmartString('42', SmartString::new(42)->map('strval')->map('strtoupper'));
         $this->assertSmartString('DEFAULT', SmartString::new(null)->ifNull('default')->map('strtoupper'));
     }
 

@@ -247,15 +247,16 @@ map(callable|string $callback, mixed ...$args): SmartString
 ```
 
 Calls `$callback($rawValue, ...$args)` and wraps the result. The callback ALWAYS
-runs, null included (matches `array_map()`); chain `->ifNull('')` first for
-built-ins that reject null. Callback must return scalar or null; other
+runs and receives the raw value in its original type, null included (matches
+`array_map()`). Built-ins with typed string parameters throw TypeError on null
+or numeric values - chain `->map('strval')` first. Callback must return scalar or null; other
 return types throw InvalidArgumentException. Non-callable `$callback` throws
 InvalidArgumentException.
 
 ```php
 echo $name->map('mb_strtoupper');
 echo $name->map('str_pad', 15, '.');
-echo $user->nickname->ifNull('')->map('mb_convert_case', MB_CASE_TITLE);
+echo $user->nickname->map('strval')->map('mb_convert_case', MB_CASE_TITLE);
 ```
 
 ## Static Configuration

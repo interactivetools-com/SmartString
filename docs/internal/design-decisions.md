@@ -10,7 +10,8 @@ in signatures, docblocks, the changelog, and tests.
 
 - **`map()` runs its callback on null** - skip-on-null was implemented and
   reversed (2026-07-14). The recipe for strict builtins is
-  `->ifNull('')->map(...)`.
+  `->map('strval')->map(...)` (updated 2026-08-04: the old `ifNull('')`
+  recipe only covered null, not numeric values).
 - **`percent()` keeps its `$ifZero` parameter** - deprecating it was reversed
   (2026-07-13): a chained `ifZero()` can't see zero inside a formatted
   `"0.00%"`.

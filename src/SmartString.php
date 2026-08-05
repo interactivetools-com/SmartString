@@ -961,9 +961,10 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     /**
      * Call a function on the value and rewrap the result, e.g. ->map('strtoupper')
      *
-     * The callback always runs and receives the raw value - null included - like
-     * array_map() and SmartArray::map(). Chain ->ifNull('') first when using
-     * built-ins that require a string.
+     * The callback always runs and receives the raw value in its original type -
+     * null included - like array_map() and SmartArray::map(). Built-ins that
+     * require a string throw TypeError on null or numeric values; chain
+     * ->map('strval') first to convert.
      *
      * @param callable|string $callback The function to call with the value
      * @param mixed           ...$args  Additional arguments to pass to the function

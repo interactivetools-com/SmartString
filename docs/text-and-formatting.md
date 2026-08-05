@@ -308,13 +308,13 @@ echo $name->map('str_pad', 15, '.');                   // John Doe....... (extra
 echo $name->map(fn($v) => str_replace(' ', '_', $v));  // John_Doe
 ```
 
-The callback always runs and receives the raw value, null included, matching
-`array_map()` and `SmartArray::map()`. PHP built-ins that require a string
-raise a deprecation notice on null, so chain `ifNull('')` first when the
-value can be missing:
+The callback always runs and receives the raw value in its original type -
+null included, ints as ints - matching `array_map()` and `SmartArray::map()`.
+PHP built-ins with typed parameters throw TypeError on anything but a string,
+so chain `map('strval')` first when the value can be null or numeric:
 
 ```php
-echo $user->nickname->ifNull('')->map('mb_convert_case', MB_CASE_TITLE);
+echo $user->nickname->map('strval')->map('mb_convert_case', MB_CASE_TITLE);
 ```
 
 The callback must return a scalar or null; returning an array or object
