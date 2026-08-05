@@ -360,8 +360,10 @@ class StringManipulationTest extends SmartStringTestCase
 
     public function testMapRejectsNonScalarReturn(): void
     {
+        // message names no method: the deprecated apply() forwards here, and an error
+        // shouldn't name a method the caller never used
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('map() callback must return a scalar value (string, int, float, bool, or null), got array');
+        $this->expectExceptionMessage('The callback must return a scalar value (string, int, float, bool, or null), got array');
         SmartString::new('test')->map(fn($s) => [$s]);
     }
 

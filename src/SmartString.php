@@ -973,7 +973,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
 
         $newValue = $callback($this->rawData, ...$args);
         if (!is_null($newValue) && !is_scalar($newValue)) {
-            throw new InvalidArgumentException("map() callback must return a scalar value (string, int, float, bool, or null), got " . get_debug_type($newValue));
+            throw new InvalidArgumentException("The callback must return a scalar value (string, int, float, bool, or null), got " . get_debug_type($newValue)); // no method name: apply() forwards here too
         }
         return new self($newValue);
     }
