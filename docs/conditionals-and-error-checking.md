@@ -21,7 +21,7 @@ in, [prepend()](text-and-formatting.md#adding-text-around-values---append-prepen
 won't put a label on one, and the guards stop the page
 rather than run without one. Missing simply means there is no value: null
 or an empty string `""`, and nothing else. Zero is not missing. False is
-not missing. When in doubt, come back to this table:
+not missing:
 
 | Value     | `or("fallback")` | `isEmpty()` | `isMissing()` |
 |-----------|------------------|-------------|---------------|
@@ -32,7 +32,7 @@ not missing. When in doubt, come back to this table:
 | `false`   | `false`          | true        | false         |
 | `"hello"` | `"hello"`        | false       | false         |
 
-Notice how `0` and `"0"` come through `or()` unchanged: they are real
+Both `0` and `"0"` come through `or()` unchanged: they are real
 values, not missing ones. PHP's `empty()` considers them empty, but
 SmartString's conditional methods do not treat them as missing. A price of
 zero (what your template shows as $0.00) is real data, not a missing value.
@@ -168,8 +168,7 @@ parameter: `percent(2, ifZero: 'N/A')` (see
 [Percentages](text-and-formatting.md#percentages---percent-and-percentof)).
 
 Placement also changes what `or()` means. Before formatting, it supplies a
-fallback number; after formatting it supplies fallback display text. Both
-are useful; pick the one you mean:
+fallback number; after formatting it supplies fallback display text:
 
 ```php
 $value = SmartString::new(null);
@@ -199,8 +198,7 @@ if ($user->bio->isNotEmpty()) {
 
 The same applies to `empty($user->bio)` (always false) and `!$user->bio`
 (always false); use the check methods instead. The difference between the
-checks is what happens to zero, so pick the one that treats zero the way
-you want:
+checks is what happens to zero:
 
 ```php
 $balance = SmartString::new(0);

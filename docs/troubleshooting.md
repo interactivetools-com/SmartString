@@ -89,7 +89,7 @@ matter; the defaults leave `&apos;` behind).
 
 Working as designed, in both directions: `or()` treats zero as a real
 value, not a missing one, and `isEmpty()` follows PHP's `empty()`, which
-treats `0`, `"0"`, and `false` as empty. Pick the method that treats zero the way you want; the
+treats `0`, `"0"`, and `false` as empty. The
 [truth table](conditionals-and-error-checking.md#what-missing-means) shows
 every combination.
 
@@ -121,8 +121,8 @@ echo "Hello $name->trim()";          // WRONG - prints "Hello ()", logs this war
 echo "Hello $user->name->trim()";    // WRONG - prints "Hello Jean->trim()"
 ```
 
-When in doubt, add the braces: `{$...}` works around anything in a string,
-plain fields included.
+Braces are always safe: `{$...}` works around anything in a string, plain
+fields included.
 
 ### Math chain outputs nothing
 

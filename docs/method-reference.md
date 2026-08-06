@@ -121,9 +121,8 @@ the chain continues. Zero counts as present.*
 
 ### [Value Checks](conditionals-and-error-checking.md#truefalse-checks---isempty-isnotempty-ismissing-isnull)
 
-*These return a plain true or false, typically used in if statements. Note that
-zero is "empty" but not "missing" - pick the check that treats zero the way you
-want.*
+*These return a plain true or false, typically used in if statements. Zero is
+"empty" but not "missing".*
 
 | Method           | Description                                                                          |
 |------------------|--------------------------------------------------------------------------------------|

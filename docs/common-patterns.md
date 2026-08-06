@@ -273,7 +273,8 @@ echo $value->numberFormat(2)->or('n/a');  // n/a  (format failed, then display t
 
 It's easy to reach for the native PHP functions you already know, and they
 work. Side by side, though, the method version is usually shorter, handles
-null, and encodes correctly on output.
+null, and encodes correctly on output. All of which improves readability and
+ease of maintenance.
 
 | Instead of                                          | Write                             |
 |-----------------------------------------------------|-----------------------------------|
@@ -283,10 +284,8 @@ null, and encodes correctly on output.
 | `(int)(string)$row['cnt']`                          | `$row->cnt->int()`                |
 | `htmlspecialchars($x->value())`                     | `$x` (echo already encodes)       |
 
-Pick whichever reads better at a glance; templates that are easier to read
-and maintain are why the library exists. And when you'd rather write plain
-PHP, unwrap the value first with `value()`, `int()`, or `float()` and
-carry on. Just remember an unwrapped value is plain PHP again: if you echo
+When you'd rather write plain PHP, unwrap the value first with `value()`, `int()`, or `float()`
+and carry on. Just remember an unwrapped value is plain PHP again: if you echo
 it, you're responsible for encoding it yourself.
 
 ---
