@@ -244,7 +244,7 @@ The messages are HTML-encoded automatically. They often interpolate user
 input (`->orDie("Bad id: $id")`) and may be echoed into a page, so the
 guards encode rather than trusting every error handler to do it.
 
-Details worth knowing:
+How each guard differs:
 
 - **`or404($text)`** sends the 404 status and a minimal HTML error page. The
   default message is "The requested URL was not found on this server." The

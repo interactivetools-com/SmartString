@@ -7,7 +7,7 @@ trim this, shorten that, make the date readable. Every method here returns a
 new SmartString, so you can keep chaining and the result will always be safe to
 echo.
 
-Two group contracts to know up front:
+The methods split into two groups by how they treat missing or invalid input:
 
 - **String manipulation** (`textOnly`, `trim`, `maxWords`, `maxChars`,
   `pregReplace`, `append`, `prepend`, `wrap`): missing values (null or `""`)

@@ -195,7 +195,7 @@ so the one `or()` covers both.
 When you're displaying numbers in a report, a blank cell or a dash often
 reads better than a zero. The `numberFormat()` method only formats
 numbers: give it `""` or null and it returns null, which echoes as
-nothing. That's the trick behind all of these:
+nothing. Each of these examples builds on that idea:
 
 ```php
 echo $row->total->ifZero('')->numberFormat(2);           // 0 → blank, 1234.5 → 1,234.50

@@ -212,10 +212,10 @@ literals you wrote, never user input. That is the same obligation
 The return value is a plain string, ending the chain - no accidental
 double-encoding with additional chained methods.
 
-When what you're adding is plain text (a label, a comma) rather than markup,
+When you're adding plain text (a label, a comma) rather than markup,
 use the regular
 [append(), prepend(), and wrap()](text-and-formatting.md#adding-text-around-values---append-prepend-and-wrap)
-methods instead; their added text encodes like any other output and the
+methods instead; they encode added text like any other output and the
 chain stays open.
 
 Both sides of `wrapHtml()` are required, and the value is inserted exactly
