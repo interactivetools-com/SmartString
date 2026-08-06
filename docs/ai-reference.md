@@ -116,9 +116,9 @@ Terminal methods; they return plain PHP values and end the chain.
 
 ## Encoding Methods
 
-Terminal: all return plain `string` and end the chain (nothing downstream
-can double-encode). Missing values (null or `""`) return `""` for all of
-these except where noted.
+Terminal: all return plain `string` and end the chain (no accidental
+double-encoding with additional chained methods). Missing values (null or
+`""`) return `""` for all of these except where noted.
 
 | Method                                            | Behavior                                                                                                                                                                                                                                                                                                        |
 |---------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|

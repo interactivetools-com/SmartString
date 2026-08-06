@@ -147,8 +147,8 @@ the formatting in the chain first: `->pregReplace('/[^0-9.-]/', '')->add(50)`.
 chain. The encoding methods (`htmlEncode()`, `urlEncode()`, `jsonEncode()`,
 `nl2br()`, `appendHtml()`, `wrapHtml()`) return a plain string rather than
 another SmartString, so nothing can chain after them. That's on purpose:
-once a value is encoded it's finished, which is what makes double encoding
-impossible.
+once a value is encoded it's finished output - no accidental double-encoding
+with additional chained methods.
 
 ```php
 echo $bio->nl2br()->or('No bio');   // throws - nl2br() returned a string

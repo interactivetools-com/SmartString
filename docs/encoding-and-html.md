@@ -208,12 +208,12 @@ echo $page->tagline->wrapHtml('<h2>', '</h2>');                       // "" (tag
 Zero is a real value, not a missing one, so a legitimate `0` still gets its
 markup.
 
-Two rules keep these safe:
+These methods trust their markup arguments and output them as-is: pass only
+literals you wrote, never user input. That is the same obligation
+[rawHtml()](#trusted-html---rawhtml) carries, narrowed to one argument.
 
-- **The markup arguments are trusted and output as-is.** Only pass literals
-  you wrote; never pass user input as the markup argument.
-- **They return a plain string, ending the chain.** Nothing downstream can
-  re-encode the markup, so double encoding is structurally impossible.
+The return value is a plain string, ending the chain - no accidental
+double-encoding with additional chained methods.
 
 When what you're adding is plain text (a label, a comma) rather than markup,
 use the regular
