@@ -277,9 +277,8 @@ $memberId = DB::selectOne('users', ['email' => $email])
 ```
 
 The first `orThrow()` fires when the query returns no row; the second fires
-when the row exists but the column is null or `""`. (Row-level guards like
-the first one are [SmartArray](https://github.com/interactivetools-com/SmartArray)
-methods; same names, same missing rules.)
+when the row exists but the column is null or `""`. (Row-level guards like the
+first one are SmartArray methods; same names, same missing rules.)
 
 ## Putting It Together
 

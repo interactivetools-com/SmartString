@@ -59,9 +59,10 @@ Key definitions used throughout:
   `isEmpty()`, `isNotEmpty()`.
 - **numeric** = PHP `is_numeric()`. `"1,234"` (comma) and formatted output
   like `"0.00%"` are NOT numeric.
-- **SmartNull** = SmartArray's placeholder for a missing field (so chained
-  calls on `$row->missingField` don't fatal). SmartString methods accept it
-  anywhere a plain value is accepted and treat it as null.
+- **SmartNull** = [SmartArray](https://github.com/interactivetools-com/SmartArray)'s
+  placeholder for a missing field (so chained calls on `$row->missingField`
+  don't fatal). SmartString methods accept it anywhere a plain value is
+  accepted and treat it as null.
 
 ## Creating Values
 
@@ -73,8 +74,9 @@ Accepted types: string, int, float, bool, null. Objects/resources are not
 accepted. Passing an array is deprecated and returns a `SmartArrayHtml`
 (use `SmartArrayHtml::new($array)` from the SmartArray package directly).
 
-Bulk creation is the SmartArray package's job; database rows from ZenDB are
-already SmartArrays of SmartStrings:
+Bulk creation is the SmartArray package's job; database rows from
+[ZenDB](https://github.com/interactivetools-com/ZenDB) are already SmartArrays
+of SmartStrings:
 
 ```php
 use Itools\SmartArray\SmartArrayHtml;
@@ -103,13 +105,13 @@ script-safe embedding use the `jsonEncode()` method instead.
 
 Terminal methods; they return plain PHP values and end the chain.
 
-| Method                                            | Returns                                                                                                                                                                 | Null input |
-|---------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|
-| `value(): string\|int\|float\|bool\|null`         | Original value, original type                                                                                                                                           | null       |
-| `int(): int`                                      | `(int)` cast                                                                                                                                                            | 0          |
-| `float(): float`                                  | `(float)` cast                                                                                                                                                          | 0.0        |
-| `bool(): bool`                                    | `(bool)` cast                                                                                                                                                           | false      |
-| `string(): string`                                | `(string)` cast, NOT HTML-encoded                                                                                                                                       | ""         |
+| Method                                            | Returns                                                                                                                                                                          | Null input |
+|---------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|
+| `value(): string\|int\|float\|bool\|null`         | Original value, original type                                                                                                                                                    | null       |
+| `int(): int`                                      | `(int)` cast                                                                                                                                                                     | 0          |
+| `float(): float`                                  | `(float)` cast                                                                                                                                                                   | 0.0        |
+| `bool(): bool`                                    | `(bool)` cast                                                                                                                                                                    | false      |
+| `string(): string`                                | `(string)` cast, NOT HTML-encoded                                                                                                                                                | ""         |
 | `SmartString::getRawValue(mixed): mixed` (static) | Unwraps SmartString → value, SmartArray → array, SmartNull → null; scalars/null/arrays pass through (arrays unwrapped recursively); other objects throw InvalidArgumentException | null       |
 
 ## Encoding Methods

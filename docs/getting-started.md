@@ -170,10 +170,9 @@ The full family (`or()`, `ifNull()`, `ifZero()`, `or404()`, `orDie()`,
 ## Working with SmartArray and ZenDB
 
 In practice, you rarely create SmartStrings one at a time. Database rows and
-request data arrive as arrays, and
-[SmartArray](https://github.com/interactivetools-com/SmartArray)'s
-`SmartArrayHtml` class wraps a whole array so every value comes back as a
-SmartString (separate install: `composer require itools/smartarray`):
+request data arrive as arrays, and SmartArray's `SmartArrayHtml` class wraps a
+whole array so every value comes back as a SmartString (separate install:
+`composer require itools/smartarray`):
 
 ```php
 use Itools\SmartArray\SmartArrayHtml;
@@ -197,9 +196,8 @@ Field access interpolates without curly braces or quotes; the plain-array
 version of that first echo would be
 `"Hello, {$user['name']} from {$user['city']}!"`.
 
-With [ZenDB](https://github.com/interactivetools-com/ZenDB) this happens
-automatically: every query returns SmartArrays of SmartStrings, so you may
-never call `SmartString::new()` at all:
+With ZenDB this happens automatically: every query returns SmartArrays of
+SmartStrings, so you may never call `SmartString::new()` at all:
 
 ```php
 use Itools\ZenDB\DB;
