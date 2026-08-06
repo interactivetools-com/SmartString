@@ -1,10 +1,12 @@
-# Performance: 3x Faster Than Calling `htmlspecialchars()` Yourself
+# Performance: 3x or Faster Than `htmlspecialchars()` on Long Text Fields
 
 Our automatic encoding produces byte-identical output to `htmlspecialchars()`
-and is faster: 3x or better on a real-world page, up to 12x on Windows. Most
-values don't need encoding, and proving that with a scan costs less than encoding
-them anyway. This page shows how that works, the
-measurements, and the tests that keep the shortcut honest.
+and is faster on everything but the shortest values: 3x or better on any text
+field of a kilobyte or more, and well past that on long clean text and on
+Windows. Most values don't need encoding, and proving that with a scan costs
+less than encoding them anyway. This page shows how that works, the
+measurements, where the scan doesn't pay for itself, and the tests that keep
+the shortcut honest.
 
 The multiplier depends on the platform: our scans cost about the same
 everywhere, so the win tracks how slowly each platform's `htmlspecialchars()`
@@ -108,14 +110,14 @@ Per call (per page for the News-article row), best of 7, measured on Linux x86_6
 The News-article page row is those rows combined - here it is field by field,
 every line taken from the table above:
 
-| Field                        | Table row                          | `htmlspecialchars()` | SmartString  | Speed vs `htmlspecialchars()` |
-|------------------------------|------------------------------------|----------------------|--------------|-------------------------------|
-| Headline - `Mayor Says 'No'` | Has `& < > " '`, 16 B              | 0.16 µs              | 0.46 µs      | 0.4x                          |
-| Author                       | Clean text - no `& < > " '`, 16 B  | 0.16 µs              | 0.24 µs      | 0.7x                          |
-| Category                     | Clean text - no `& < > " '`, 16 B  | 0.16 µs              | 0.24 µs      | 0.7x                          |
-| Date                         | Clean text - no `& < > " '`, 16 B  | 0.16 µs              | 0.24 µs      | 0.7x                          |
-| Photo caption                | Clean text - no `& < > " '`, 200 B | 1.0 µs               | 0.31 µs      | 3.3x                          |
-| Article body with quotes     | Has `& < > " '`, 10 KB             | 55.2 µs              | 11.3 µs      | 4.9x                          |
+| Field                        | Table row                          | `htmlspecialchars()`      | SmartString               | Speed vs `htmlspecialchars()` |
+|------------------------------|------------------------------------|---------------------------|---------------------------|-------------------------------|
+| Headline - `Mayor Says 'No'` | Has `& < > " '`, 16 B              | 0.16 µs                   | 0.46 µs                   | 0.4x                          |
+| Author                       | Clean text - no `& < > " '`, 16 B  | 0.16 µs                   | 0.24 µs                   | 0.7x                          |
+| Category                     | Clean text - no `& < > " '`, 16 B  | 0.16 µs                   | 0.24 µs                   | 0.7x                          |
+| Date                         | Clean text - no `& < > " '`, 16 B  | 0.16 µs                   | 0.24 µs                   | 0.7x                          |
+| Photo caption                | Clean text - no `& < > " '`, 200 B | 1.0 µs                    | 0.31 µs                   | 3.3x                          |
+| Article body with quotes     | Has `& < > " '`, 10 KB             | 55.2 µs                   | 11.3 µs                   | 4.9x                          |
 | **Whole page**               | All of the above                   | **57.6 µs** (0.0000576 s) | **12.7 µs** (0.0000127 s) | **4.5x**                      |
 
 The longer the text, the bigger the win. This page is 4.5x faster because
@@ -191,9 +193,7 @@ Three benchmark choices, stated plainly:
   verdict.
 
 Most libraries and frameworks run the full encoder on every value, every time.
-Checking first and skipping the work when there is nothing to do is, as far as
-we know, unique to SmartString - the kind of care we try to put into everything
-we build.
+SmartString checks first and skips the work when there is nothing to do.
 
 ---
 
