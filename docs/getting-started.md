@@ -294,8 +294,7 @@ The [Method Reference](method-reference.md) lists every method with examples.
 2. **It does not validate data.** Use `filter_var()`, type declarations, or
    your own checks.
 3. **It does not accept objects or resources.** Values are `string`, `int`,
-   `float`, `bool`, or `null`; arrays belong in
-   [SmartArray](https://github.com/interactivetools-com/SmartArray).
+   `float`, `bool`, or `null`; arrays belong in SmartArray.
 4. **It auto-encodes for HTML only.** URL and JSON contexts need their
    explicit methods, `urlEncode()` and `jsonEncode()`; see
    [Encoding and HTML](encoding-and-html.md).
