@@ -3,9 +3,8 @@
 # Getting Started
 
 SmartString makes template output XSS-safe by default: values HTML-encode
-themselves whenever they're printed. This page covers installation, your
-first SmartString, the mental model behind the API, and the everyday basics:
-chaining, fallbacks, type conversion, and defaults.
+themselves whenever they're printed. This page touches on everything you need
+to start working with the library, from installation to debugging.
 
 Contents:
 

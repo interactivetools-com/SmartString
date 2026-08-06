@@ -1,10 +1,8 @@
 # Conditionals and Error Checking
 
 Real-world data has gaps: empty fields, nulls, records that don't exist.
-This page covers the methods that handle them: fallbacks for missing
-values, targeted replacements, true/false checks, and the guards that stop
-the page when required data is missing. One definition of "missing" drives
-all of them, so that's where we start.
+This page covers what the library considers "missing", the methods
+that care about missing values, and other conditional/error checking features.
 
 Contents:
 

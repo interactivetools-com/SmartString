@@ -4,9 +4,17 @@ Our automatic encoding produces byte-identical output to `htmlspecialchars()`
 and is faster on everything but the shortest values: 3x or better on any text
 field of a kilobyte or more, and well past that on long clean text and on
 Windows. Most values don't need encoding, and proving that with a scan costs
-less than encoding them anyway. This page shows how that works, the
-measurements, where the scan doesn't pay for itself, and the tests that keep
-the shortcut honest.
+less than encoding them anyway.
+
+Contents:
+
+- [Overview](#overview)
+- [How It Works](#how-it-works)
+- [The Numbers](#the-numbers)
+- [How We Know It's Safe](#how-we-know-its-safe)
+- [The Fine Print](#the-fine-print)
+
+## Overview
 
 The multiplier depends on the platform: our scans cost about the same
 everywhere, so the win tracks how slowly each platform's `htmlspecialchars()`
@@ -25,13 +33,6 @@ php -d opcache.enable_cli=1 -d xdebug.mode=off .github/scripts/speed-page-table.
 
 In a Composer project the script is at
 `vendor/itools/smartstring/.github/scripts/speed-page-table.php`.
-
-Contents:
-
-- [How It Works](#how-it-works)
-- [The Numbers](#the-numbers)
-- [How We Know It's Safe](#how-we-know-its-safe)
-- [The Fine Print](#the-fine-print)
 
 ## How It Works
 

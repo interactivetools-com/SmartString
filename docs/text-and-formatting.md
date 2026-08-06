@@ -3,11 +3,9 @@
 # Text and Formatting
 
 With encoding handled for you, the rest of template work is formatting:
-trim this, shorten that, make the date readable. This page covers those
-transformations: stripping HTML, truncating, regex replacement, dates,
-numbers, percentages, math, and custom functions via `map()`. Every method
-returns a new SmartString, so you can keep chaining and the result is
-always safe to echo.
+trim this, shorten that, make the date readable. Every method here returns a
+new SmartString, so you can keep chaining and the result will always be safe to
+echo.
 
 Two group contracts to know up front:
 

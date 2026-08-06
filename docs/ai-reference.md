@@ -6,9 +6,8 @@
 
 # SmartString AI Reference
 
-This is a consolidated reference for AI coding assistants. It contains
-everything needed to write correct SmartString code in a single file, and
-covers SmartString 3.0. For human-friendly docs with tutorials and
+This is a consolidated reference for AI coding assistants: the complete API in
+one file, covering SmartString 3.0. For human-friendly docs with tutorials and
 explanations, see [Getting Started](getting-started.md).
 
 Contents:

@@ -1,9 +1,8 @@
 # Common Patterns
 
 These are some of the most common tasks that come up on websites: format
-a date, trim a preview, print an address block without blank lines, and
-more. Grab whichever you need: every recipe is copy-paste ready and built
-from methods covered on earlier pages.
+a date, trim a preview, print an address block without blank lines, etc.
+Each recipe is built from methods covered on earlier pages.
 
 The examples assume database rows from
 [ZenDB](https://github.com/interactivetools-com/ZenDB) or
