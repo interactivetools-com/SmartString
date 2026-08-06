@@ -27,10 +27,9 @@ Contents:
 
 ## Formatting Dates
 
-If the whole site uses one date format, set `SmartString::$dateFormat` once
-in your init file and call `dateFormat()` with no arguments everywhere
-else. Until you change it, the default format is `'Y-m-d'` (displays as
-"2026-09-10"):
+Called with no arguments, `dateFormat()` uses `SmartString::$dateFormat`,
+which initializes as `'Y-m-d'`. Set it once at the top of your code to change
+every bare call at once:
 
 ```php
 SmartString::$dateFormat = 'M j, Y';
@@ -51,25 +50,12 @@ echo "race.php?date={$race->date->dateFormat('Y-m-d')}";     // race.php?date=20
 $filename = "results-{$race->date->dateFormat('dmY')}.csv";  // results-10092026.csv
 ```
 
-When you need several date formats, a nice pattern is to define a constant
-per date style in your init file and reference those in templates; everything
-stays consistent, and all your date formats are in one place:
-
-```php
-const DATE_DISPLAY  = 'M j, Y';
-const DATE_FILENAME = 'dmY';
-
-echo $race->date->dateFormat(DATE_DISPLAY);   // Sep 10, 2026
-echo $race->date->dateFormat(DATE_FILENAME);  // 10092026
-```
-
 ## Text Previews and Excerpts
 
 When you want to show just the start of an article (listing pages, search
 results, "read more" teasers), limit it by characters or by words. For HTML
 content be sure to call `textOnly()` first to remove any HTML; otherwise
-`maxChars()` and `maxWords()` can cut the text off in the middle of a tag,
-which isn't what you want:
+`maxChars()` and `maxWords()` can cut the text off in the middle of a tag:
 
 ```php
 echo $article->content->textOnly()->maxChars(120);                 // adds "..." if cut off
@@ -206,9 +192,7 @@ echo $row->hours->ifNull(0)->numberFormat(2);            // null → 0.00
 
 ## Report Tables: Inline Math
 
-For a one-off calculation, plain PHP is fine. Chains are most useful in
-report rows: the math, the formatting, and the missing-data fallback read
-as one line, and a zero or null anywhere in the chain becomes your
+Chained inline math lets a zero or null anywhere in the chain become your
 fallback instead of a warning or a divide-by-zero error. Nothing needs to
 be calculated before the loop; the only prepared variable here is
 `$grandTotal`:
@@ -250,31 +234,11 @@ echo <<<__HTML__
     __HTML__;
 ```
 
-That said, complex PHP reads better away from the HTML. A good rule of
-thumb: if the chain makes sense at a glance, keep it in the template; if
-you have to stop and puzzle it out, do the work in PHP first and echo the
-variable.
-
-## Where or() Goes Changes What It Means
-
-Formatting a missing value (null or `""`) produces nothing, so where you
-put `or()` decides what the reader sees instead. Before the format, `or(0)` fills in
-a real number that formats like any other ("0.00"); after the format,
-`or('n/a')` shows display text when there was nothing to format:
-
-```php
-$value = SmartString::new(null);
-
-echo $value->or(0)->numberFormat(2);      // 0.00 (fallback number, then formatted)
-echo $value->numberFormat(2)->or('n/a');  // n/a  (format failed, then display text)
-```
-
 ## Methods or Plain PHP?
 
 It's easy to reach for the native PHP functions you already know, and they
 work. Side by side, though, the method version is usually shorter, handles
-null, and encodes correctly on output. All of which improves readability and
-ease of maintenance.
+null, and encodes correctly on output.
 
 | Instead of                                          | Write                             |
 |-----------------------------------------------------|-----------------------------------|

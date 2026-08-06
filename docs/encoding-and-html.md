@@ -62,7 +62,6 @@ DB::insert('users', ['name' => $_POST['name']]);
 
 Storing raw data preserves integrity: you can encode it differently for
 different contexts (HTML, URL, JSON) without re-decoding stored data.
-SmartString makes this natural: data goes in raw, comes out encoded.
 
 ## The Encoding Methods
 
@@ -124,8 +123,7 @@ echo "<script>let title = {$title->jsonEncode()};</script>";
 ```
 
 Types encode as themselves: null becomes `null`, `123` becomes `123`, so the
-result is always a valid JavaScript expression. Two hardening details you
-get for free:
+result is always a valid JavaScript expression. Two hardening details:
 
 - Malformed UTF-8 is substituted with � instead of throwing.
 - Invisible Unicode (zero-width characters, bidi controls, variation

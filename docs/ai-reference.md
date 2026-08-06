@@ -288,8 +288,8 @@ print_r($str);        // shows the original (raw) value
   braces in a string (`$str->trim`, `"$str->trim()"`). Page continues;
   expression yields an empty SmartString.
 
-Rule of thumb: RuntimeException (from `orThrow()`) is the only type to catch
-in normal operation - everything else means code to fix.
+RuntimeException (from `orThrow()`) is the only type to catch in normal
+operation - everything else means code to fix.
 
 ## Gotchas Quick Reference
 

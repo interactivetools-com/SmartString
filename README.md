@@ -31,7 +31,7 @@ echo "Summary: {$article->content->textOnly()->maxChars(120, '...')}\n";
 ```
 
 SmartString encodes HTML output automatically and includes utility functions for common template
-tasks. A few basics cover most pages, and the rest is there when you need it.
+tasks.
 
 ## Documentation
 

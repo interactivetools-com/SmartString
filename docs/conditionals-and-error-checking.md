@@ -106,13 +106,16 @@ $qty = SmartString::new(150);
 echo $qty->ifTrue($qty->int() > 99, '99+');  // 99+
 ```
 
-There is no else parameter: when both branches need a value, write a
-ternary and pass it to `set()` (below).
+None of these methods take an else value; when the condition doesn't match,
+the original value passes through. For a different value in each branch,
+write a ternary or `match` - and `set()` (below) if the expression has to
+sit inside an interpolated string.
 
-The `set()` method replaces the value unconditionally, putting the result
-of any PHP expression back into a chain. Its best trick is inside heredocs
-and double-quoted strings: PHP won't interpolate a `match` or a ternary
-directly, but it will call a method:
+The `set()` method replaces the value unconditionally, putting the result of
+any PHP expression into a chain. It works best in heredocs and double-quoted
+strings: `{$...}` interpolation accepts property and method access but not
+operators, so a ternary or `match` written directly inside `{$...}` is a parse
+error. Inside a method call's arguments it parses fine:
 
 ```php
 // set($newValue)
@@ -129,14 +132,13 @@ echo <<<__HTML__
 // <span class="badge">Shipped</span>
 ```
 
-The replacement re-enters the chain, so it HTML-encodes on output and can
-take a further `->or()` or formatting call. Outside a string, skip `set()`
-and echo the ternary or `match` directly; `set()` earns its keep where
-PHP's interpolation won't take an expression.
+The result re-enters the chain, so it encodes on output and can take a
+further conditional or formatting calls. That is what `set()` adds
+over computing the label first: a precomputed `$label` is a plain string
+and echoes unencoded, while a `set()` result stays HTML-safe.
 
-Chained conditionals suit simple inline replacements. For logic with many
-branches, use regular PHP; the best tool for the job is sometimes an `if`
-statement.
+When the expression interpolates a SmartString, use `->value()` inside
+it to avoid double-encoding.
 
 ## Run Conditionals Before Formatting
 
