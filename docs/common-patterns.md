@@ -22,7 +22,6 @@ Contents:
 - [Report Tables: Hiding Zeros and Nulls](#report-tables-hiding-zeros-and-nulls)
 - [Report Tables: Inline Math](#report-tables-inline-math)
 - [Run Any Function with map()](#run-any-function-with-map)
-- [Where or() Goes Changes What It Means](#where-or-goes-changes-what-it-means)
 - [Methods or Plain PHP?](#methods-or-plain-php)
 
 ## Formatting Dates
