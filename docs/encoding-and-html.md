@@ -99,7 +99,7 @@ echo "<a href='search.php?title={$title->urlEncode()}'>Search</a>";
 // <a href='search.php?title=%3C10%25+OFF+%22SALE%22'>Search</a>
 ```
 
-Linking to a file or path that might have spaces in the name? Use
+For a file or path that might have spaces in the name, use
 `map('rawurlencode')`. The `+` from `urlEncode()` looks nicer in URLs, but
 only query strings read it as a space - files and paths need `%20`:
 

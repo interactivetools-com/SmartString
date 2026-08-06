@@ -5,6 +5,12 @@
 Every method, grouped by what it returns and how it treats missing values.
 Each group heading links to the guide page that teaches those methods.
 
+If you're working with arrays, the companion library
+[SmartArray](https://github.com/interactivetools-com/SmartArray) wraps them into
+collections of SmartStrings: `SmartArrayHtml::new($record)` takes a database row,
+`$_REQUEST`, or any array. SmartArray has its own
+[method reference](https://github.com/interactivetools-com/SmartArray/blob/main/docs/method-reference.md).
+
 Contents:
 
 - [Basic Usage](#basic-usage)
@@ -136,11 +142,6 @@ the chain continues. Zero counts as present.*
 | Method                   | Description                                                                                                                |
 |--------------------------|----------------------------------------------------------------------------------------------------------------------------|
 | `->map($callback, ...$args)` | Calls your function with the original value and returns the result as a new SmartString - runs even when the value is null |
-
-**Working with arrays?** [SmartArray](https://github.com/interactivetools-com/SmartArray)
-is the companion library that handles arrays (like database rows) as collections of
-SmartStrings - `SmartArrayHtml::new($record)` wraps a whole record - and it has its own
-[method reference](https://github.com/interactivetools-com/SmartArray/blob/main/docs/method-reference.md).
 
 ---
 

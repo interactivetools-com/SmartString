@@ -305,8 +305,8 @@ echo $val->add(0.2)->numberFormat(2);  // 0.30 (explicit rounding)
 
 ## Custom Functions - `map()`
 
-Need something there's no method for? Use `map()` to run any function on
-the value: a PHP built-in or one of your own. Your function gets the raw
+When there's no built-in method for what you need, `map()` runs any function
+on the value: a PHP built-in or one of your own. Your function gets the raw
 value, and whatever it returns becomes a new SmartString so you can keep
 chaining:
 
