@@ -280,7 +280,7 @@ echo $value->ifNull(0)->add(50);  // 50
 ```
 
 A null result is a value like any other, so a mid-chain replacement fully
-recovers the chain; nothing is poisoned:
+recovers the chain:
 
 ```php
 echo SmartString::new("cat")->add(10)->ifNull(0)->add(5);  // 5 (recovered mid-chain)

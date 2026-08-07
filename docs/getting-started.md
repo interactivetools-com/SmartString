@@ -66,12 +66,12 @@ echo $str;           // It&​apos;s easy!&​lt;hr&​gt; (encoded, safe for HT
 echo $str->value();  // It's easy!<hr> (the original value)
 ```
 
-The rule that makes everything else predictable: **the raw value is for
-logic (math, comparisons, MySQL); the encoded output is for HTML.** This
-flips the old habit: instead of remembering to encode every output,
-encoding happens on its own, and the one thing left to remember is
-`value()` when your code needs the original. Forgetting even fails in your
-favor: a stray `&apos;` you can see, not a security hole you can't.
+**The raw value is for logic (math, comparisons, MySQL); the encoded output
+is for HTML.** This flips the old habit: instead of remembering to encode
+every output, encoding happens on its own, and the one thing left to
+remember is `value()` when your code needs the original. Forgetting it
+produces a visible `&apos;` in your output rather than a silent security
+hole.
 
 ```php
 $price = SmartString::new(1234567.89);

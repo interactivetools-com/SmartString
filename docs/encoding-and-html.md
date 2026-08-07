@@ -180,12 +180,12 @@ take the encoded default.
 
 ## Adding Markup Around Values - `appendHtml()` and `wrapHtml()`
 
-The most common reason people reach for raw output is not trusted content,
-it is wanting one tag next to an encoded value: a `<br>` after each address
-line, an `<h2>` around a heading. These two methods handle that case without
-giving up encoding. The value is HTML-encoded; your markup is appended or
-wrapped as-is; and when the value is missing (null or `""`), the whole
-result is `""` so no stray markup appears:
+A common need for raw output is appending one tag next to an encoded value:
+a `<br>` after each address line, an `<h2>` around a heading, etc.
+These two methods cover that case without giving up encoding. The value
+stays HTML-encoded; your markup is appended or wrapped as-is; and when
+the value is missing (null or `""`), the whole result is `""` so no stray
+markup appears:
 
 ```php
 // appendHtml($html): encoded value + your markup - addressLine2 is blank, so its line vanishes
