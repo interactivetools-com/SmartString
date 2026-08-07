@@ -742,7 +742,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     /**
      * Replaces the value with $newValue, useful for storing an expression result.
      *
-     *     $label = $count->set(match($count->int()) { 0 => "No items", default => "$count items" });
+     *     $label = $count->set(match($count->int()) { 0 => "No items", default => "{$count->int()} items" });
      */
     public function set(string|int|float|bool|null|SmartString|SmartNull $newValue): SmartString
     {
