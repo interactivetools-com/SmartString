@@ -269,10 +269,11 @@ The [Method Reference](method-reference.md) lists every method with examples.
    same for `float`, `bool`, and `null`.
 4. **Methods return new objects.** Chaining never modifies the original
    SmartString.
-5. **Chains never throw on bad data.** Missing values pass through
-   transformations, and failed operations (an invalid date, math on a
-   non-numeric value) return null, so one `or()` at the end covers anything
-   that went wrong anywhere in the chain.
+5. **Bad data never throws.** Missing values pass through transformations, and
+   failed operations (an invalid date, math on a non-numeric value) come out
+   null, so one `or()` at the end covers the whole chain. Developer mistakes
+   are the opposite: an invalid regex or a call to an undefined method throws
+   immediately, with a message that says what to fix.
 
 ## What SmartString Does Not Do
 

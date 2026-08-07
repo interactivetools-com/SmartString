@@ -290,6 +290,20 @@ class StringManipulationTest extends SmartStringTestCase
         SmartString::new('test')->pregReplace('/[/', 'X');
     }
 
+    public function testPregReplaceInvalidUtf8WithUnicodePatternReturnsNull(): void
+    {
+        // Broken data goes null so or() fallbacks fire; only broken patterns throw
+        $result = SmartString::new("caf\xFF")->pregReplace('/f/u', 'F');
+        $this->assertTrue($result->isNull());
+        $this->assertSame('n/a', $result->or('n/a')->value());
+    }
+
+    public function testPregReplaceInvalidUtf8WithoutUnicodePatternStillWorks(): void
+    {
+        // Without /u, PCRE treats the value as bytes and the replace succeeds
+        $this->assertSame("caF\xFF", SmartString::new("caf\xFF")->pregReplace('/f/', 'F')->value());
+    }
+
     public function testPregReplaceNullInputSkipsPatternCheck(): void
     {
         // null propagates before the pattern runs, even an invalid one
