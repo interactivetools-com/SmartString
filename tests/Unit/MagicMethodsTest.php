@@ -93,7 +93,32 @@ class MagicMethodsTest extends SmartStringTestCase
             fn() => SmartString::new("O'Brien <b>\n")->jsEncode(),
             'Replace ->jsEncode() with ->jsonEncode() (not identical functionality, code refactoring required)'
         );
-        $this->assertSame("O\\'Brien \\<b\\>\\n", $result);
+        $this->assertSame('O\u0027Brien \u003Cb\u003E\n', $result);
+    }
+
+    public function testJsEncodeShimEscapesCharactersThatEscapeTheScriptBlock(): void
+    {
+        // A backslash escape like \< keeps the raw < in the output: JavaScript reads it
+        // as <, and so does the HTML parser, which ends the script early at </script.
+        // & matters for the same reason in inline handlers, where the attribute value is
+        // entity-decoded before the JavaScript is compiled.
+        [$results, $messages] = $this->captureDeprecations(fn() => [
+            SmartString::new('</script><img src=x onerror=alert(1)>')->jsEncode(),
+            SmartString::new('&#39;+alert(1)+&#39;')->jsEncode(),
+        ]);
+        $this->assertCount(2, $messages);
+        $this->assertSame('\u003C/script\u003E\u003Cimg src=x onerror=alert(1)\u003E', $results[0]);
+        $this->assertSame('\u0026#39;+alert(1)+\u0026#39;', $results[1]);
+    }
+
+    public function testJsEncodeShimConvertsNonStringsBeforeEscaping(): void
+    {
+        [$results, ] = $this->captureDeprecations(fn() => [
+            SmartString::new(null)->jsEncode(),
+            SmartString::new(42)->jsEncode(),
+        ]);
+        $this->assertSame('', $results[0]); // null stays empty, never the string "null"
+        $this->assertSame('42', $results[1]);
     }
 
     public function testStripTagsShimReturnsSmartString(): void

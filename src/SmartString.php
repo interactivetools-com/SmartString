@@ -1111,7 +1111,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         [$return, $deprecationError] = match ($methodLc) {  // use lowercase names below for comparison
             'noencode'  => [$this->rawHtml(), "Replace ->$method() with ->rawHtml()"],
             'tostring'  => [$this->htmlEncode(), "Replace ->$method() with ->htmlEncode() or ->string()"], // htmlEncode() first: it matches this shim's output
-            'jsencode'  => [addcslashes((string)$this->rawData, "\x00-\x1F'\"`\n\r\\<>"), "Replace ->$method() with ->jsonEncode() (not identical functionality, code refactoring required)"],
+            'jsencode'  => [substr(self::new((string)$this->rawData)->jsonEncode(), 1, -1), "Replace ->$method() with ->jsonEncode() (not identical functionality, code refactoring required)"], // quote-stripped jsonEncode(): a backslash escape like \< satisfies JS but the HTML parser still ends the script at </script
             'striptags' => [new self(is_null($this->rawData) ? null : strip_tags((string)$this->rawData, ...$args)), "Replace ->$method() with ->textOnly()"],
             default     => [null, null],
         };

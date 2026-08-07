@@ -147,6 +147,12 @@ These still work, they're just no longer featured in the docs - no changes requi
   SmartString `$ifZero` was stored HTML-encoded and double-encoded on output)
 - `help()` prints plain text on the command line (previously wrapped the
   output in literal `<xmp>` tags, which only make sense in HTML)
+- The deprecated `jsEncode()` shim escapes `<`, `>`, and `&` as `\uXXXX` instead
+  of backslashing them, matching `jsonEncode()`. A backslash escape satisfies the
+  JavaScript parser but leaves the raw character in the page, so a stored
+  `</script>` still ended the script block early and the rest of the value parsed
+  as HTML. `&` mattered the same way in inline event handlers, where the browser
+  decodes entities before the JavaScript runs
 
 ### Other
 
