@@ -275,11 +275,9 @@ The [Method Reference](method-reference.md) lists every method with examples.
 
 1. **Every string context produces HTML-encoded output.** All of `echo`,
    `print`, interpolation, concatenation, and `(string)` casts encode.
-2. **Your original value is preserved and accessible via `value()`.**
-   Nothing is lost or altered by wrapping it.
-3. **Type is maintained.** An `int` goes in and `value()` returns an `int`;
-   same for `float`, `bool`, and `null`.
-4. **Methods return new objects.** Chaining never modifies the original
+2. **`value()` returns your original value, in its original type.** An `int`
+   goes in and an `int` comes back; same for `float`, `bool`, and `null`.
+3. **Methods return new objects.** Chaining never modifies the original
    SmartString.
 5. **Chains never throw on bad data.** Missing values pass through
    transformations, and failed operations (an invalid date, math on a
