@@ -210,16 +210,6 @@ $balance->isMissing();  // false (zero is a real value; matches or() and the gua
 $balance->isNull();     // false (null only)
 ```
 
-Use `isEmpty()`/`isNotEmpty()` to show or hide blocks of HTML, `isMissing()`
-when a legitimate zero must count as present, and `isNull()` to distinguish
-null from empty string:
-
-```php
-if ($record->score->isMissing()) {
-    echo "Not yet scored";  // 0 is a real score, so isEmpty() would be wrong here
-}
-```
-
 ## Requiring a Value - `or404()`, `orDie()`, `orThrow()`, `orRedirect()`
 
 Where `or()` quietly substitutes a fallback, the guards stop the page. Use

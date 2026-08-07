@@ -34,9 +34,7 @@ Contents:
 
 ## Stripping HTML - `textOnly()`
 
-Removes HTML tags, decodes entities, and trims whitespace. Use it whenever
-you need the text of an HTML field: previews, meta descriptions, plain-text
-email:
+Removes HTML tags, decodes entities, and trims whitespace.
 
 ```php
 $content = SmartString::new("<p>Hello <b>World</b></p>");
@@ -117,8 +115,7 @@ instead.
 
 ## Regex Replacement - `pregReplace()`
 
-Applies `preg_replace()` to the value: strip characters out, reformat with
-capture groups, or clean a value up before using it:
+Applies `preg_replace()` to the value:
 
 ```php
 // pregReplace($pattern, $replacement)
@@ -204,8 +201,8 @@ run math and zero checks before formatting; see
 
 ## Percentages - `percent()` and `percentOf()`
 
-Use `percent()` to display a stored ratio (0.75 means 75%) and
-`percentOf($total)` to compute what share the value is of a total:
+The `percent()` method displays a stored ratio (0.75 means 75%);
+`percentOf($total)` computes what share the value is of a total:
 
 ```php
 // percent($decimals = 0, $ifZero = null)

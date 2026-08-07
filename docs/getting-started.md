@@ -209,9 +209,7 @@ foreach ($users as $user) {
 
 ## Converting to Plain PHP Types
 
-The type-conversion methods return plain PHP values, so they end the chain.
-Use them at boundaries: sessions, comparisons, and functions that expect a
-specific type:
+The type-conversion methods end the chain and return a plain PHP value.
 
 ```php
 $value = SmartString::new("123.45");
@@ -257,7 +255,7 @@ for how each setting is used.
 
 ## Debugging
 
-Use `print_r()` on any SmartString to see the stored value:
+`print_r()` can be used on any SmartString to show the stored value:
 
 ```php
 $name = SmartString::new("Jean O'Brien");

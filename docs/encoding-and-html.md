@@ -73,23 +73,20 @@ JavaScript expression.
 
 ### HTML Encoding - `htmlEncode()`
 
-Same output as `echo`, as an explicit call. Use it when you want a plain
-encoded string rather than an object, or when the encoding deserves to be
-visible in the code:
+Same output as `echo`, as an explicit call. It returns a plain encoded string
+rather than an object, and makes the encoding visible in the code:
 
 ```php
 $title = SmartString::new('<10% OFF "SALE"');
 
 echo $title->htmlEncode();  // &​lt;10% OFF &​quot;SALE&​quot;
-echo $title;                // same output - echo already encodes
+echo $title;                // same output - echo also encodes
 ```
 
 ### URL Encoding - `urlEncode()`
 
-Returns the value URL-encoded for use in query strings. HTML encoding is the
-wrong encoding inside an `href` query parameter; use `urlEncode()` for the
-query value - the rest of the URL is literal text you typed, which needs no
-encoding:
+Returns the value URL-encoded for query strings, where SmartString's
+automatic HTML encoding is not URL-safe:
 
 ```php
 $title = SmartString::new('<10% OFF "SALE"');
