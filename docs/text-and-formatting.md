@@ -369,10 +369,6 @@ Output:
 </article>
 ```
 
-- The `&` in the name encodes automatically in the heading
-- The `textOnly()->maxChars(40)` chain turns the HTML description into a text preview
-- The `multiply($taxRate)->numberFormat(2)` chain adds 13% tax and formats in one step
-
 ---
 
 [← Documentation Index](README.md) | [← Prev: Encoding and HTML](encoding-and-html.md) | [Next: Conditionals and Error Checking →](conditionals-and-error-checking.md)

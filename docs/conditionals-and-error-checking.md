@@ -309,13 +309,10 @@ Output:
 <p>Updated: Sep 10, 2026</p>
 ```
 
-- The `or404()` guard passes because `name` is present; a missing name
-  would have ended the page with a 404
-- Zero price formats to "$0.00", which `ifEquals()` catches and replaces
-  with "Free!"
-- The empty summary falls through `textOnly()->maxChars()` unchanged (still
-  `""`), so the final `or()` fires
-- Each fallback sits at the end of its chain, covering every step before it
+A passing guard leaves no trace in the output; a missing `name` would have
+ended the page with a 404 before any of it printed. The empty summary stays
+`""` through `textOnly()->maxChars()`, which is what lets the trailing `or()`
+fire.
 
 ---
 
