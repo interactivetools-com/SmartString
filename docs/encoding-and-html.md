@@ -129,11 +129,9 @@ result is always a valid JavaScript expression. Two hardening details:
 
 ## Newlines to `<br>` - `nl2br()`
 
-Multiline plain text (addresses, hours, bios) needs line breaks in HTML.
-Encoding alone can't provide them, and PHP's native `nl2br()` doesn't encode.
-SmartString's `nl2br()` does both in the safe order: encode first, then
-convert newlines, so the only tags in the result are the `<br>` tags it
-added:
+Encodes the value and then converts newlines to `<br>` tags, in that order,
+so the only tags in the result are the ones it added. An enhancement of
+PHP's native `nl2br()` which doesn't encode.
 
 ```php
 $address = SmartString::new("Bob & Sons\nSuite 5");

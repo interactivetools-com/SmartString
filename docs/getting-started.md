@@ -99,9 +99,8 @@ echo "Results for $_REQUEST[q]";
 Across hundreds of templates and thousands of echo statements, someone
 eventually forgets one.
 
-SmartString removes the problem by inverting the default: encoding is what
-happens when you do nothing. You cannot produce unencoded output by accident;
-you have to ask for it explicitly (see
+SmartString inverts the default behavior: output is encoded when you do
+nothing, and unencoded output has to be asked for explicitly (see
 [Encoding and HTML](encoding-and-html.md) for the explicit ways to ask).
 
 ## Chaining Methods

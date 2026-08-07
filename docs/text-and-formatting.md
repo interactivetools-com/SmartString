@@ -237,9 +237,8 @@ rule: run conditionals before formatting (see
 
 ## Math - `add()`, `subtract()`, `multiply()`, `divide()`
 
-Basic arithmetic for report columns and order totals, chainable and safe on
-imperfect data. Arguments can be plain numbers or other SmartStrings; results
-are floats:
+Basic arithmetic, chainable and safe on imperfect data. Arguments can be
+plain numbers or other SmartStrings; results are floats:
 
 ```php
 $price = SmartString::new(100);
@@ -285,13 +284,11 @@ echo SmartString::new("cat")->add(10)->ifNull(0)->add(5);  // 5 (recovered mid-c
 
 ### Decimal precision
 
-Computers store decimal numbers ("floats") in binary, and some decimals
-have no exact binary form, the same way 1/3 has no exact decimal form
-(0.333... forever). So the stored number can be a tiny bit off: ask for
-`0.1 + 0.2` and the computer actually holds `0.30000000000000004`. Every
-programming language works this way, not just PHP. Echo hides it by
-rounding, but it can surface in comparisons and running totals. Use
-`numberFormat()` to round for display:
+Results are floats, so they carry the usual binary floating-point
+imprecision: ask for `0.1 + 0.2` and the stored value is
+`0.30000000000000004`. Echo hides it by rounding, but it can surface in
+comparisons and running totals; `numberFormat()` rounds explicitly for
+display:
 
 ```php
 $val = SmartString::new(0.1);

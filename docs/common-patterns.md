@@ -236,8 +236,8 @@ echo <<<__HTML__
 ## Methods or Plain PHP?
 
 It's easy to reach for the native PHP functions you already know, and they
-work. Side by side, though, the method version is usually shorter, handles
-null, and encodes correctly on output.
+work. Side by side, however, the method version is usually shorter, handles
+null, and encodes automatically on output.
 
 | Instead of                                          | Write                             |
 |-----------------------------------------------------|-----------------------------------|
