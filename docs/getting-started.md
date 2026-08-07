@@ -279,7 +279,7 @@ The [Method Reference](method-reference.md) lists every method with examples.
    goes in and an `int` comes back; same for `float`, `bool`, and `null`.
 3. **Methods return new objects.** Chaining never modifies the original
    SmartString.
-5. **Chains never throw on bad data.** Missing values pass through
+4. **Chains never throw on bad data.** Missing values pass through
    transformations, and failed operations (an invalid date, math on a
    non-numeric value) return null, so one `or()` at the end covers anything
    that went wrong anywhere in the chain.
