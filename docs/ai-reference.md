@@ -220,7 +220,7 @@ HTML-encoded automatically (messages often interpolate user input).
 
 | Method                              | On missing                                                                                                                                               |
 |-------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `or404(?string $text = null): self` | HTTP 404 + minimal HTML page + `exit`. Default text "The requested URL was not found on this server."                                                    |
+| `or404(?string $text = null): self` | HTTP 404 + minimal HTML page + `exit(1)`. Default text "The requested URL was not found on this server."                                                 |
 | `orDie(string $text): self`         | Echo encoded text + `exit(1)` (failure code for CLI/cron)                                                                                                |
 | `orThrow(string $text): self`       | `throw new RuntimeException($encodedText)`. Decode for logs/CLI with `htmlspecialchars_decode($msg, ENT_QUOTES \| ENT_SUBSTITUTE \| ENT_HTML5)`          |
 | `orRedirect(string $url): self`     | 302 + `Location: $url` + `exit`. Checks `headers_sent()` IMMEDIATELY (throws RuntimeException even when value present, so misuse fails on first request) |

@@ -191,4 +191,4 @@ we build.
 
 ---
 
-[← Documentation Index](README.md)
+[← Documentation Index](README.md) | [← Prev: Troubleshooting](troubleshooting.md) | [Next: AI Reference →](ai-reference.md)

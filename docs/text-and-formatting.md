@@ -318,7 +318,7 @@ echo $user->nickname->map('strval')->map('mb_convert_case', MB_CASE_TITLE);
 ```
 
 The callback must return a scalar or null; returning an array or object
-throws, with the error reporting your file and line.
+throws InvalidArgumentException.
 
 ## Putting It Together
 

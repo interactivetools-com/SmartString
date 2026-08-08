@@ -194,4 +194,4 @@ mid-chain, `print_r()` any link of it; chains are just objects.
 
 ---
 
-[← Documentation Index](README.md) | [← Prev: Method Reference](method-reference.md) | [Next: AI Reference →](ai-reference.md)
+[← Documentation Index](README.md) | [← Prev: Method Reference](method-reference.md) | [Next: Performance →](performance.md)
