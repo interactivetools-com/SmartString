@@ -154,15 +154,17 @@ echo $bio->nl2br()->or('No bio');   // throws - nl2br() returned a string
 echo $bio->or('No bio')->nl2br();
 ```
 
-### ifZero() after percent() or numberFormat() never fires
+### ifZero() after percent() never fires
 
 Formatters return display text, and `ifZero()` only recognizes numeric
-zeros, so `"0.00%"` and `"$0.00"` never match. Use the `percent()`
-parameter, or detect zero on the raw value:
+zeros, so `"0.00%"` and `"$0.00"` never match. Plain `numberFormat()` output
+like `"0.00"` is still numeric, so `ifZero()` works after it. Use the
+`percent()` parameter, or match the formatted text with `ifEquals()`:
 
 ```php
-echo $rate->percent(2, ifZero: 'N/A');  // percent's zero rule is a parameter
-echo $price->numberFormat(2)->prepend('$')->ifEquals('$0.00', 'Free!');  // match the formatted text
+echo $rate->percent(2, ifZero: 'N/A');             // percent's zero rule is a parameter
+echo $rate->percent(2)->ifEquals('0.00%', 'N/A');  // or match the formatted text
+echo $price->numberFormat(2)->prepend('$')->ifEquals('$0.00', 'Free!');
 ```
 
 See [Run Conditionals Before Formatting](conditionals-and-error-checking.md#run-conditionals-before-formatting).

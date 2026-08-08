@@ -606,6 +606,18 @@ class DocsExamplesTest extends SmartStringTestCase
         $this->assertTrue($missing->isEmpty());
     }
 
+    public function testTroubleshootingIfZeroAfterFormatting(): void
+    {
+        // numberFormat() zeros stay numeric ("0.00") so ifZero() fires; percent()'s "0.00%" doesn't match
+        $this->assertSame('', (string)SmartString::new(0)->numberFormat(2)->ifZero(''));
+        $this->assertSame('0.00%', (string)SmartString::new(0)->percent(2)->ifZero('N/A'));
+
+        $rate = SmartString::new(0);
+        $this->assertSame('N/A', (string)$rate->percent(2, ifZero: 'N/A'));
+        $this->assertSame('N/A', (string)$rate->percent(2)->ifEquals('0.00%', 'N/A'));
+        $this->assertSame('Free!', (string)SmartString::new(0)->numberFormat(2)->prepend('$')->ifEquals('$0.00', 'Free!'));
+    }
+
     public function testTroubleshootingHtmlTagsPrintAsText(): void
     {
         $address = SmartString::new('12 High St');
