@@ -189,10 +189,11 @@ if ($user->bio->isNotEmpty()) {
 }
 ```
 
-The same applies to `empty($user->bio)` (always false) and `!$user->bio`
-(always false); use the check methods instead. The difference between the
-checks is what happens to zero, so pick the one that treats zero the way
-you want:
+The same applies to PHP's own tests like `empty($user->bio)` and
+`!$user->bio`: they don't test the value the way you'd expect on an object.
+Use the check methods, or call `->value()` to get the raw value when you
+want to test it with plain PHP. The difference between the checks is what
+happens to zero, so pick the one that treats zero the way you want:
 
 ```php
 $balance = SmartString::new(0);
