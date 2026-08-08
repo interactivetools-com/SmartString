@@ -97,15 +97,15 @@ default when a field is empty.*
 ### [Require a Value](conditionals-and-error-checking.md#requiring-a-value---or404-ordie-orthrow-orredirect)
 
 *Use these for values that must exist, like a record ID from the URL. If the
-value is missing (null or "") they stop the page; otherwise they do nothing and
-the chain continues. Zero counts as present.*
+value is missing (null or "") they stop the page; otherwise the chain
+continues. Zero counts as present.*
 
 | Method                  | Description                                                                          |
 |-------------------------|--------------------------------------------------------------------------------------|
 | `->orDie($text)`        | Outputs the message and exits                                                        |
 | `->or404($text = null)` | Outputs a 404 header and the message (default: standard not-found text), then exits  |
 | `->orThrow($text)`      | Throws a RuntimeException with the message                                           |
-| `->orRedirect($url)`    | Redirects to `$url` and exits (throws RuntimeException if headers were already sent) |
+| `->orRedirect($url)`    | Redirects to `$url` and exits. The headers-already-sent check throws even when the value is present, so misuse fails on the first request |
 
 ### [Value Checks](conditionals-and-error-checking.md#truefalse-checks---isempty-isnotempty-ismissing-isnull)
 

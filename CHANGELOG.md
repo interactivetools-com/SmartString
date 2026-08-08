@@ -159,6 +159,9 @@ These still work, they're just no longer featured in the docs - no changes requi
 
 ### Other
 
+- The `<xmp>` wrapper on `help()`'s web output escapes a literal `</xmp` as
+  `<\/xmp`, same as CMSB's `xmp_safe()` - keeps the shared helper in sync
+  with SmartArray's `debug()` fix (the help text itself is static)
 - Misc internal code cleanup and modernization
 
 ## [2.6.3] - 2026-04-27
