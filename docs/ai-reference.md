@@ -9,7 +9,7 @@
 This is a consolidated reference for AI coding assistants. It contains
 everything needed to write correct SmartString code in a single file, and
 covers SmartString 3.0. For human-friendly docs with tutorials and
-explanations, see [Getting Started](getting-started.md).
+explanations, see [Getting Started](https://github.com/interactivetools-com/SmartString/blob/main/docs/getting-started.md).
 
 Contents:
 
@@ -319,4 +319,4 @@ in normal operation - everything else means code to fix.
 
 ---
 
-[← Documentation Index](README.md) | [← Prev: Troubleshooting](troubleshooting.md)
+Full documentation: https://github.com/interactivetools-com/SmartString/tree/main/docs
