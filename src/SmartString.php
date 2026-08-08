@@ -1043,19 +1043,6 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     //region Internal
 
     /**
-     * Magic getter that provides helpful error messages for common mistakes with dynamic properties/methods
-     * Emits E_USER_WARNING when property access is invalid, providing detailed usage instructions.
-     *
-     * Handles two main error cases:
-     * 1. Attempting to call methods without proper syntax:
-     *    - Missing () brackets: $str->htmlEncode instead of $str->htmlEncode()
-     *    - Missing {} in strings: "$str->htmlEncode()" instead of "{$str->htmlEncode()}"
-     * 2. Accessing undefined properties
-     *
-     * @param string $property Name of the property/method being accessed
-     * @return SmartString Always returns a new instance with null value to prevent fatal errors
-     */
-    /**
      * Returns a short quoted preview of the value for error messages (strings truncated to 20 chars).
      */
     private function valuePreview(): string
@@ -1085,6 +1072,19 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         );
     }
 
+    /**
+     * Magic getter that provides helpful error messages for common mistakes with dynamic properties/methods
+     * Emits E_USER_WARNING when property access is invalid, providing detailed usage instructions.
+     *
+     * Handles two main error cases:
+     * 1. Attempting to call methods without proper syntax:
+     *    - Missing () brackets: $str->htmlEncode instead of $str->htmlEncode()
+     *    - Missing {} in strings: "$str->htmlEncode()" instead of "{$str->htmlEncode()}"
+     * 2. Accessing undefined properties
+     *
+     * @param string $property Name of the property/method being accessed
+     * @return SmartString Always returns a new instance with null value to prevent fatal errors
+     */
     public function __get(string $property): SmartString
     {
         // throw unknown property warning
