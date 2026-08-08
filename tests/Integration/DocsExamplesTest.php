@@ -244,7 +244,8 @@ class DocsExamplesTest extends SmartStringTestCase
         SmartString::$dateFormat = 'F jS, Y';
         $this->assertSame('May 15th, 2026', (string)$date->dateFormat());
 
-        $this->assertSame('2023-05-15', (string)SmartString::new(1684159800)->dateFormat('Y-m-d'));
+        date_default_timezone_set('America/Vancouver'); // the docs show the timestamp example with T = PDT
+        $this->assertSame('2023-05-15 PDT', (string)SmartString::new(1684159800)->dateFormat('Y-m-d T'));
 
         $invalid = SmartString::new("not a date");
         $this->assertSame('Date not set', (string)$invalid->dateFormat()->or("Date not set"));

@@ -142,11 +142,11 @@ echo $date->dateFormat();  // May 15th, 2026
 ```
 
 There is one method for dates and datetimes; the format string decides what
-shows. Numeric values are treated as unix timestamps; everything else is
-parsed with `strtotime()`:
+shows. Numeric values are treated as unix timestamps and format in your
+server's PHP timezone; everything else is parsed with `strtotime()`:
 
 ```php
-echo SmartString::new(1684159800)->dateFormat('Y-m-d');  // 2023-05-15
+echo SmartString::new(1684159800)->dateFormat('Y-m-d T');  // 2023-05-15 PDT
 ```
 
 Invalid dates return null rather than throwing, so a fallback chains
