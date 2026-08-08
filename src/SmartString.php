@@ -385,6 +385,9 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      * value like "<p>&nbsp;</p>" trims to "" and ->or() fallbacks fire on it. Newlines
      * and tabs are left alone.
      *
+     * Invalid UTF-8 bytes (Latin-1 data that was never converted, or a string cut
+     * mid-character) are replaced with � (like htmlEncode/jsonEncode).
+     *
      * Missing values (null or "") pass through unchanged.
      */
     public function textOnly(): SmartString
@@ -400,11 +403,11 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         $literal = $marker . $marker;
         $prose   = $marker . "\x01";
 
-        $text = html_entity_decode((string)$this->rawData, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8');
+        $text = html_entity_decode(self::substituteInvalidUtf8((string)$this->rawData), ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8');
         $text = str_replace($marker, $literal, $text);
-        $text = preg_replace('/<(?![a-zA-Z\/!?])/', $prose, $text); // no /u: byte-level is UTF-8-safe here and never fails on bad bytes
+        $text = preg_replace('/<(?![a-zA-Z\/!?])/', $prose, $text); // no /u needed: byte-level matching is UTF-8-safe here
         $text = strtr(strip_tags($text), [$literal => $marker, $prose => '<']); // strtr, not str_replace: one left-to-right pass, so a doubled pair can't have its second half read as ours
-        $text = preg_replace('/\xC2\xA0|\xE1\x9A\x80|\xE2\x80[\x80-\x8A\xAF]|\xE2\x81\x9F|\xE3\x80\x80/', ' ', $text); // \p{Zs} minus U+0020, as bytes because /u returns null on invalid UTF-8
+        $text = preg_replace('/\xC2\xA0|\xE1\x9A\x80|\xE2\x80[\x80-\x8A\xAF]|\xE2\x81\x9F|\xE3\x80\x80/', ' ', $text); // \p{Zs} minus U+0020, spelled as bytes so the pattern needs no /u
 
         return new self(trim($text));
     }

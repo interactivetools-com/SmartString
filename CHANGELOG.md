@@ -89,6 +89,9 @@ These still work, they're just no longer featured in the docs - no changes requi
   (newlines and tabs untouched), so an "empty" WYSIWYG value like
   `<p>&nbsp;</p>` trims to `""` and a later `or()` fallback fires - previously
   it returned a single invisible character that counted as content
+- `textOnly()` replaces invalid UTF-8 bytes with � like `maxChars()` and
+  `maxWords()`, so its text is always valid UTF-8 and safe to store -
+  previously bad bytes passed through unchanged
 - Math: a failed step (missing value, non-numeric input, divide by zero) returns
   null, and a fallback like `or()` now fully recovers the chain - previously any
   math after the fallback still returned null:

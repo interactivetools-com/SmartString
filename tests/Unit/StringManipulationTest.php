@@ -93,10 +93,10 @@ class StringManipulationTest extends SmartStringTestCase
         $this->assertSame("<12$marker",           SmartString::new("<12$marker")->textOnly()->value());
     }
 
-    public function testTextOnlyKeepsInvalidUtf8(): void
+    public function testTextOnlySubstitutesInvalidUtf8(): void
     {
-        // space normalization runs byte-level: a /u pattern returns null on bad bytes and would blank the value
-        $this->assertSame("caf\xE9 bad bytes", SmartString::new("caf\xE9 bad bytes")->textOnly()->value());
+        // bad bytes become U+FFFD like maxChars/maxWords, so textOnly() always returns valid UTF-8
+        $this->assertSame("caf\u{FFFD} bad bytes", SmartString::new("caf\xE9 bad bytes")->textOnly()->value());
     }
 
     //endregion

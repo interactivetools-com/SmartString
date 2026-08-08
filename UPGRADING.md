@@ -82,6 +82,8 @@ Full lists of what changed per release: [CHANGELOG.md](CHANGELOG.md).
 > - `textOnly()` turns non-breaking and other Unicode spaces into plain spaces
 > (newlines and tabs untouched), so "empty" WYSIWYG values like `<p>&nbsp;</p>`
 > now count as missing and `or()` fallbacks fire on them
+> - `textOnly()` replaces invalid UTF-8 bytes with � (previously they passed
+> through unchanged), so its text is always valid UTF-8
 > - `pregReplace()` passes `""` through unchanged, like null - previously an
 > empty-matching pattern could turn a missing value into content, so a later
 > `or()` fallback can now show where it previously didn't
