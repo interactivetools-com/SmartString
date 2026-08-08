@@ -66,7 +66,7 @@ Full lists of what changed per release: [CHANGELOG.md](CHANGELOG.md).
 > - Search `message:` and replace with `text:` on or404/orDie/orThrow calls
 > - Search `func:` and replace with `callback:` on map/apply calls
 >
-> Regex: `->(percent\([^)]*zeroFallback:|(orDie|or404|orThrow)\(\s*message:|(map|apply)\(\s*func:)`
+> Regex: `zeroFallback:|->(orDie|or404|orThrow)\(\s*message:|->(map|apply)\(\s*func:`
 
 ### Silent changes
 
@@ -107,7 +107,7 @@ Full lists of what changed per release: [CHANGELOG.md](CHANGELOG.md).
 | `->andPrefix("<br>Tel: ")`              | `->wrapHtml('<br>Tel: ', '')`           |
 | `echo $field` where the data has `<br>` | `echo $field->textToHtml(keepBr: true)` |
 
-> Regex: `->\w+\(['"][^'"]*<br` finds `<br` inside method arguments
+> Regex: `->\w+\([^)]*<br` finds `<br` inside method arguments
 
 ### Removed settings (only existed v2.1.2 - v2.6.2)
 
