@@ -26,10 +26,10 @@ in signatures, docblocks, the changelog, and tests.
   check) and benchmark a call nobody writes. Dropping SmartString's extra
   flags was also rejected: the tier scans check disallowed chars in the same
   pass, so the hardening is nearly free.
-- **The performance table has no clean-article or numbers/empty rows** -
-  removed after seeing real data: articles have apostrophes, and
-  nanosecond-vs-nanosecond ratios mislead. The raw generator output still
-  measures them.
+- **The news-article page mix has no clean-body, numbers, or empty fields** -
+  articles have apostrophes, so the 10 KB body is the quoted variant, and
+  sub-microsecond fields would not move the page total. The main table still
+  measures numbers, empties, and clean text at every size as their own rows.
 - **Coverage is ~92% on purpose** - every uncovered line was dispositioned
   (2026-07-14): exit paths are subprocess-tested, and `SharedHelpers.php`
   keeps its unused branch because it is a twin of SmartArray's copy (identical

@@ -281,8 +281,9 @@ foreach ([['clean', UNIT_CLEAN], ['specials', UNIT_SPECIALS], ['accented', UNIT_
 
 // News-article page: the page the performance page prices field by field - a
 // quoted headline, three clean shorts, a 200 B caption, and a 10 KB body per
-// six-field cycle. The measured ratio IS the whole-page multiplier the docs
-// bullets cite; the per-field rows above are its components.
+// six-field cycle. Reported per page (the per-value timing times six fields),
+// so this row is the whole-page cost and multiplier the docs bullets cite;
+// the per-field rows above are its components.
 $sp16  = pool(UNIT_SPECIALS, 16);
 $cl16  = pool(UNIT_CLEAN, 16);
 $cl200 = pool(UNIT_CLEAN, 200);
@@ -327,6 +328,10 @@ $tableRows = [['Content', 'Size', 'Example', '`htmlspecialchars()`', 'SmartStrin
 foreach ($rows as $row) {
     [$label, $sizeLabel, $example, $values, $iterations] = $row;
     [$a, $b] = bench($values, max(1, (int)($iterations * $scale)), $row[5] ?? 'echo');
+    if ($label === 'News-article page') { // six-field cycle: report the whole page, not the per-field average
+        $a *= 6;
+        $b *= 6;
+    }
     $tableRows[] = [
         $label,
         $sizeLabel,
@@ -338,7 +343,7 @@ foreach ($rows as $row) {
 }
 
 echo alignedTable($tableRows);
-echo "\n\\* News-article page: a 16 B quoted headline; author, category, and date (16 B plain); a 200 B caption; and a 10 KB body with quotes.\n";
-echo "\nPer call, best of 7, measured on " . PHP_OS_FAMILY . ' ' . php_uname('m') . ", PHP " . PHP_VERSION . ".\n";
+echo "\n\\* News-article page: a 16 B quoted headline; author, category, and date (16 B plain); a 200 B caption; and a 10 KB body with quotes. This row is the whole page - all six fields together.\n";
+echo "\nPer call (per page for the News-article row), best of 7, measured on " . PHP_OS_FAMILY . ' ' . php_uname('m') . ", PHP " . PHP_VERSION . ".\n";
 
 #endregion
