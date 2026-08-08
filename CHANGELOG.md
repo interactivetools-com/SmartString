@@ -8,7 +8,7 @@
 
 > **Bundled with CMS Builder v3.85**
 
-The headlines: HTML-encoded output is at least 2.5x faster, method names now
+The headlines: HTML-encoded output is ~4x faster than v2.7.0, method names now
 match SmartArray (old names keep working), and new `wrap()`/`wrapHtml()`
 replace the `if` statements around optional fields. Everything else is
 hardening and fixes.
@@ -24,10 +24,12 @@ hardening and fixes.
 
 ### Performance
 
-- HTML-encoded output (echo and `htmlEncode()`) is at least 2.5x faster across
-  a typical page, and up to 12x on Windows: values are scanned first and only
-  encoded when something needs encoding. Output stays byte-identical to
-  `htmlspecialchars()`. Benchmarks and verification:
+- HTML-encoded output (echo and `htmlEncode()`) is ~4x faster than v2.7.0
+  (six-field article page: 38.2 → 9.3 microseconds, both versions measured
+  back to back on the same machine), and at least 2.5x faster than calling
+  `htmlspecialchars()` yourself, up to 12x on Windows: values are scanned
+  first and only encoded when something needs encoding. Output stays
+  byte-identical to `htmlspecialchars()`. Benchmarks and verification:
   [docs/performance.md](docs/performance.md)
 
 ### Renamed
