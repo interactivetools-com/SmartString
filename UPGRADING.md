@@ -11,8 +11,8 @@ Most old code keeps working after an upgrade:
   a deprecation notice with their exact replacement, e.g. "Replace
   ->stripTags() with ->textOnly() in listings.php:14" - error handlers like
   CMS Builder's developer log catch these.
-- **Only the silent changes need checking.** This file lists them per
-  version, each with a search.
+- **Breaking and silent changes are listed below.** Each version's section
+  gives a search for every change worth checking.
 
 Full lists of what changed per release: [CHANGELOG.md](CHANGELOG.md).
 
