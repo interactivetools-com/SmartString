@@ -28,6 +28,7 @@ Contents:
 - Debugging - print_r()
 - Errors and Exceptions
 - Gotchas Quick Reference
+- Old Method Names (Deprecated, Still Work)
 
 ---
 
@@ -316,6 +317,28 @@ in normal operation - everything else means code to fix.
   use `value()` or `isNull()` when null must be distinguishable.
 - The `dateFormat()` method treats numeric strings as unix timestamps
   (`"2026"` is epoch + 2026 seconds, not a year).
+
+## Old Method Names (Deprecated, Still Work)
+
+Code from v1/v2 docs or training data may use these. They still run but are
+deprecated; always write the current name in new code.
+
+| Old name                   | Write instead                                                              |
+|----------------------------|----------------------------------------------------------------------------|
+| `->and($value)`            | `->append($value)`                                                         |
+| `->andPrefix($value)`      | `->prepend($value)`                                                        |
+| `->apply($callback)`       | `->map($callback)`                                                         |
+| `->if($cond, $value)`      | `->ifTrue($cond, $value)`                                                  |
+| `->ifBlank($fallback)`     | `->or($fallback)` for missing values, `->ifEquals('', $fallback)` for `""` |
+| `->textToHtml()`           | `->nl2br()`                                                                |
+| `->dateTimeFormat($fmt)`   | `->dateFormat($fmt)`                                                       |
+| `->stripTags()`            | `->textOnly()`                                                             |
+| `->toString()`             | `->htmlEncode()` or `->string()`                                           |
+| `->noEncode()`             | `->rawHtml()`                                                              |
+| `->jsEncode()`             | `->jsonEncode()` - different output; the old name keeps the old behavior   |
+| `SmartString::fromArray()` | `SmartArrayHtml::new()` (SmartArray library)                               |
+| `->phoneFormat()`          | retired, no replacement - format phone numbers yourself                    |
+| `SmartString::help()`      | retired - this file and the GitHub docs replaced it                        |
 
 ---
 
