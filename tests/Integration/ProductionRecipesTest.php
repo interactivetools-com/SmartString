@@ -183,6 +183,29 @@ class ProductionRecipesTest extends SmartStringTestCase
         $this->assertSame('2026-06-15', SmartString::new('2026-06-15')->or('2025-01-01')->string());
     }
 
+    /**
+     * C8: SmartString methods on a missing field (an empty result's SmartNull)
+     * keep the chain alive. These three broke during 3.0 development from a
+     * SmartString-side rename, so this repo pins the pairing too; full
+     * SmartNull coverage lives in SmartArray's SmartNullTest.
+     */
+    public function testC8SmartStringMethodsOnMissingField(): void
+    {
+        $missing = SmartArray::new([])->asHtml()->first();
+
+        $callbackRan = false;
+        $mapped      = $missing->map(function ($value) use (&$callbackRan) {
+            $callbackRan = true;
+            return $value;
+        });
+        $this->assertFalse($callbackRan, 'map() has no value to pass, so the callback must not run');
+        $this->assertSame('n/a', (string)$mapped->or('n/a'));
+
+        $this->assertSame('', $missing->htmlEncode());
+
+        $this->assertSame('fallback', $missing->set('fallback')->value());
+    }
+
     //endregion
     //region D. Math Chains
 
