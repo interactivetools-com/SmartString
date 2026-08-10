@@ -47,14 +47,34 @@ class FormattingTest extends SmartStringTestCase
             'timezone offset in input'  => ['2023-05-15T14:30:00+02:00', 'Y-m-d H:i:s T', '2023-05-15 05:30:00 MST'],
             'bool true returns null'    => [true, 'Y-m-d T', null],  // bools take the null path
             'bool false returns null'   => [false, 'Y-m-d T', null], // bools take the null path
-            // range guard: timestamps outside years 1000-9999 (UTC) return null so ->or() fires
+            // range guard: timestamps that print as a year outside 1000-9999 return null so ->or() fires.
+            // The year is what date() prints, so the boundaries below are Phoenix local time; tzdata
+            // renders year-1000 dates with Phoenix's pre-standard local mean time, -7:28:18, not -7:00
             'JS millisecond timestamp'  => [1684159800000, 'Y-m-d', null], // ms where seconds expected - was year 55338
             'overflow numeric'          => ['99999999999999999999', 'Y-m-d', null], // int cast saturates at PHP_INT_MAX - was year 292277026596
-            'year 9999 max boundary'    => [253402300799, 'Y', '9999'], // 9999-12-31 23:59:59 UTC
-            'above year 9999'           => [253402300800, 'Y-m-d', null],
-            'year 1000 still formats'   => [-30610000000, 'Y', '1000'],
-            'below year 1000'           => [-30610224001, 'Y-m-d', null],
+            'last second of year 9999'  => [253402325999, 'Y', '9999'], // 9999-12-31 23:59:59 in Phoenix
+            'above year 9999'           => [253402326000, 'Y-m-d', null], // 10000-01-01 00:00:00 in Phoenix
+            'first second of year 1000' => [-30610197102, 'Y', '1000'], // 1000-01-01 00:00:00 in Phoenix
+            'below year 1000'           => [-30610197103, 'Y-m-d', null], // 999-12-31 23:59:59 in Phoenix
         ];
+    }
+
+    /**
+     * The year guard compares the year date() will print, which follows the server's
+     * timezone. Fixed UTC epoch bounds are wrong by the UTC offset at the range edges:
+     * the common "never expires" sentinel 9999-12-31 23:59:59 sits above the UTC bound
+     * in any US timezone and printed empty, while 1000-01-01 failed in timezones east
+     * of UTC. The guard itself still rejects bad data in every timezone.
+     */
+    public function testDateFormatYearGuardUsesRenderedYear(): void
+    {
+        date_default_timezone_set('America/Los_Angeles');
+        $this->assertSame('9999-12-31', SmartString::new('9999-12-31 23:59:59')->dateFormat('Y-m-d')->value());
+        $this->assertNull(SmartString::new(1700000000000)->dateFormat('Y-m-d')->value());
+
+        date_default_timezone_set('Asia/Tokyo');
+        $this->assertSame('1000-01-01', SmartString::new('1000-01-01 00:00:00')->dateFormat('Y-m-d')->value());
+        $this->assertNull(SmartString::new(1700000000000)->dateFormat('Y-m-d')->value());
     }
 
     /**

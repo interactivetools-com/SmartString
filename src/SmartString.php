@@ -522,11 +522,20 @@ final class SmartString implements JsonSerializable, IteratorAggregate
             default                    => strtotime($this->rawData), // int|false; is_int() below keeps timestamp 0 (the epoch) formatting
         };
 
-        // Timestamps outside years 1000-9999 return null so ->or() fallbacks fire - a JS
-        // millisecond timestamp or overflowed numeric would otherwise format as a nonsense
-        // year like 55338
-        if (is_int($timestamp) && ($timestamp < -30610224000 || $timestamp > 253402300799)) {
-            $timestamp = null;
+        // Only format timestamps that print as a 4-digit year (1000-9999) - the same range
+        // MySQL allows in DATE columns. Anything outside that is bad data, not a date:
+        // - a JavaScript millisecond timestamp (Date.now() stored where seconds belong) prints as year 55338
+        // - an overflowed numeric prints as year 292277026596
+        // Those return null instead, so ->or('Date not set') fallbacks fire rather than a
+        // nonsense date reaching the page. The check asks date() what year it will print,
+        // because date() uses the server's timezone: fixed UTC cutoffs would blank real
+        // dates near the edges, like a 9999-12-31 "never expires" sentinel on a
+        // US-timezone server.
+        if (is_int($timestamp)) {
+            $year = (int)date('Y', $timestamp);
+            if ($year < 1000 || $year > 9999) {
+                $timestamp = null;
+            }
         }
 
         $newValue = is_int($timestamp) ? date($format, $timestamp) : null;
