@@ -14,6 +14,11 @@ use JetBrains\PhpStorm\Deprecated;
  * and a one-click rewrite to the new name, and static analyzers report usages via
  * each method's deprecated docblock tag. PHP ignores attributes whose class isn't
  * loaded, so there is no runtime dependency.
+ *
+ * A deprecated calling convention inside a live method (a legacy argument shape,
+ * for example) can't move here whole - the live method keeps its signature and a
+ * one-line dispatch - but the body does: extract it to a private method named
+ * deprecated*() in this file (see SmartArray's deprecatedWhereArraySyntax()).
  */
 trait Deprecations
 {
