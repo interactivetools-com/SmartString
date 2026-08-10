@@ -113,14 +113,19 @@ class MathTest extends SmartStringTestCase
     {
         // finite operands whose result overflows to INF store as null - same
         // contract as divide-by-zero, so a later or() recovers the chain.
-        // All four operations are covered: each builds its result through the
-        // constructor, which is what turns the INF into null.
+        // add/subtract/multiply/divide build their result through the
+        // constructor, which is what turns the INF into null; percent() and
+        // percentOf() format before wrapping, so they check the computed
+        // number themselves instead of printing "inf%".
         $this->assertNull(SmartString::new(1.7976931348623157e+308)->multiply(2)->value());
         $this->assertNull(SmartString::new(-1.7976931348623157e+308)->multiply(2)->value());
         $this->assertNull(SmartString::new(-1.7976931348623157e+308)->subtract(1.7976931348623157e+308)->value());
         $this->assertNull(SmartString::new(1.7976931348623157e+308)->add(1.7976931348623157e+308)->value());
         $this->assertNull(SmartString::new(1.7976931348623157e+308)->divide(0.5)->value());
+        $this->assertNull(SmartString::new(1e307)->percent()->value());
+        $this->assertNull(SmartString::new(1e307)->percentOf(1e-5)->value());
         $this->assertSame('n/a', SmartString::new(1.7976931348623157e+308)->multiply(2)->or('n/a')->value());
+        $this->assertSame('n/a', SmartString::new(1e307)->percent()->or('n/a')->value());
         $this->assertNull(SmartString::new('9e999')->add(1)->value(), "numeric strings that cast to INF are a failed step too");
     }
 
@@ -250,6 +255,7 @@ class MathTest extends SmartStringTestCase
             'large number'       => [1000000, 2, '100,000,000.00%'],
             'null'               => [null, 0, null],
             'non-numeric string' => ['abc', 0, null],
+            'overflow to INF'    => [1e307, 0, null],
         ];
     }
 
@@ -312,6 +318,7 @@ class MathTest extends SmartStringTestCase
             'with decimals'     => [75, 150, 2, '50.00%'],
             'zero numerator'    => [0, 100, 0, '0%'],
             'zero denominator'  => [100, 0, 0, null],
+            'overflow to INF'   => [1e307, 1e-5, 0, null],
             'SmartString total' => [75, new SmartString(150.555555), 2, '49.82%'],
         ];
     }

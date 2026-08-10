@@ -618,6 +618,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         $newValue = match (true) {
             is_null($value)                     => null,
             $value === 0.0 && !is_null($ifZero) => $ifZero,
+            !is_finite($value * 100)            => null, // overflow: null like add()/multiply(), so ->or() fires
             default                             => number_format($value * 100, $decimals, self::$numberFormatDecimal, self::$numberFormatThousands) . '%',
         };
         return new self($newValue);
@@ -633,7 +634,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     {
         $left     = self::getFloatOrNull($this->rawData);
         $right    = self::getFloatOrNull($total);
-        $newValue = (is_null($left) || is_null($right) || $right === 0.0)
+        $newValue = (is_null($left) || is_null($right) || $right === 0.0 || !is_finite($left / $right * 100)) // overflow: null like add()/multiply(), so ->or() fires
             ? null
             : number_format($left / $right * 100, $decimals, self::$numberFormatDecimal, self::$numberFormatThousands) . '%';
         return new self($newValue);

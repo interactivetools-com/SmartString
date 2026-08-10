@@ -129,6 +129,9 @@ These still work, they're just no longer featured in the docs - no changes requi
   `&amp;` in the Location header. A `SmartNull` argument counts as null
   (`new()` previously stored `""`, so `isNull()` reported a missing field as
   present)
+- `percent()` and `percentOf()` return null when the result overflows to
+  infinity, like the other numeric operations, so `->or()` fallbacks fire
+  (previously the page printed `inf%`)
 - `SmartString::help()` works as a static call (the documented form was a fatal error)
 - `getRawValue()` unwraps `SmartArrayHtml` (previously "Unsupported value type")
 - `maxChars()` and `maxWords()` handle invalid UTF-8 - bad bytes become � like
