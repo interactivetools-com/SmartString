@@ -530,8 +530,10 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         // nonsense date reaching the page. The check asks date() what year it will print,
         // because date() uses the server's timezone: fixed UTC cutoffs would blank real
         // dates near the edges, like a 9999-12-31 "never expires" sentinel on a
-        // US-timezone server.
-        if (is_int($timestamp)) {
+        // US-timezone server. The date() call (~3us) only runs within a day of a UTC bound:
+        // no timezone is more than a day from UTC, so everything deeper inside the range
+        // prints a 4-digit year everywhere and skips the check.
+        if (is_int($timestamp) && ($timestamp < -30610137600 || $timestamp > 253402214399)) {
             $year = (int)date('Y', $timestamp);
             if ($year < 1000 || $year > 9999) {
                 $timestamp = null;
