@@ -189,6 +189,11 @@ class EncodingTest extends SmartStringTestCase
         $this->assertSame('"a\ufe0fb"',       SmartString::new("a\u{FE0F}b")->jsonEncode());
         $this->assertSame('"a\udb40\udd00b"', SmartString::new("a\u{E0100}b")->jsonEncode());
 
+        // U+2028/U+2029 line separators: invisible, legal in JSON, and syntax errors in
+        // pre-ES2019 JS string literals. json_encode escapes them only because the flags
+        // omit JSON_UNESCAPED_LINE_TERMINATORS, so adding that flag fails here
+        $this->assertSame('"a\u2028b\u2029c"', SmartString::new("a\u{2028}b\u{2029}c")->jsonEncode());
+
         // escaping is lossless: decoding returns the original characters
         $original = "x\u{200B}\u{202E}\u{E0041}y";
         $this->assertSame($original, json_decode(SmartString::new($original)->jsonEncode()));

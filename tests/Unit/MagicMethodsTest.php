@@ -111,6 +111,21 @@ class MagicMethodsTest extends SmartStringTestCase
         $this->assertSame('\u0026#39;+alert(1)+\u0026#39;', $results[1]);
     }
 
+    public function testJsEncodeShimEscapesTemplateLiteralBreakout(): void
+    {
+        // v2.7.0's addcslashes list included the backtick, and legacy code embeds this
+        // shim's output in `template literals`, so the jsonEncode()-based version must
+        // escape it too. $ is escaped as well: ${} interpolation executes without any
+        // backtick, so escaping only the backtick would still leave an injection open.
+        [$results, $messages] = $this->captureDeprecations(fn() => [
+            SmartString::new('`;alert(1);//')->jsEncode(),
+            SmartString::new('${alert(1)}')->jsEncode(),
+        ]);
+        $this->assertCount(2, $messages);
+        $this->assertSame('\u0060;alert(1);//', $results[0]);
+        $this->assertSame('\u0024{alert(1)}', $results[1]);
+    }
+
     public function testJsEncodeShimConvertsNonStringsBeforeEscaping(): void
     {
         [$results, ] = $this->captureDeprecations(fn() => [
