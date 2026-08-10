@@ -39,6 +39,7 @@ class HelpTest extends SmartStringTestCase
         $this->assertSame('passthrough', $staticResult);
         $this->assertSame('original value', $instanceResult);
         $this->assertStringContainsString('https://github.com/interactivetools-com/SmartString#readme', $staticOutput);
+        $this->assertStringContainsString('https://github.com/interactivetools-com/SmartString/blob/main/docs/method-reference.md', $staticOutput);
         $this->assertSame($staticOutput, $instanceOutput);
     }
 
@@ -46,50 +47,21 @@ class HelpTest extends SmartStringTestCase
      * The <xmp> web branch is reachable under PHP's built-in server (SAPI
      * cli-server), so this is the one test that asserts the wrapped path: a
      * literal </xmp> can't end the block early - it displays as <\/xmp>, the
-     * same escaping as CMSB's xmp_safe(). HTML tag names are case-insensitive,
-     * so </XMP> has to be escaped too and the fixture sends both spellings.
+     * same escaping as CMSB's xmp_safe(). HTML tag names are case-insensitive, so
+     * the fixture sends lower, upper and mixed case: matching only the two extremes
+     * would let an escape that lists spellings literally through.
+     *
+     * The escaped forms are compared case-insensitively because the safe output is
+     * the backslash, not the casing an implementation happens to emit.
      */
     public function testXmpWrapEscapesXmpClosingTagOnWebResponses(): void
     {
-        $body = $this->requestViaBuiltInServer('xmp-breakout.php');
+        [, $body] = $this->requestViaBuiltInServer('xmp-breakout.php');
 
         $this->assertStringContainsString('<xmp>', $body);
-        $this->assertStringContainsString('<\/xmp><script>alert(1)</script>', $body, 'lowercase payload displays escaped');
-        $this->assertStringContainsString('<\/xmp><script>alert(2)</script>', $body, 'uppercase payload displays escaped');
+        $this->assertStringContainsStringIgnoringCase('<\/xmp><script>alert(1)</script>', $body, 'lowercase payload displays escaped');
+        $this->assertStringContainsStringIgnoringCase('<\/xmp><script>alert(2)</script>', $body, 'uppercase payload displays escaped');
+        $this->assertStringContainsStringIgnoringCase('<\/xmp><script>alert(3)</script>', $body, 'mixed case payload displays escaped');
         $this->assertSame(1, substr_count(strtolower($body), '</xmp>'), 'only the wrapper itself closes the block');
-    }
-
-    /**
-     * Serve one Support/bin script through php -S and return the response
-     * body. The built-in server is the one place tests can reach xmpWrap()'s
-     * web branch (PHP_SAPI is 'cli' everywhere else in the suite).
-     */
-    private function requestViaBuiltInServer(string $script): string
-    {
-        $docRoot = dirname(__DIR__) . '/Support/bin';
-
-        // find a free port, then hand it to php -S (it can't pick its own)
-        $socket = stream_socket_server('tcp://127.0.0.1:0');
-        $this->assertNotFalse($socket, 'could not find a free port');
-        $port = (int)substr(strrchr(stream_socket_get_name($socket, false), ':'), 1);
-        fclose($socket);
-
-        $pipes  = [];
-        $server = proc_open([PHP_BINARY, '-S', "127.0.0.1:$port", '-t', $docRoot], [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
-        $this->assertIsResource($server, 'could not start php -S');
-
-        try {
-            $context = stream_context_create(['http' => ['timeout' => 1]]);
-            $body    = false;
-            for ($attempt = 0; $attempt < 50 && $body === false; $attempt++) {
-                usleep(100_000);
-                $body = @file_get_contents("http://127.0.0.1:$port/$script", false, $context);
-            }
-            $this->assertIsString($body, 'no response from php -S after 5 seconds');
-            return $body;
-        } finally {
-            proc_terminate($server);
-            proc_close($server);
-        }
     }
 }

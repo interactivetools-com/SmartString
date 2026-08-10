@@ -31,9 +31,10 @@ class ImmutabilityTest extends SmartStringTestCase
 
     public function testNoMethodChangesTheStoredValue(): void
     {
-        // "caf\xE9" is invalid UTF-8, the only sample that reaches htmlspecialchars() in
-        // htmlEncode() and the U+FFFD substitution in textOnly(), maxChars() and maxWords()
-        $samples = ['Hello & <b>World</b>', '', "caf\xE9", '2024-01-15', 42, 0, 3.14, true, false, null];
+        // Both spellings earn their place: "caf\u{E9}" is valid UTF-8 and is the only sample
+        // reaching htmlEncode()'s str_replace path, while "caf\xE9" is invalid and reaches
+        // htmlspecialchars() plus the U+FFFD substitution in textOnly(), maxChars() and maxWords()
+        $samples = ['Hello & <b>World</b>', '', "caf\u{E9}", "caf\xE9", '2024-01-15', 42, 0, 3.14, true, false, null];
         $methods = array_filter(
             (new ReflectionClass(SmartString::class))->getMethods(ReflectionMethod::IS_PUBLIC),
             static fn(ReflectionMethod $method): bool => !$method->isStatic()
@@ -89,14 +90,14 @@ class ImmutabilityTest extends SmartStringTestCase
             return $param->getDefaultValue();
         }
 
-        $byName = match (sprintf('%s.%s', $param->getDeclaringFunction()->getName(), $param->getName())) {
+        $byName = [
             'pregReplace.pattern' => '/x/',       // a bare 'x' has no delimiters and fails to compile
             '__call.method'       => 'stripTags', // a deprecated shim, so the call reaches real work
             '__call.args'         => [],          // __call() takes the argument list as an array
-            default               => null,
-        };
-        if ($byName !== null) {
-            return $byName;
+        ];
+        $key = sprintf('%s.%s', $param->getDeclaringFunction()->getName(), $param->getName());
+        if (array_key_exists($key, $byName)) {
+            return $byName[$key];
         }
 
         $type      = $param->getType();

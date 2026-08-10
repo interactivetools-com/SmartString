@@ -77,7 +77,7 @@ class GlobalSettingsTest extends SmartStringTestCase
      * First half of the infrastructure self-test: mutate every setting and
      * the timezone, restore nothing. Returns the timezone the process had on
      * entry, the exact value tearDown must put back (the five settings have
-     * documented defaults to compare against, the timezone comes from php.ini).
+     * documented defaults to compare against, the timezone has none).
      */
     public function testSnapshotSelfTestMutatesEverySetting(): string
     {
@@ -111,21 +111,26 @@ class GlobalSettingsTest extends SmartStringTestCase
     /**
      * The pair above can only compare against the timezone the harness happens to
      * run under, so it cannot tell a restore from tearDown() hardcoding that same
-     * zone. Driving one setUp()/tearDown() cycle by hand pins the exact value: the
-     * zone setUp() saved, whatever it was.
+     * zone. Driving setUp()/tearDown() by hand pins the exact value. Two different
+     * saved zones go through the cycle, so no single hardcoded literal can satisfy
+     * both rounds.
      */
     public function testSnapshotSelfTestRestoresTheTimezoneItSaved(): void
     {
         $timezoneOnEntry = date_default_timezone_get();
 
-        date_default_timezone_set('America/Phoenix');
-        $this->setUp();                          // snapshot a zone this test picked, not the harness default
-        date_default_timezone_set('Australia/Eucla');
-        $this->tearDown();
-        $this->assertSame('America/Phoenix', date_default_timezone_get());
-
-        date_default_timezone_set($timezoneOnEntry);
-        $this->setUp();                          // re-arm so the harness tearDown leaves the process as we found it
+        try {
+            foreach (['America/Phoenix', 'Antarctica/Troll'] as $savedZone) {
+                date_default_timezone_set($savedZone);
+                $this->setUp();                  // snapshot a zone this test picked, not the harness default
+                date_default_timezone_set('Australia/Eucla');
+                $this->tearDown();
+                $this->assertSame($savedZone, date_default_timezone_get());
+            }
+        } finally {
+            date_default_timezone_set($timezoneOnEntry);
+            $this->setUp();                      // re-arm so the harness tearDown leaves the process as we found it
+        }
     }
 
     //endregion

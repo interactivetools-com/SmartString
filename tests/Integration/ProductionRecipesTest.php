@@ -133,10 +133,9 @@ class ProductionRecipesTest extends SmartStringTestCase
     /**
      * C2: two-stage guard distinguishes "no row" from "row but null column".
      *
-     * Each stage records a $threw flag and asserts it after the catch. A fail()
-     * inside the try would not work here: PHPUnit's AssertionFailedError extends
-     * RuntimeException, so the catch below would swallow it and then check the
-     * sentinel text as if it were the guard's message.
+     * A fail() inside the try would not work here: PHPUnit's AssertionFailedError
+     * extends RuntimeException, so the catch below would swallow it and then check
+     * the sentinel text as if it were the guard's message.
      */
     public function testC2TwoStageGuard(): void
     {

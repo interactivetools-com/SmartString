@@ -39,13 +39,26 @@ class DocsCoverageTest extends SmartStringTestCase
     #[DataProvider('publicMethodsProvider')]
     public function testMethodIsInAiReference(string $method): void
     {
-        // ai-reference writes methods bare (`textOnly(): SmartString`), so there's no arrow or
-        // colons to anchor on; the left boundary is what keeps map() from matching array_map()
-        $reference = file_get_contents(dirname(__DIR__, 2) . '/docs/ai-reference.md');
+        // ai-reference writes methods bare (`textOnly(): SmartString`), so there is no arrow
+        // or colon prefix to anchor on; the left boundary is what keeps map() from matching
+        // array_map()
+        $reference = self::aiReferenceBody();
         $this->assertTrue(
             preg_match('/(?<![A-Za-z0-9_])' . preg_quote($method, '/') . '\(/', $reference) === 1,
             "Public method $method() is not mentioned in docs/ai-reference.md"
         );
+    }
+
+    /**
+     * ai-reference.md without its deprecated-names migration table.
+     *
+     * That table names current methods in its "write instead" column, so searching the
+     * whole file would let a method deleted from the body pass on its table mention alone.
+     */
+    private static function aiReferenceBody(): string
+    {
+        $reference = file_get_contents(dirname(__DIR__, 2) . '/docs/ai-reference.md');
+        return preg_replace('/^## Old Method Names.*?(?=^## |\z)/ms', '', $reference);
     }
 
     public static function publicMethodsProvider(): array

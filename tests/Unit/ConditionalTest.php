@@ -101,6 +101,7 @@ class ConditionalTest extends SmartStringTestCase
             'zero is present'    => [0, ' items', '0 items'],
             'numeric value'      => [100, '%', '100%'],
             'SmartString suffix' => ['Price: ', SmartString::new('$10 & up'), 'Price: $10 & up'], // unwraps to the raw "&", not the encoded "&amp;"
+            'html in the value'  => ["Ben & Jerry's", ' Ice Cream', "Ben & Jerry's Ice Cream"],  // the stored value passes through raw too, not just the argument
         ];
     }
 
@@ -120,6 +121,7 @@ class ConditionalTest extends SmartStringTestCase
             'zero is present'    => [0, '$', '$0'],
             'numeric value'      => [100, '$', '$100'],
             'SmartString prefix' => ['Sons', SmartString::new("O'Brien & "), "O'Brien & Sons"], // unwraps to the raw "'" and "&", not "&apos;" and "&amp;"
+            'html in the value'  => ["Ben & Jerry's", 'From ', "From Ben & Jerry's"],           // the stored value passes through raw too, not just the argument
         ];
     }
 

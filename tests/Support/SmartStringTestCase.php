@@ -160,7 +160,8 @@ abstract class SmartStringTestCase extends TestCase
      */
     protected function assertNoOutput(callable $fn): mixed
     {
-        $diagnosticLevels         = E_WARNING | E_NOTICE | E_DEPRECATED | E_USER_WARNING | E_USER_NOTICE | E_USER_DEPRECATED;
+        $diagnosticLevels         = E_WARNING | E_NOTICE | E_DEPRECATED | E_RECOVERABLE_ERROR
+                                  | E_USER_WARNING | E_USER_NOTICE | E_USER_DEPRECATED | E_USER_ERROR;
         [$captured, $diagnostics] = $this->captureErrors(fn() => $this->captureOutput($fn), $diagnosticLevels);
         [$result, $output]        = $captured;
 
@@ -198,6 +199,56 @@ abstract class SmartStringTestCase extends TestCase
         $exitCode = proc_close($process);
 
         return [$stdout, $stderr, $exitCode];
+    }
+
+    //endregion
+    //region Web Requests (php -S)
+
+    /**
+     * Fetch one URL from tests/Support/bin served by PHP's built-in server, returning
+     * [responseHeaders, body].
+     *
+     * The built-in server is the only place the suite sees what a real response looks
+     * like: header() writes nowhere under CLI, and the SAPI is 'cli' everywhere else,
+     * so the <xmp> web branch is unreachable too.
+     *
+     *     [$headers, $body] = $this->requestViaBuiltInServer('xmp-breakout.php');
+     *     [$headers, $body] = $this->requestViaBuiltInServer('empty-guard.php?method=or404', ['ignore_errors' => true]);
+     *
+     * @param string $pathAndQuery Script name plus any query string, relative to bin/
+     * @param array<string, mixed> $httpOptions Extra http stream-context options
+     * @return array{0: string[], 1: string}
+     */
+    protected function requestViaBuiltInServer(string $pathAndQuery, array $httpOptions = []): array
+    {
+        // find a free port, then hand it to php -S (it can't pick its own)
+        $socket = stream_socket_server('tcp://127.0.0.1:0');
+        $this->assertNotFalse($socket, 'could not find a free port');
+        $port = (int)substr(strrchr(stream_socket_get_name($socket, false), ':'), 1);
+        fclose($socket);
+
+        $pipes  = [];
+        $server = proc_open([PHP_BINARY, '-S', "127.0.0.1:$port", '-t', __DIR__ . '/bin'], [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+        $this->assertIsResource($server, 'could not start php -S');
+
+        try {
+            $context = stream_context_create(['http' => ['timeout' => 1, ...$httpOptions]]);
+            $url     = "http://127.0.0.1:$port/$pathAndQuery";
+            $body    = false;
+            $headers = [];
+            for ($attempt = 0; $attempt < 50 && $body === false; $attempt++) {
+                if ($attempt > 0) {
+                    usleep(100_000); // the server is usually up on the first try
+                }
+                $body    = @file_get_contents($url, false, $context);
+                $headers = $http_response_header ?? [];
+            }
+            $this->assertIsString($body, 'no response from php -S after 5 seconds');
+            return [$headers, $body];
+        } finally {
+            proc_terminate($server);
+            proc_close($server);
+        }
     }
 
     //endregion

@@ -148,7 +148,7 @@ class EmptyGuardsTest extends SmartStringTestCase
      */
     public function testOr404SendsHtmlContentTypeHeader(): void
     {
-        [$headers, $body] = $this->requestGuardViaBuiltInServer('or404-default');
+        [$headers, $body] = $this->requestGuard('or404-default');
 
         $this->assertContains('Content-Type: text/html; charset=utf-8', $headers, "Response headers: " . var_export($headers, true));
         $this->assertStringContainsString('404 Not Found', $headers[0]);
@@ -214,7 +214,7 @@ class EmptyGuardsTest extends SmartStringTestCase
      */
     public function testOrRedirectSendsLocationHeaderForTheGivenUrl(): void
     {
-        [$headers, $body] = $this->requestGuardViaBuiltInServer('orRedirect', 'https://example.com/login?return=/admin');
+        [$headers, $body] = $this->requestGuard('orRedirect', 'https://example.com/login?return=/admin');
 
         $this->assertContains('Location: https://example.com/login?return=/admin', $headers, "Response headers: " . var_export($headers, true));
         $this->assertStringContainsString('302 Found', $headers[0]);
@@ -225,46 +225,17 @@ class EmptyGuardsTest extends SmartStringTestCase
     //region Web Requests (php -S)
 
     /**
-     * Run one guard in Support/bin/empty-guard.php as a web request through
-     * PHP's built-in server and return [responseHeaders, body]. This is the
-     * only place the suite sees the headers the guards send; header() writes
-     * nowhere under CLI.
+     * Run one guard in Support/bin/empty-guard.php as a web request and return
+     * [responseHeaders, body]. follow_location off so the 302 is read here instead of
+     * sending a real request to the redirect target; ignore_errors keeps the 404 body
+     * and headers instead of returning false.
      *
      * @return array{0: string[], 1: string}
      */
-    private function requestGuardViaBuiltInServer(string $method, string $arg = ''): array
+    private function requestGuard(string $method, string $arg = ''): array
     {
-        $docRoot = dirname(__DIR__) . '/Support/bin';
-
-        // find a free port, then hand it to php -S (it can't pick its own)
-        $socket = stream_socket_server('tcp://127.0.0.1:0');
-        $this->assertNotFalse($socket, 'could not find a free port');
-        $port = (int)substr(strrchr(stream_socket_get_name($socket, false), ':'), 1);
-        fclose($socket);
-
-        $pipes  = [];
-        $server = proc_open([PHP_BINARY, '-S', "127.0.0.1:$port", '-t', $docRoot], [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
-        $this->assertIsResource($server, 'could not start php -S');
-
-        try {
-            // follow_location off so the 302 is read here instead of sending a
-            // real request to the redirect target; ignore_errors keeps the 404
-            // body and headers instead of returning false
-            $context = stream_context_create(['http' => ['timeout' => 1, 'follow_location' => 0, 'ignore_errors' => true]]);
-            $url     = sprintf('http://127.0.0.1:%d/empty-guard.php?method=%s&arg=%s', $port, urlencode($method), urlencode($arg));
-            $body    = false;
-            $headers = [];
-            for ($attempt = 0; $attempt < 50 && $body === false; $attempt++) {
-                usleep(100_000);
-                $body    = @file_get_contents($url, false, $context);
-                $headers = $http_response_header ?? [];
-            }
-            $this->assertIsString($body, 'no response from php -S after 5 seconds');
-            return [$headers, $body];
-        } finally {
-            proc_terminate($server);
-            proc_close($server);
-        }
+        $query = sprintf('empty-guard.php?method=%s&arg=%s', urlencode($method), urlencode($arg));
+        return $this->requestViaBuiltInServer($query, ['follow_location' => 0, 'ignore_errors' => true]);
     }
 
     //endregion

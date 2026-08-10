@@ -28,12 +28,19 @@ use Itools\SmartString\Tests\Support\SmartStringTestCase;
  */
 class MissingValueContractTest extends SmartStringTestCase
 {
+    // The deprecated shim list is closed: new code uses the current names, which the table
+    // below covers. Pinned here so adding a shim fails testDeprecatedAliasListIsClosed()
+    // instead of quietly inheriting the group exemption.
+    private const DEPRECATED_ALIASES = [
+        'and', 'andPrefix', 'apply', 'dateTimeFormat', 'help', 'if', 'ifBlank', 'phoneFormat', 'textToHtml',
+    ];
+
     /**
      * Public methods with no null/"" contract of their own, and why.
      *
      * Deprecated aliases are exempt as a group (read by reflection from the
-     * Deprecations trait): each one forwards to a current method the table
-     * already covers.
+     * Deprecations trait). They are frozen shims kept for old code, pinned
+     * against their current equivalents in DeprecationsTest.
      */
     private const NOT_A_TRANSFORMATION = [
         'new'           => 'static factory: wraps a value instead of transforming a stored one',
@@ -147,5 +154,24 @@ class MissingValueContractTest extends SmartStringTestCase
             $this->assertTrue(method_exists(SmartString::class, $method),
                 "$method() no longer exists - remove it from missingValueTable() or NOT_A_TRANSFORMATION");
         }
+    }
+
+    /**
+     * transformationProvider() skips every method on the Deprecations trait, so a method
+     * added there would inherit that exemption without anyone choosing it. Pinning the
+     * list turns that into a failure that asks for the decision.
+     */
+    public function testDeprecatedAliasListIsClosed(): void
+    {
+        $actual = array_map(
+            static fn(ReflectionMethod $method): string => $method->getName(),
+            (new ReflectionClass(Deprecations::class))->getMethods(ReflectionMethod::IS_PUBLIC)
+        );
+        sort($actual);
+        $expected = self::DEPRECATED_ALIASES;
+        sort($expected);
+
+        $this->assertSame($expected, $actual,
+            'The Deprecations trait changed. A new shim is exempt from the missing-value table by default - give it a row in missingValueTable(), or add it here with the reason it needs none');
     }
 }
