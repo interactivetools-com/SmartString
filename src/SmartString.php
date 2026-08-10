@@ -404,9 +404,16 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         $prose   = $marker . "\x01";
 
         $text = html_entity_decode(self::substituteInvalidUtf8((string)$this->rawData), ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8');
-        $text = str_replace($marker, $literal, $text);
-        $text = preg_replace('/<(?![a-zA-Z\/!?])/', $prose, $text); // no /u needed: byte-level matching is UTF-8-safe here
-        $text = strtr(strip_tags($text), [$literal => $marker, $prose => '<']); // strtr, not str_replace: one left-to-right pass, so a doubled pair can't have its second half read as ours
+
+        // Restoring a prose "<" can drop it directly in front of text strip_tags just cut,
+        // forming a tag that was never in the input: <<b>img src=x> strips to <img src=x>.
+        // So strip repeats until no tag-shaped "<" remains. Normal input runs a single pass,
+        // and every extra pass shortens the string, so the loop always ends.
+        do {
+            $text = str_replace($marker, $literal, $text);
+            $text = preg_replace('/<(?![a-zA-Z\/!?])/', $prose, $text); // no /u needed: byte-level matching is UTF-8-safe here
+            $text = strtr(strip_tags($text), [$literal => $marker, $prose => '<']); // strtr, not str_replace: one left-to-right pass, so a doubled pair can't have its second half read as ours
+        } while (preg_match('/<[a-zA-Z\/!?]/', $text));
         $text = preg_replace('/\xC2\xA0|\xE1\x9A\x80|\xE2\x80[\x80-\x8A\xAF]|\xE2\x81\x9F|\xE3\x80\x80/', ' ', $text); // \p{Zs} minus U+0020, spelled as bytes so the pattern needs no /u
 
         return new self(trim($text));

@@ -82,6 +82,20 @@ class StringManipulationTest extends SmartStringTestCase
         $this->assertSame("{$marker}{$marker}{$marker}\x01x", SmartString::new("{$marker}{$marker}{$marker}\x01<b>x</b>")->textOnly()->value());
     }
 
+    public function testTextOnlyCannotReassembleATag(): void
+    {
+        // A prose "<" is restored after stripping, and stripping can remove the text that
+        // made it prose, leaving it directly in front of a tag name. Stripping repeats
+        // until no tag-shaped "<" remains, so output never holds anything a browser would
+        // parse as a tag.
+        $this->assertSame('', SmartString::new('<<b>img src=x onerror=alert(1)>')->textOnly()->value());
+        $this->assertSame('alert(1)', SmartString::new('<<i>script>alert(1)')->textOnly()->value());
+        $this->assertSame('', SmartString::new('<<<b>b>img src=x onerror=alert(1)>')->textOnly()->value());
+
+        // still prose after stripping, so the "<" survives and no extra pass runs
+        $this->assertSame('< b', SmartString::new('<<b> b')->textOnly()->value());
+    }
+
     public function testTextOnlyPreservesPrivateUseCharacters(): void
     {
         // U+E000 is data, not markup, so it survives even when adjacent to a prose "<"
