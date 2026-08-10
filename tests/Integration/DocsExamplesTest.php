@@ -660,6 +660,7 @@ class DocsExamplesTest extends SmartStringTestCase
         $this->assertSame('', (string)SmartString::new(null)->add(50));
         $this->assertSame('', (string)SmartString::new('1,234')->add(50));
         $this->assertSame('', (string)SmartString::new(100)->divide(0));
+        $this->assertSame('', (string)SmartString::new(1234.5)->numberFormat(2)->add(50));
     }
 
     public function testTroubleshootingChainingAfterNl2brThrows(): void

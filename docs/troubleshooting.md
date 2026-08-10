@@ -124,9 +124,10 @@ Math methods return null when either side is null or not numeric, and null
 echoes as an empty string. The usual causes, in order of frequency:
 
 ```php
-echo SmartString::new(null)->add(50);     // "" - null input
-echo SmartString::new("1,234")->add(50);  // "" - the comma makes it non-numeric to PHP
-echo SmartString::new(100)->divide(0);    // "" - division by zero
+echo SmartString::new(null)->add(50);                     // "" - null input
+echo SmartString::new("1,234")->add(50);                  // "" - the comma makes it non-numeric to PHP
+echo SmartString::new(100)->divide(0);                    // "" - division by zero
+echo SmartString::new(1234.5)->numberFormat(2)->add(50);  // "" - formatting made it non-numeric; format last
 ```
 
 **Fix:** Decide what null should mean and say so: `->ifNull(0)` before the
