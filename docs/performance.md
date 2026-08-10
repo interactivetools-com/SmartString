@@ -2,7 +2,7 @@
 
 Our automatic encoding produces byte-identical output to `htmlspecialchars()`
 and is faster: at least 2.5x on a real-world page on every platform we
-measure, 4.5x on typical Linux servers, and up to 12x on Windows. Most values
+measure, 5.2x on typical Linux servers, and up to 10x on Windows. Most values
 don't need encoding, and proving that with a scan costs less than encoding
 them anyway. This page shows how that works, the measurements, and the tests
 that keep the shortcut honest.
@@ -11,10 +11,10 @@ The multiplier depends on the platform: our scans cost about the same
 everywhere, so the win tracks how slowly each platform's `htmlspecialchars()`
 runs. Based on the real-world page measured below:
 
-- **Linux x64** - the most common web platform: **4.5x**
-- **Linux ARM** - Graviton-class hosts: **2.8x**
-- **Windows** - its PHP builds encode slowest: **12x**, and long clean fields
-  reach 43x
+- **Linux x64** - the most common web platform: **5.2x**
+- **Linux ARM** - Graviton-class hosts: **2.9x**
+- **Windows** - its PHP builds encode slowest: **10x**, and long clean fields
+  reach 41x
 
 And you can benchmark your own machine any time with this command:
 
@@ -72,28 +72,28 @@ and current text.
 
 | Content                          | Size  | Example                         | `htmlspecialchars()` | SmartString | Speed vs `htmlspecialchars()` |
 |----------------------------------|-------|---------------------------------|----------------------|-------------|-------------------------------|
-| Create a SmartString - no output | any   | `new SmartString($value)`       | -                    | 91 ns       | -                             |
-| Empty - null or ""               | any   | a blank optional field          | 39 ns                | 201 ns      | 0.2x                          |
-| Numbers - int                    | any   | `1499`                          | 125 ns               | 156 ns      | 0.8x                          |
-| Numbers - float                  | any   | `24.99`                         | 257 ns               | 320 ns      | 0.8x                          |
-| Numbers - via `->int()`          | any   | `1499`                          | 125 ns               | 127 ns      | 1.0x                          |
-| Numbers - via `->float()`        | any   | `24.99`                         | 257 ns               | 275 ns      | 0.9x                          |
-| Clean text - no `& < > " '`      | 16 B  | `Annual Report 2026`            | 155 ns               | 259 ns      | 0.6x                          |
-| Clean text - no `& < > " '`      | 100 B | a short sentence                | 564 ns               | 297 ns      | 1.9x                          |
-| Clean text - no `& < > " '`      | 200 B | a sentence or two               | 1,049 ns             | 331 ns      | 3.2x                          |
-| Clean text - no `& < > " '`      | 1 KB  | a plain-text paragraph          | 4,962 ns             | 587 ns      | 8.5x                          |
-| Clean text - no `& < > " '`      | 10 KB | a long field, nothing to encode | 47,819 ns            | 3,527 ns    | 14x                           |
-| Has `& < > " '`                  | 16 B  | `O'Brien & Co Ltd`              | 156 ns               | 478 ns      | 0.3x                          |
-| Has `& < > " '`                  | 100 B | a sentence with quotes          | 631 ns               | 643 ns      | 1.0x                          |
-| Has `& < > " '`                  | 200 B | a sentence or two with quotes   | 1,170 ns             | 731 ns      | 1.6x                          |
-| Has `& < > " '`                  | 1 KB  | a paragraph with quotes         | 5,552 ns             | 1,641 ns    | 3.4x                          |
-| Has `& < > " '`                  | 10 KB | a 1,500-word article            | 55,048 ns            | 11,266 ns   | 4.9x                          |
-| Accented text - no `& < > " '`   | 16 B  | `Café Montréal QC`              | 145 ns               | 468 ns      | 0.3x                          |
-| Accented text - no `& < > " '`   | 100 B | a short French sentence         | 540 ns               | 633 ns      | 0.9x                          |
-| Accented text - no `& < > " '`   | 200 B | a French sentence or two        | 1,072 ns             | 731 ns      | 1.5x                          |
-| Accented text - no `& < > " '`   | 1 KB  | a French paragraph              | 5,073 ns             | 1,422 ns    | 3.6x                          |
-| Accented text - no `& < > " '`   | 10 KB | a French article                | 48,247 ns            | 9,018 ns    | 5.4x                          |
-| News-article page                | mixed | *                               | 57,390 ns            | 12,744 ns   | 4.5x                          |
+| Create a SmartString - no output | any   | `new SmartString($value)`       | -                    | 78 ns       | -                             |
+| Empty - null or ""               | any   | a blank optional field          | 39 ns                | 168 ns      | 0.2x                          |
+| Numbers - int                    | any   | `1499`                          | 121 ns               | 141 ns      | 0.9x                          |
+| Numbers - float                  | any   | `24.99`                         | 259 ns               | 293 ns      | 0.9x                          |
+| Numbers - via `->int()`          | any   | `1499`                          | 122 ns               | 112 ns      | 1.1x                          |
+| Numbers - via `->float()`        | any   | `24.99`                         | 258 ns               | 260 ns      | 1.0x                          |
+| Clean text - no `& < > " '`      | 16 B  | `Annual Report 2026`            | 154 ns               | 220 ns      | 0.7x                          |
+| Clean text - no `& < > " '`      | 100 B | a short sentence                | 572 ns               | 251 ns      | 2.3x                          |
+| Clean text - no `& < > " '`      | 200 B | a sentence or two               | 1,047 ns             | 284 ns      | 3.7x                          |
+| Clean text - no `& < > " '`      | 1 KB  | a plain-text paragraph          | 4,868 ns             | 548 ns      | 8.9x                          |
+| Clean text - no `& < > " '`      | 10 KB | a long field, nothing to encode | 48,887 ns            | 3,553 ns    | 14x                           |
+| Has `& < > " '`                  | 16 B  | `O'Brien & Co Ltd`              | 163 ns               | 438 ns      | 0.4x                          |
+| Has `& < > " '`                  | 100 B | a sentence with quotes          | 621 ns               | 594 ns      | 1.0x                          |
+| Has `& < > " '`                  | 200 B | a sentence or two with quotes   | 1,167 ns             | 682 ns      | 1.7x                          |
+| Has `& < > " '`                  | 1 KB  | a paragraph with quotes         | 5,586 ns             | 1,573 ns    | 3.6x                          |
+| Has `& < > " '`                  | 10 KB | a 1,500-word article            | 57,130 ns            | 11,213 ns   | 5.1x                          |
+| Accented text - no `& < > " '`   | 16 B  | `Café Montréal QC`              | 145 ns               | 432 ns      | 0.3x                          |
+| Accented text - no `& < > " '`   | 100 B | a short French sentence         | 552 ns               | 573 ns      | 1.0x                          |
+| Accented text - no `& < > " '`   | 200 B | a French sentence or two        | 1,043 ns             | 677 ns      | 1.5x                          |
+| Accented text - no `& < > " '`   | 1 KB  | a French paragraph              | 4,805 ns             | 1,367 ns    | 3.5x                          |
+| Accented text - no `& < > " '`   | 10 KB | a French article                | 48,478 ns            | 8,965 ns    | 5.4x                          |
+| News-article page                | mixed | *                               | 64,519 ns            | 12,468 ns   | 5.2x                          |
 
 \* News-article page: a 16 B quoted headline; author, category, and date (16 B plain); a 200 B caption; and a 10 KB body with quotes. This row is the whole page - all six fields together.
 
@@ -104,15 +104,15 @@ every line taken from the table above:
 
 | Field                        | Table row                          | `htmlspecialchars()` | SmartString  | Speed vs `htmlspecialchars()` |
 |------------------------------|------------------------------------|----------------------|--------------|-------------------------------|
-| Headline - `Mayor Says 'No'` | Has `& < > " '`, 16 B              | 0.16 µs              | 0.48 µs      | 0.3x                          |
-| Author                       | Clean text - no `& < > " '`, 16 B  | 0.16 µs              | 0.26 µs      | 0.6x                          |
-| Category                     | Clean text - no `& < > " '`, 16 B  | 0.16 µs              | 0.26 µs      | 0.6x                          |
-| Date                         | Clean text - no `& < > " '`, 16 B  | 0.16 µs              | 0.26 µs      | 0.6x                          |
-| Photo caption                | Clean text - no `& < > " '`, 200 B | 1.0 µs               | 0.33 µs      | 3.2x                          |
-| Article body with quotes     | Has `& < > " '`, 10 KB             | 55.0 µs              | 11.3 µs      | 4.9x                          |
-| **Whole page**               | All of the above                   | **57.4 µs** (0.0000574 s) | **12.7 µs** (0.0000127 s) | **4.5x**                      |
+| Headline - `Mayor Says 'No'` | Has `& < > " '`, 16 B              | 0.16 µs              | 0.44 µs      | 0.4x                          |
+| Author                       | Clean text - no `& < > " '`, 16 B  | 0.15 µs              | 0.22 µs      | 0.7x                          |
+| Category                     | Clean text - no `& < > " '`, 16 B  | 0.15 µs              | 0.22 µs      | 0.7x                          |
+| Date                         | Clean text - no `& < > " '`, 16 B  | 0.15 µs              | 0.22 µs      | 0.7x                          |
+| Photo caption                | Clean text - no `& < > " '`, 200 B | 1.0 µs               | 0.28 µs      | 3.7x                          |
+| Article body with quotes     | Has `& < > " '`, 10 KB             | 57.1 µs              | 11.2 µs      | 5.1x                          |
+| **Whole page**               | All of the above                   | **64.5 µs** (0.0000645 s) | **12.5 µs** (0.0000125 s) | **5.2x**                      |
 
-The longer the text, the bigger the win. This page is 4.5x faster because
+The longer the text, the bigger the win. This page is 5.2x faster because
 almost all of its time is in the 10 KB body - short fields roughly break
 even, and by 200 B per field everything is ahead.
 
@@ -120,10 +120,10 @@ Where SmartString is slower: short fields, where creating the object costs
 more than the tiny encoding it replaces - about 0.1 microseconds extra on a
 clean short field, about 0.3 when quotes or accents force a full encode.
 You'd need over 3,000 of the worst case on one page to lose a millisecond,
-and a single clean 1 KB paragraph repays about 14 of them.
+and a single clean 1 KB paragraph repays about 15 of them.
 
 These numbers come from the repo's Speed Page Table workflow
-([this run](https://github.com/interactivetools-com/SmartString/actions/runs/31236897574));
+([this run](https://github.com/interactivetools-com/SmartString/actions/runs/31440978697));
 the command at the top of the page reproduces them on any machine. They are
 measured with JIT off, like production (see The Fine Print).
 
@@ -173,7 +173,7 @@ Three benchmark choices, stated plainly:
 
   The extra flags slow `htmlspecialchars()` itself by roughly 40% (they check
   every character). Timed against the matching full-flag call, the worked
-  example's 4.5x page is roughly 6x.
+  example's 5.2x page is roughly 7x.
 - **Timings include creating the object.** Every SmartString in the loop is
   built fresh (`new SmartString($value)`) and then output - the multiplier is
   the full cost of each approach per value, nothing left out.

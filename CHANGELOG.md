@@ -27,7 +27,7 @@ hardening and fixes.
 - HTML-encoded output (echo and `htmlEncode()`) is ~4x faster than v2.7.0
   (six-field article page: 38.2 → 9.3 microseconds, both versions measured
   back to back on the same machine), and at least 2.5x faster than calling
-  `htmlspecialchars()` yourself, up to 12x on Windows: values are scanned
+  `htmlspecialchars()` yourself, up to 10x on Windows: values are scanned
   first and only encoded when something needs encoding. Output stays
   byte-identical to `htmlspecialchars()`. Benchmarks and verification:
   [docs/performance.md](docs/performance.md)
