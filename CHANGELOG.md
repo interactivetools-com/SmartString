@@ -112,11 +112,23 @@ These still work, they're just no longer featured in the docs - no changes requi
     `\uXXXX` so nothing can hide in page source - lossless, JavaScript sees
     the identical value
 - `orDie()` and `or404()` exit with code 1 - CLI and cron scripts see the failure
+- `orRedirect()` throws on a blank URL (null or ""), checked immediately like
+  the headers-sent check, so a misconfigured redirect fails on the first
+  request instead of sending an empty Location header
 - foreach over a SmartString throws a RuntimeException showing the value and
   suggesting the SmartArray row - previously the loop silently ran zero times
 
 ### Fixed
 
+- SmartString arguments unwrap everywhere: `new()`, the guard messages
+  (`or404()`/`orDie()`/`orThrow()`), `orRedirect($url)`,
+  `pregReplace($replacement)`, and the `appendHtml()`/`wrapHtml()` markup
+  arguments now use the raw value - previously PHP coerced the object through
+  `__toString`, which returns the HTML-encoded text, so pages showed
+  double-encoded output (`Bob &amp; Sons` as literal text) and redirects sent
+  `&amp;` in the Location header. A `SmartNull` argument counts as null
+  (`new()` previously stored `""`, so `isNull()` reported a missing field as
+  present)
 - `SmartString::help()` works as a static call (the documented form was a fatal error)
 - `getRawValue()` unwraps `SmartArrayHtml` (previously "Unsupported value type")
 - `maxChars()` and `maxWords()` handle invalid UTF-8 - bad bytes become � like

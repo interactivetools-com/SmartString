@@ -70,8 +70,10 @@ Key definitions used throughout:
 SmartString::new(string|int|float|bool|null $value): SmartString
 ```
 
-Accepted types: string, int, float, bool, null. Objects/resources are not
-accepted. Passing an array is deprecated and returns a `SmartArrayHtml`
+Accepted types: string, int, float, bool, null. SmartString and SmartNull
+also work and unwrap to their raw value (re-wrapping never double-encodes;
+SmartNull stores null). Other objects/resources are not accepted. Passing an
+array is deprecated and returns a `SmartArrayHtml`
 (use `SmartArrayHtml::new($array)` from the SmartArray package directly).
 
 Bulk creation is the SmartArray package's job; database rows from ZenDB are
@@ -126,8 +128,8 @@ these except where noted.
 | `jsonEncode(): string`                            | JSON with `JSON_HEX_TAG\|HEX_APOS\|HEX_QUOT\|HEX_AMP\|UNESCAPED_SLASHES\|UNESCAPED_UNICODE\|INVALID_UTF8_SUBSTITUTE\|THROW_ON_ERROR`. Always a valid JS expression: null → `null`, 123 → `123`. Malformed UTF-8 → �. Invisible Unicode (zero-width, bidi controls, variation selectors) re-escaped as `\uXXXX`. |
 | `nl2br(): string`                                 | HTML-encodes FIRST, then converts newlines to `<br>`; only tags in output are the added `<br>` tags                                                                                                                                                                                                             |
 | `rawHtml(): string\|int\|float\|bool\|null`       | Alias for `value()`; signals intentional raw HTML output. Null stays null (does not return `""`)                                                                                                                                                                                                                |
-| `appendHtml(string $html): string`                | Encoded value + `$html` appended AS-IS (trusted, never user input). Missing → `""` (markup suppressed too)                                                                                                                                                                                                      |
-| `wrapHtml(string $before, string $after): string` | `$before` + encoded value + `$after`, markup as-is. Missing → `""` (whole wrapper vanishes). Both args required                                                                                                                                                                                                 |
+| `appendHtml(string $html): string`                | Encoded value + `$html` appended AS-IS (trusted, never user input; a SmartString `$html` unwraps raw). Missing → `""` (markup suppressed too)                                                                                                                                                                   |
+| `wrapHtml(string $before, string $after): string` | `$before` + encoded value + `$after`, markup as-is (SmartString args unwrap raw). Missing → `""` (whole wrapper vanishes). Both args required                                                                                                                                                                   |
 
 ```php
 echo $text->nl2br();                    // "Bob & Sons\nSuite 5" → "Bob &amp; Sons<br>\nSuite 5"
@@ -151,7 +153,7 @@ through unchanged, so a later `or()` still works.
 | `trim(...$args): SmartString`                                    | PHP `trim()` semantics incl. custom char list (a SmartString char list unwraps)                                                  |
 | `maxWords(int $max, string $ellipsis = '...'): SmartString`      | Word limit; `$ellipsis` only if cut; trailing punctuation stripped before ellipsis                                               |
 | `maxChars(int $max, string $ellipsis = '...'): SmartString`      | Char limit breaking at last whole word; whitespace runs collapse to single spaces; trailing punctuation stripped before ellipsis |
-| `pregReplace(string $pattern, string $replacement): SmartString` | `preg_replace()`; invalid pattern throws InvalidArgumentException                                                                |
+| `pregReplace(string $pattern, string $replacement): SmartString` | `preg_replace()`; a SmartString `$replacement` unwraps raw; invalid pattern throws InvalidArgumentException                      |
 
 Arguments to `append`/`prepend`/`wrap` accept
 `int|float|string|bool|null|SmartString|SmartNull`.
@@ -216,14 +218,15 @@ Placement of `or()` changes meaning: `->or(0)->numberFormat(2)` → `"0.00"`
 
 Stop the page when the value is missing (null or `""`; zero passes).
 Otherwise return `$this` unchanged for chaining. Message/`$text` params are
-HTML-encoded automatically (messages often interpolate user input).
+HTML-encoded automatically (messages often interpolate user input); a
+SmartString message unwraps first, so it is encoded once, not twice.
 
 | Method                              | On missing                                                                                                                                               |
 |-------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `or404(?string $text = null): self` | HTTP 404 + minimal HTML page + `exit(1)`. Default text "The requested URL was not found on this server."                                                 |
 | `orDie(string $text): self`         | Echo encoded text + `exit(1)` (failure code for CLI/cron)                                                                                                |
 | `orThrow(string $text): self`       | `throw new RuntimeException($encodedText)`. Decode for logs/CLI with `htmlspecialchars_decode($msg, ENT_QUOTES \| ENT_SUBSTITUTE \| ENT_HTML5)`          |
-| `orRedirect(string $url): self`     | 302 + `Location: $url` + `exit`. Checks `headers_sent()` IMMEDIATELY (throws RuntimeException even when value present, so misuse fails on first request) |
+| `orRedirect(string $url): self`     | 302 + `Location: $url` + `exit`. A SmartString `$url` unwraps raw (no `&amp;` in the header). Checks `headers_sent()` and a blank `$url` IMMEDIATELY (throws RuntimeException even when value present, so misuse fails on first request) |
 
 ```php
 $article->num->or404("Article not found");

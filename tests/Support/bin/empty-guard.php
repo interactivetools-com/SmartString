@@ -64,6 +64,11 @@ $run = match ($method) {
     'orDie'              => fn() => $missing->orDie((string)$arg),
     'orThrow'            => fn() => $missing->orThrow((string)$arg),
     'orRedirect'         => fn() => $missing->orRedirect((string)$arg),
+    // -smart variants pass the argument as a SmartString: the guard must unwrap the raw
+    // value, not encode the __toString output a second time
+    'or404-smart-text'   => fn() => $missing->or404(SmartString::new((string)$arg)),
+    'orDie-smart-text'   => fn() => $missing->orDie(SmartString::new((string)$arg)),
+    'orRedirect-smart-url' => fn() => $missing->orRedirect(SmartString::new((string)$arg)),
     'orRedirect-present' => fn() => print $present->orRedirect((string)$arg)->value(),
     'orRedirect-headers-sent' => function () use ($present, $arg) {
         echo "output-sent\n"; // makes headers_sent() true before the call

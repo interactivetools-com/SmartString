@@ -75,6 +75,20 @@ class EmptyGuardsTest extends SmartStringTestCase
         $this->assertTrue($threw, 'Expected RuntimeException was not thrown');
     }
 
+    public function testOrThrowEncodesSmartStringMessageOnce(): void
+    {
+        // a SmartString message unwraps to its raw value first, so it encodes
+        // once at throw time instead of double-encoding the __toString output
+        $threw = false;
+        try {
+            SmartString::new(null)->orThrow(SmartString::new("Bad <id> & 'quote'"));
+        } catch (RuntimeException $e) {
+            $threw = true;
+            $this->assertSame('Bad &lt;id&gt; &amp; &apos;quote&apos;', $e->getMessage());
+        }
+        $this->assertTrue($threw, 'Expected RuntimeException was not thrown');
+    }
+
     public function testOrThrowTreatsEmptyStringAsMissing(): void
     {
         $this->expectException(RuntimeException::class);
@@ -159,6 +173,17 @@ class EmptyGuardsTest extends SmartStringTestCase
         $this->assertSame(1, $exitCode);
     }
 
+    public function testOr404EncodesSmartStringMessageOnce(): void
+    {
+        // a SmartString message unwraps to its raw value first, so the page
+        // shows it encoded once instead of double-encoding the __toString output
+        [$stdout, $stderr, $exitCode] = $this->runScript('or404-smart-text', "Bad <id> & 'quote'");
+
+        $this->assertStringContainsString("<p>Bad &lt;id&gt; &amp; &apos;quote&apos;</p>", $stdout);
+        $this->assertStringContainsString('status=404', $stderr);
+        $this->assertSame(1, $exitCode);
+    }
+
     /**
      * The Content-Type is only observable in a real web response: header() is
      * a no-op under CLI. PHP's own default for a response that sets nothing
@@ -184,6 +209,17 @@ class EmptyGuardsTest extends SmartStringTestCase
     public function testOrDieOutputsEncodedMessageAndExits1(): void
     {
         [$stdout, $stderr, $exitCode] = $this->runScript('orDie', "Bad <id> & 'quote'");
+
+        $this->assertSame('Bad &lt;id&gt; &amp; &apos;quote&apos;', $stdout);
+        $this->assertStringNotContainsString('NOT-REACHED', $stderr);
+        $this->assertSame(1, $exitCode);
+    }
+
+    public function testOrDieEncodesSmartStringMessageOnce(): void
+    {
+        // a SmartString message unwraps to its raw value first, so the output
+        // is encoded once instead of double-encoding the __toString output
+        [$stdout, $stderr, $exitCode] = $this->runScript('orDie-smart-text', "Bad <id> & 'quote'");
 
         $this->assertSame('Bad &lt;id&gt; &amp; &apos;quote&apos;', $stdout);
         $this->assertStringNotContainsString('NOT-REACHED', $stderr);
@@ -238,6 +274,34 @@ class EmptyGuardsTest extends SmartStringTestCase
         $this->assertContains('Location: https://example.com/login?return=/admin', $headers, "Response headers: " . var_export($headers, true));
         $this->assertStringContainsString('302 Found', $headers[0]);
         $this->assertSame('', $body);
+    }
+
+    public function testOrRedirectSendsRawLocationForSmartStringUrl(): void
+    {
+        // a SmartString URL unwraps to its raw value: the & must reach the
+        // Location header as &, not as the &amp; __toString coercion produces
+        [$headers, $body] = $this->requestGuard('orRedirect-smart-url', 'https://example.com/go?a=1&b=2');
+
+        $this->assertContains('Location: https://example.com/go?a=1&b=2', $headers, "Response headers: " . var_export($headers, true));
+        $this->assertStringContainsString('302 Found', $headers[0]);
+        $this->assertSame('', $body);
+    }
+
+    public function testOrRedirectThrowsOnBlankUrl(): void
+    {
+        // checked before isMissing() like the headers-sent check, so the bug
+        // shows on the first request, not only once a value comes up missing
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('orRedirect(): redirect URL is blank');
+        SmartString::new('Hello')->orRedirect('');
+    }
+
+    public function testOrRedirectThrowsOnMissingSmartStringUrl(): void
+    {
+        // a SmartString holding null unwraps to a blank URL - same loud failure
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('orRedirect(): redirect URL is blank');
+        SmartString::new('Hello')->orRedirect(SmartString::new(null));
     }
 
     //endregion

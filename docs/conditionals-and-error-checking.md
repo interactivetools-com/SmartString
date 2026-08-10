@@ -248,10 +248,10 @@ Details worth knowing:
 - **`orThrow($text)`** throws a `RuntimeException` for your error handler.
   Handlers that want plain text (CLI, logs) can decode the message with
   `htmlspecialchars_decode($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5)`.
-- **`orRedirect($url)`** checks `headers_sent()` immediately and throws if
-  output already started, even when the value is present, so a misplaced
-  redirect fails on the first request instead of only when a value goes
-  missing.
+- **`orRedirect($url)`** checks `headers_sent()` and a blank `$url` (null or
+  `""`) immediately and throws if either fails, even when the value is
+  present, so a misplaced redirect fails on the first request instead of
+  only when a value goes missing.
 
 ### The two-stage guard
 

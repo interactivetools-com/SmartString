@@ -63,10 +63,17 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      * INF and NAN store as null: they can't render, format, or JSON-encode, so they
      * get the same answer as any other failed numeric step and or() fallbacks fire.
      *
-     * @param string|int|float|bool|null $value The value to store
+     * SmartString and SmartNull arguments unwrap first: re-wrapping stores the raw
+     * value, not the HTML-encoded text, and a SmartNull stores null so isNull()
+     * still reports the value as missing.
+     *
+     * @param string|int|float|bool|null|SmartString|SmartNull $value The value to store
      */
-    public function __construct(string|int|float|bool|null $value)
+    public function __construct(string|int|float|bool|null|SmartString|SmartNull $value)
     {
+        if (is_object($value)) { // unwrap: store the raw value, not the encoded __toString output
+            $value = $value instanceof self ? $value->rawData : null; // the param type only lets SmartString|SmartNull through
+        }
         if (is_float($value) && !is_finite($value)) { // INF/NAN = failed numeric step, store as null
             $value = null;
         }
@@ -83,10 +90,10 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      *     $str  = SmartString::new("Hello, World!");   // single value as SmartString
      *     $user = SmartArrayHtml::new($record);        // whole array as SmartStrings (companion library)
      *
-     * @param string|int|float|bool|array|null $value
+     * @param string|int|float|bool|array|null|SmartString|SmartNull $value
      * @return SmartArrayHtml|SmartString The newly created SmartString object.
      */
-    public static function new(string|int|float|bool|null|array $value): SmartArrayHtml|SmartString
+    public static function new(string|int|float|bool|null|array|SmartString|SmartNull $value): SmartArrayHtml|SmartString
     {
         if (is_array($value)) {
             self::logDeprecation('Replace SmartString::new($array) with SmartArrayHtml::new($array)');
@@ -284,15 +291,18 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      * Missing values (null or "") return "" - nothing is appended. False counts as
      * present but prints as "", so it returns just $html.
      *
-     * @param string $html Trusted markup, appended as-is (not encoded)
+     * A SmartString argument appends its raw value, same as passing ->rawHtml() - the
+     * argument is trusted markup either way. A SmartNull appends nothing.
+     *
+     * @param string|SmartString|SmartNull $html Trusted markup, appended as-is (not encoded)
      * @return string HTML-safe output, or "" when the value is missing
      */
-    public function appendHtml(string $html): string
+    public function appendHtml(string|SmartString|SmartNull $html): string
     {
         if ($this->isMissing()) {
             return '';
         }
-        return $this->htmlEncode() . $html;
+        return $this->htmlEncode() . self::getRawValue($html);
     }
 
     /**
@@ -309,16 +319,19 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      * Missing values (null or "") return "" - the wrapper is not added. False counts as
      * present but prints as "", so it returns just the empty wrapper.
      *
-     * @param string $before Trusted markup placed before the encoded value (not encoded)
-     * @param string $after  Trusted markup placed after the encoded value (not encoded)
+     * SmartString arguments wrap with their raw value, same as passing ->rawHtml() - the
+     * arguments are trusted markup either way. A SmartNull adds nothing on that side.
+     *
+     * @param string|SmartString|SmartNull $before Trusted markup placed before the encoded value (not encoded)
+     * @param string|SmartString|SmartNull $after  Trusted markup placed after the encoded value (not encoded)
      * @return string HTML-safe output, or "" when the value is missing
      */
-    public function wrapHtml(string $before, string $after): string
+    public function wrapHtml(string|SmartString|SmartNull $before, string|SmartString|SmartNull $after): string
     {
         if ($this->isMissing()) {
             return '';
         }
-        return $before . $this->htmlEncode() . $after;
+        return self::getRawValue($before) . $this->htmlEncode() . self::getRawValue($after);
     }
 
     /**
@@ -875,9 +888,9 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      * remove keeps its content and the 404 renders inside it. If output was already sent,
      * the page still renders but the HTTP status stays whatever was sent.
      *
-     * @param string|null $text Plain-text message; HTML-encoded automatically before output. Defaults to "The requested URL was not found on this server."
+     * @param string|null|SmartString|SmartNull $text Plain-text message; HTML-encoded automatically before output. Defaults to "The requested URL was not found on this server."
      */
-    public function or404(?string $text = null): self
+    public function or404(string|null|SmartString|SmartNull $text = null): self
     {
         if (!$this->isMissing()) {
             return $this;
@@ -891,8 +904,8 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         // without PHP_OUTPUT_HANDLER_REMOVABLE never close, so a level check would loop forever.
         while (@ob_end_clean()) {
         }
-        $text ??= "The requested URL was not found on this server.";
-        $text = htmlspecialchars($text, self::HTML_ENCODE_FLAGS, 'UTF-8');
+        $text = self::getRawValue($text) ?? "The requested URL was not found on this server.";
+        $text = htmlspecialchars((string)$text, self::HTML_ENCODE_FLAGS, 'UTF-8');
 
         echo <<<__HTML__
             <!DOCTYPE html>
@@ -918,12 +931,12 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      *
      * Exits with code 1 so CLI and cron callers see a failure, not success.
      *
-     * @param string $text Plain-text message; HTML-encoded automatically before output.
+     * @param string|SmartString|SmartNull $text Plain-text message; HTML-encoded automatically before output.
      */
-    public function orDie(string $text): self
+    public function orDie(string|SmartString|SmartNull $text): self
     {
         if ($this->isMissing()) {
-            echo htmlspecialchars($text, self::HTML_ENCODE_FLAGS, 'UTF-8'); // SECURITY: intentional encode, do not remove (see docblock)
+            echo htmlspecialchars((string)self::getRawValue($text), self::HTML_ENCODE_FLAGS, 'UTF-8'); // SECURITY: intentional encode, do not remove (see docblock)
             exit(1);
         }
         return $this;
@@ -940,13 +953,13 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      *
      * Pass those exact flags - the ENT_HTML401 default doesn't decode the &apos; this encoding produces.
      *
-     * @param string $text Plain-text message; HTML-encoded automatically before being used as the exception message.
+     * @param string|SmartString|SmartNull $text Plain-text message; HTML-encoded automatically before being used as the exception message.
      * @throws RuntimeException If the value is missing (null or "")
      */
-    public function orThrow(string $text): self
+    public function orThrow(string|SmartString|SmartNull $text): self
     {
         if ($this->isMissing()) {
-            $text = htmlspecialchars($text, self::HTML_ENCODE_FLAGS, 'UTF-8'); // SECURITY: intentional encode, do not remove (see docblock)
+            $text = htmlspecialchars((string)self::getRawValue($text), self::HTML_ENCODE_FLAGS, 'UTF-8'); // SECURITY: intentional encode, do not remove (see docblock)
             throw new RuntimeException($text);
         }
         return $this;
@@ -959,15 +972,19 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      * If headers have already been sent, this method throws - even when the value is
      * present - so misuse fails on the first request instead of only on empty values.
      *
-     * @param string $url The URL to redirect to if value is missing
+     * @param string|SmartString|SmartNull $url The URL to redirect to if value is missing
      * @return self Returns $this for method chaining if not missing, redirects if missing
-     * @throws RuntimeException If headers have already been sent
+     * @throws RuntimeException If headers have already been sent, or if the URL is blank
      */
-    public function orRedirect(string $url): self
+    public function orRedirect(string|SmartString|SmartNull $url): self
     {
         // Check early so developers find out immediately, not only when isMissing()
         if (headers_sent($file, $line)) {
             throw new RuntimeException("orRedirect(): headers already sent in $file on line $line");
+        }
+        $url = (string)self::getRawValue($url);
+        if ($url === '') { // same early-check rule: report a blank URL on the first request, not only when the value is missing
+            throw new RuntimeException("orRedirect(): redirect URL is blank (null or \"\")");
         }
 
         if ($this->isMissing()) {
@@ -1019,15 +1036,16 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      * fails on bad data, so `or()` fallbacks fire.
      *
      * @param string $pattern     Regex pattern
-     * @param string $replacement Replacement string (supports backreferences)
+     * @param string|SmartString|SmartNull $replacement Replacement string (supports backreferences)
      * @return SmartString A new SmartString with the replaced value
      * @throws InvalidArgumentException If the pattern is invalid
      */
-    public function pregReplace(string $pattern, string $replacement): SmartString
+    public function pregReplace(string $pattern, string|SmartString|SmartNull $replacement): SmartString
     {
         if ($this->isMissing()) {
             return new self($this->rawData);
         }
+        $replacement = (string)self::getRawValue($replacement); // unwrap: replace with the raw value, not the encoded __toString output
 
         // PHP only exposes the pattern compile error ("No ending delimiter '/' found") as
         // a warning, so we @-suppress it and read it back with error_get_last(). Custom

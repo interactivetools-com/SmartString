@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Itools\SmartString\Tests\Unit;
 
 use InvalidArgumentException;
+use Itools\SmartArray\SmartNull;
 use Itools\SmartString\SmartString;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Itools\SmartString\Tests\Support\SmartStringTestCase;
@@ -290,6 +291,13 @@ class StringManipulationTest extends SmartStringTestCase
             'html in raw value'    => ['<b>bold</b>', '/<[^>]+>/', '', 'bold'],
             'integer input'        => [12345, '/(\d{3})(\d+)/', '$1-$2', '123-45'],
         ];
+    }
+
+    public function testPregReplaceUnwrapsSmartStringReplacement(): void
+    {
+        // a SmartString replacement inserts its raw value, not its encoded __toString output
+        $this->assertSame('x & y', SmartString::new('a')->pregReplace('/a/', new SmartString('x & y'))->value());
+        $this->assertSame('', SmartString::new('a')->pregReplace('/a/', new SmartNull())->value()); // SmartNull replaces with ""
     }
 
     /**
