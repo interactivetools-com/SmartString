@@ -871,8 +871,9 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      * Sends 404 header and exits with status 1 if the current value is missing (null or ""), zero is not
      * considered missing. The non-zero exit status lets shell scripts and cron jobs see the failure.
      *
-     * Open output buffers are discarded so the 404 page renders clean. If output was already
-     * sent, the page still renders but the HTTP status stays whatever was sent.
+     * Open output buffers are discarded so the 404 page renders clean. A buffer PHP can't
+     * remove keeps its content and the 404 renders inside it. If output was already sent,
+     * the page still renders but the HTTP status stays whatever was sent.
      *
      * @param string|null $text Plain-text message; HTML-encoded automatically before output. Defaults to "The requested URL was not found on this server."
      */
@@ -886,8 +887,9 @@ final class SmartString implements JsonSerializable, IteratorAggregate
             http_response_code(404);
             header("Content-Type: text/html; charset=utf-8");
         }
-        while (ob_get_level() > 0) {
-            ob_end_clean(); // discard the partial page so the 404 renders clean, not appended mid-layout
+        // Discard the partial page so the 404 renders clean. Stops on false: buffers started
+        // without PHP_OUTPUT_HANDLER_REMOVABLE never close, so a level check would loop forever.
+        while (@ob_end_clean()) {
         }
         $text ??= "The requested URL was not found on this server.";
         $text = htmlspecialchars($text, self::HTML_ENCODE_FLAGS, 'UTF-8');

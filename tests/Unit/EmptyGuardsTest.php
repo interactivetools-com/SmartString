@@ -141,6 +141,25 @@ class EmptyGuardsTest extends SmartStringTestCase
     }
 
     /**
+     * A buffer started without PHP_OUTPUT_HANDLER_REMOVABLE can't be discarded:
+     * ob_end_clean() returns false and leaves it open. or404() must stop and
+     * render the 404 inside that buffer, which exit then flushes. Spinning on
+     * the undeletable buffer would hang the request until max_execution_time.
+     */
+    public function testOr404StopsDiscardingWhenABufferCannotBeRemoved(): void
+    {
+        $started = microtime(true);
+        [$stdout, $stderr, $exitCode] = $this->runScript('or404-locked-buffer');
+
+        $this->assertLessThan(2.0, microtime(true) - $started, 'or404() must give up on the locked buffer, not spin');
+        $this->assertStringContainsString('partial page content', $stdout, 'the locked buffer cannot be discarded, so its content still shows');
+        $this->assertStringContainsString('<h1>Not Found</h1>', $stdout, 'the 404 renders inside the locked buffer and exit flushes it');
+        $this->assertStringContainsString('status=404', $stderr, 'nothing reached the client, so the status still gets set');
+        $this->assertStringNotContainsString('NOT-REACHED', $stderr);
+        $this->assertSame(1, $exitCode);
+    }
+
+    /**
      * The Content-Type is only observable in a real web response: header() is
      * a no-op under CLI. PHP's own default for a response that sets nothing
      * ("Content-type: text/html; charset=UTF-8") differs from the library's

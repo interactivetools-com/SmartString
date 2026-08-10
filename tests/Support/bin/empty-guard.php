@@ -53,6 +53,14 @@ $run = match ($method) {
         echo "partial page content"; // buffered, not sent: headers_sent() stays false
         $missing->or404();           // discards the buffer and sets the 404
     },
+    'or404-locked-buffer' => function () use ($missing) {
+        // a buffer PHP can't remove: or404() must stop discarding, not spin on it.
+        // The time limit turns a spin regression into a fast fatal, not a hung test run
+        set_time_limit(3);
+        ob_start(fn(string $s) => $s, 0, PHP_OUTPUT_HANDLER_CLEANABLE | PHP_OUTPUT_HANDLER_FLUSHABLE);
+        echo "partial page content";
+        $missing->or404();
+    },
     'orDie'              => fn() => $missing->orDie((string)$arg),
     'orThrow'            => fn() => $missing->orThrow((string)$arg),
     'orRedirect'         => fn() => $missing->orRedirect((string)$arg),
