@@ -47,7 +47,7 @@ class MathTest extends SmartStringTestCase
             'mixed signs'         => [5, -3, 2.0],
             'adding zero'         => [10, 0, 10.0],
             'adding to zero'      => [0, 10, 10.0],
-            'int max overflows'   => [PHP_INT_MAX, 1, (float)PHP_INT_MAX + 1],
+            'int max overflows'   => [PHP_INT_MAX, 4096, 9.223372036854779E+18], // addend must exceed the 2048 ULP at 9.2e18 or the float result is unchanged
             'SmartString addend'  => [5, new SmartString(3), 8.0],
             'numeric with spaces' => [' 5 ', 1, 6.0],
             'exponent string'     => ['1e3', 1, 1001.0],
@@ -76,7 +76,7 @@ class MathTest extends SmartStringTestCase
             'mixed signs'            => [5, -3, 8.0],
             'subtracting zero'       => [10, 0, 10.0],
             'subtracting from zero'  => [0, 10, -10.0],
-            'int max overflows'      => [PHP_INT_MAX, -1, (float)PHP_INT_MAX + 1],
+            'int max overflows'      => [PHP_INT_MAX, -4096, 9.223372036854779E+18], // subtrahend must exceed the 2048 ULP at 9.2e18 or the float result is unchanged
             'SmartString subtrahend' => [8, new SmartString(3), 5.0],
         ];
     }
@@ -111,11 +111,11 @@ class MathTest extends SmartStringTestCase
 
     public function testMultiplyOverflowReturnsNullLikeAnyFailedStep(): void
     {
-        // overflow produces INF/NAN, which store as null - same contract as
-        // divide-by-zero, so a later or() recovers the chain
+        // finite operands whose result overflows to INF store as null - same
+        // contract as divide-by-zero, so a later or() recovers the chain
         $this->assertNull(SmartString::new(1.7976931348623157e+308)->multiply(2)->value());
         $this->assertNull(SmartString::new(-1.7976931348623157e+308)->multiply(2)->value());
-        $this->assertNull(SmartString::new(INF)->subtract(INF)->value()); // INF - INF = NAN
+        $this->assertNull(SmartString::new(-1.7976931348623157e+308)->subtract(1.7976931348623157e+308)->value());
         $this->assertSame('n/a', SmartString::new(1.7976931348623157e+308)->multiply(2)->or('n/a')->value());
         $this->assertNull(SmartString::new('9e999')->add(1)->value(), "numeric strings that cast to INF are a failed step too");
     }

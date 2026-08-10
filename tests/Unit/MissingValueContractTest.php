@@ -3,8 +3,11 @@ declare(strict_types=1);
 
 namespace Itools\SmartString\Tests\Unit;
 
+use Itools\SmartString\Deprecations;
 use Itools\SmartString\SmartString;
 use PHPUnit\Framework\Attributes\DataProvider;
+use ReflectionClass;
+use ReflectionMethod;
 use Itools\SmartString\Tests\Support\SmartStringTestCase;
 
 /**
@@ -16,24 +19,84 @@ use Itools\SmartString\Tests\Support\SmartStringTestCase;
  * - Presence-conditional: missing skips the operation or triggers the fallback
  * - Terminal encoders: null and "" both output "" (jsonEncode outputs JSON literals)
  *
- * Not in the table: set(), ifTrue(), and ifEquals() replace unconditionally
- * (missingness is irrelevant), and map() always runs the callback on the raw
- * value, null included - pinned in StringManipulationTest.
+ * The method list comes from reflection, not from the table, so a new or
+ * renamed public method fails here until it either has a table row or is
+ * listed in NOT_A_TRANSFORMATION with the reason it has no null/"" contract.
  *
  * Per-method edge cases stay in the per-method test files; this table only
- * pins the null and "" columns so a new or edited method can't silently
- * leave the pattern.
+ * pins the null and "" columns.
  */
 class MissingValueContractTest extends SmartStringTestCase
 {
+    /**
+     * Public methods with no null/"" contract of their own, and why.
+     *
+     * Deprecated aliases are exempt as a group (read by reflection from the
+     * Deprecations trait): each one forwards to a current method the table
+     * already covers.
+     */
+    private const NOT_A_TRANSFORMATION = [
+        'new'           => 'static factory: wraps a value instead of transforming a stored one',
+        'getRawValue'   => 'static unwrapper: reads the argument, not the stored value',
+        'value'         => 'accessor: returns the stored value unchanged',
+        'rawHtml'       => 'accessor: returns the stored value unchanged',
+        'int'           => 'type cast: missing converts the way PHP casts, pinned in TypeConversionTest',
+        'float'         => 'type cast: missing converts the way PHP casts, pinned in TypeConversionTest',
+        'bool'          => 'type cast: missing converts the way PHP casts, pinned in TypeConversionTest',
+        'string'        => 'type cast: missing converts the way PHP casts, pinned in TypeConversionTest',
+        'isEmpty'       => 'reports missingness instead of acting on it, pinned in ValidationTest',
+        'isNotEmpty'    => 'reports missingness instead of acting on it, pinned in ValidationTest',
+        'isMissing'     => 'reports missingness instead of acting on it, pinned in ValidationTest',
+        'isNull'        => 'reports missingness instead of acting on it, pinned in ValidationTest',
+        'or404'         => 'exits the process when missing, pinned out of process in EmptyGuardsTest',
+        'orDie'         => 'exits the process when missing, pinned out of process in EmptyGuardsTest',
+        'orRedirect'    => 'exits the process when missing, pinned out of process in EmptyGuardsTest',
+        'orThrow'       => 'throws when missing, pinned in EmptyGuardsTest',
+        'set'           => 'replaces unconditionally, missingness is irrelevant',
+        'ifTrue'        => 'replaces on its condition argument, not on missingness',
+        'ifEquals'      => 'replaces on its match argument, not on missingness',
+        'map'           => 'always runs the callback on the raw value, null included, pinned in StringManipulationTest',
+        'getIterator'   => 'interface plumbing: only throws a foreach-misuse error',
+        'jsonSerialize' => 'interface plumbing: called by json_encode(), never directly',
+    ];
+
     #[DataProvider('transformationProvider')]
-    public function testNullAndEmptyStringBehavior(callable $op, ?string $expectedForNull, ?string $expectedForEmpty): void
+    public function testNullAndEmptyStringBehavior(string $method): void
     {
+        $table = self::missingValueTable();
+        $this->assertArrayHasKey($method, $table,
+            "Public method $method() has no missing-value row - add one to missingValueTable(), or list it in NOT_A_TRANSFORMATION with the reason it has no null/\"\" contract");
+
+        [$op, $expectedForNull, $expectedForEmpty] = $table[$method];
         $this->assertSame($expectedForNull, $op(SmartString::new(null)), 'null input');
         $this->assertSame($expectedForEmpty, $op(SmartString::new('')), '"" input');
     }
 
+    /**
+     * Every public method that needs a missing-value row: the SmartString API
+     * minus magic methods, deprecated aliases, and NOT_A_TRANSFORMATION.
+     */
     public static function transformationProvider(): array
+    {
+        $deprecated = array_map(
+            static fn(ReflectionMethod $m) => $m->getName(),
+            (new ReflectionClass(Deprecations::class))->getMethods(ReflectionMethod::IS_PUBLIC)
+        );
+
+        $methods = (new ReflectionClass(SmartString::class))->getMethods(ReflectionMethod::IS_PUBLIC);
+
+        $rows = [];
+        foreach ($methods as $method) {
+            $name = $method->getName();
+            if (str_starts_with($name, '__') || in_array($name, $deprecated, true) || array_key_exists($name, self::NOT_A_TRANSFORMATION)) {
+                continue;
+            }
+            $rows[$name] = [$name];
+        }
+        return $rows;
+    }
+
+    private static function missingValueTable(): array
     {
         // rows are [op, expected for null, expected for ""]; ops unwrap chainable results with ->value()
         return [
@@ -70,5 +133,19 @@ class MissingValueContractTest extends SmartStringTestCase
             'appendHtml'   => [fn($s) => $s->appendHtml('<br>'), '', ''],
             'wrapHtml'     => [fn($s) => $s->wrapHtml('<b>', '</b>'), '', ''],
         ];
+    }
+
+    /**
+     * The table and the exemption list stay honest: every name in them must
+     * still be a method, so a removed or renamed method can't leave a row
+     * that nothing runs or an exemption that hides nothing.
+     */
+    public function testTableRowsAndExemptionsStillExist(): void
+    {
+        $names = [...array_keys(self::missingValueTable()), ...array_keys(self::NOT_A_TRANSFORMATION)];
+        foreach ($names as $method) {
+            $this->assertTrue(method_exists(SmartString::class, $method),
+                "$method() no longer exists - remove it from missingValueTable() or NOT_A_TRANSFORMATION");
+        }
     }
 }

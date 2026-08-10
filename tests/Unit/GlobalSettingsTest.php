@@ -75,10 +75,14 @@ class GlobalSettingsTest extends SmartStringTestCase
 
     /**
      * First half of the infrastructure self-test: mutate every setting and
-     * the timezone, restore nothing.
+     * the timezone, restore nothing. Returns the timezone the process had on
+     * entry, the exact value tearDown must put back (the five settings have
+     * documented defaults to compare against, the timezone comes from php.ini).
      */
-    public function testSnapshotSelfTestMutatesEverySetting(): void
+    public function testSnapshotSelfTestMutatesEverySetting(): string
     {
+        $timezoneBeforeMutation = date_default_timezone_get();
+
         SmartString::$numberFormatDecimal   = '#';
         SmartString::$numberFormatThousands = '~';
         SmartString::$dateFormat            = 'D';
@@ -87,20 +91,41 @@ class GlobalSettingsTest extends SmartStringTestCase
         date_default_timezone_set('Australia/Eucla');
 
         $this->assertSame('#', SmartString::$numberFormatDecimal); // mutation took; tearDown must undo it
+        return $timezoneBeforeMutation;
     }
 
     /**
      * Second half: everything the previous test changed is back to defaults.
      */
     #[Depends('testSnapshotSelfTestMutatesEverySetting')]
-    public function testSnapshotSelfTestRestoredEverySetting(): void
+    public function testSnapshotSelfTestRestoredEverySetting(string $timezoneBeforeMutation): void
     {
         $this->assertSame('.', SmartString::$numberFormatDecimal);
         $this->assertSame(',', SmartString::$numberFormatThousands);
         $this->assertSame('Y-m-d', SmartString::$dateFormat);
         $this->assertSame('Y-m-d H:i:s', SmartString::$dateTimeFormat);
         $this->assertSame(10, SmartString::$phoneFormat[0]['digits']);
-        $this->assertNotSame('Australia/Eucla', date_default_timezone_get());
+        $this->assertSame($timezoneBeforeMutation, date_default_timezone_get());
+    }
+
+    /**
+     * The pair above can only compare against the timezone the harness happens to
+     * run under, so it cannot tell a restore from tearDown() hardcoding that same
+     * zone. Driving one setUp()/tearDown() cycle by hand pins the exact value: the
+     * zone setUp() saved, whatever it was.
+     */
+    public function testSnapshotSelfTestRestoresTheTimezoneItSaved(): void
+    {
+        $timezoneOnEntry = date_default_timezone_get();
+
+        date_default_timezone_set('America/Phoenix');
+        $this->setUp();                          // snapshot a zone this test picked, not the harness default
+        date_default_timezone_set('Australia/Eucla');
+        $this->tearDown();
+        $this->assertSame('America/Phoenix', date_default_timezone_get());
+
+        date_default_timezone_set($timezoneOnEntry);
+        $this->setUp();                          // re-arm so the harness tearDown leaves the process as we found it
     }
 
     //endregion

@@ -16,6 +16,8 @@ use Itools\SmartString\Tests\Support\SmartStringTestCase;
  * orRedirect's happy path also runs out of process: PHPUnit's own console
  * output does not mark headers as sent, but only a fresh process guarantees
  * headers_sent() is false at call time.
+ * The headers the guards send are asserted by serving the same script through
+ * PHP's built-in server, where responses carry real headers.
  *
  * n/a dimensions: global settings, immutability (guards return $this, pinned
  * here as instance identity).
@@ -61,12 +63,16 @@ class EmptyGuardsTest extends SmartStringTestCase
      */
     public function testOrThrowThrowsEncodedMessage(): void
     {
+        // the fail() sentinel stays outside the try: PHPUnit's AssertionFailedError
+        // is itself a RuntimeException, so a fail() inside would land in the catch
+        $threw = false;
         try {
             SmartString::new(null)->orThrow("Bad <id> & 'quote'");
-            $this->fail('Expected RuntimeException was not thrown');
         } catch (RuntimeException $e) {
+            $threw = true;
             $this->assertSame('Bad &lt;id&gt; &amp; &apos;quote&apos;', $e->getMessage());
         }
+        $this->assertTrue($threw, 'Expected RuntimeException was not thrown');
     }
 
     public function testOrThrowTreatsEmptyStringAsMissing(): void
@@ -78,12 +84,14 @@ class EmptyGuardsTest extends SmartStringTestCase
     public function testOrThrowMessageDecodesBackToPlainText(): void
     {
         // the docblock's recovery recipe for CLI/log handlers
+        $threw = false;
         try {
             SmartString::new(null)->orThrow("Bad <id> & 'quote'");
-            $this->fail('Expected RuntimeException was not thrown');
         } catch (RuntimeException $e) {
+            $threw = true;
             $this->assertSame("Bad <id> & 'quote'", htmlspecialchars_decode($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5));
         }
+        $this->assertTrue($threw, 'Expected RuntimeException was not thrown');
     }
 
     //endregion
@@ -130,6 +138,21 @@ class EmptyGuardsTest extends SmartStringTestCase
         $this->assertStringContainsString('status=404', $stderr, 'buffered output was never sent, so the status still gets set');
         $this->assertStringNotContainsString('NOT-REACHED', $stderr);
         $this->assertSame(1, $exitCode);
+    }
+
+    /**
+     * The Content-Type is only observable in a real web response: header() is
+     * a no-op under CLI. PHP's own default for a response that sets nothing
+     * ("Content-type: text/html; charset=UTF-8") differs from the library's
+     * only in case, so the exact match is what tells the two apart.
+     */
+    public function testOr404SendsHtmlContentTypeHeader(): void
+    {
+        [$headers, $body] = $this->requestGuardViaBuiltInServer('or404-default');
+
+        $this->assertContains('Content-Type: text/html; charset=utf-8', $headers, "Response headers: " . var_export($headers, true));
+        $this->assertStringContainsString('404 Not Found', $headers[0]);
+        $this->assertStringContainsString('<h1>Not Found</h1>', $body);
     }
 
     //endregion
@@ -181,6 +204,67 @@ class EmptyGuardsTest extends SmartStringTestCase
         $this->assertStringContainsString('orRedirect(): headers already sent in', $stderr);
         $this->assertStringContainsString('output-sent', $stdout); // the output that sent the headers
         $this->assertSame(255, $exitCode); // uncaught RuntimeException
+    }
+
+    /**
+     * The redirect destination is only observable in a real web response:
+     * header() is a no-op under CLI, so the subprocess tests above see the 302
+     * status but not where it points. The query string is the part a login
+     * guard builds per request, e.g. ->orRedirect('/login.php?return=' . $path).
+     */
+    public function testOrRedirectSendsLocationHeaderForTheGivenUrl(): void
+    {
+        [$headers, $body] = $this->requestGuardViaBuiltInServer('orRedirect', 'https://example.com/login?return=/admin');
+
+        $this->assertContains('Location: https://example.com/login?return=/admin', $headers, "Response headers: " . var_export($headers, true));
+        $this->assertStringContainsString('302 Found', $headers[0]);
+        $this->assertSame('', $body);
+    }
+
+    //endregion
+    //region Web Requests (php -S)
+
+    /**
+     * Run one guard in Support/bin/empty-guard.php as a web request through
+     * PHP's built-in server and return [responseHeaders, body]. This is the
+     * only place the suite sees the headers the guards send; header() writes
+     * nowhere under CLI.
+     *
+     * @return array{0: string[], 1: string}
+     */
+    private function requestGuardViaBuiltInServer(string $method, string $arg = ''): array
+    {
+        $docRoot = dirname(__DIR__) . '/Support/bin';
+
+        // find a free port, then hand it to php -S (it can't pick its own)
+        $socket = stream_socket_server('tcp://127.0.0.1:0');
+        $this->assertNotFalse($socket, 'could not find a free port');
+        $port = (int)substr(strrchr(stream_socket_get_name($socket, false), ':'), 1);
+        fclose($socket);
+
+        $pipes  = [];
+        $server = proc_open([PHP_BINARY, '-S', "127.0.0.1:$port", '-t', $docRoot], [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+        $this->assertIsResource($server, 'could not start php -S');
+
+        try {
+            // follow_location off so the 302 is read here instead of sending a
+            // real request to the redirect target; ignore_errors keeps the 404
+            // body and headers instead of returning false
+            $context = stream_context_create(['http' => ['timeout' => 1, 'follow_location' => 0, 'ignore_errors' => true]]);
+            $url     = sprintf('http://127.0.0.1:%d/empty-guard.php?method=%s&arg=%s', $port, urlencode($method), urlencode($arg));
+            $body    = false;
+            $headers = [];
+            for ($attempt = 0; $attempt < 50 && $body === false; $attempt++) {
+                usleep(100_000);
+                $body    = @file_get_contents($url, false, $context);
+                $headers = $http_response_header ?? [];
+            }
+            $this->assertIsString($body, 'no response from php -S after 5 seconds');
+            return [$headers, $body];
+        } finally {
+            proc_terminate($server);
+            proc_close($server);
+        }
     }
 
     //endregion

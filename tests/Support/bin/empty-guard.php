@@ -7,21 +7,24 @@ declare(strict_types=1);
  * The orRedirect-present and orRedirect-headers-sent variants use a present
  * value instead - those pin behavior that doesn't depend on missing values.
  *
- *     php empty-guard.php <method> [message-or-url]
+ * Two ways to run it, same guard list:
  *
- * stdout: whatever the guard echoes (404 page, die message), plus the chained
- *         ->value() for orRedirect-present
- * stderr: "status=<int|false>" from a shutdown handler (http_response_code
+ *     php empty-guard.php <method> [message-or-url]     // CLI subprocess
+ *     GET /empty-guard.php?method=...&arg=...           // served by php -S
+ *
+ * CLI stdout: whatever the guard echoes (404 page, die message), plus the
+ *         chained ->value() for orRedirect-present
+ * CLI stderr: "status=<int|false>" from a shutdown handler (http_response_code
  *         survives exit within the process), plus "NOT-REACHED" if the guard
  *         didn't exit - expected for orRedirect-present, a failure for the
  *         missing-value guards
  *
- * CLI limits: header() is a no-op and headers_list() is always empty under
- * CLI, so the Location and Content-Type headers can't be asserted here, only
- * status codes, output, and exit behavior. headers_sent() DOES work under CLI
- * (true after any output) - the headers-sent variant relies on that, and it's
- * also why orRedirect's happy path must run here rather than under PHPUnit,
- * whose console output makes headers_sent() true in-process.
+ * header() is a no-op and headers_list() is always empty under CLI, so the
+ * Location and Content-Type headers are only observable in the web mode, where
+ * they come back to the test as real response headers. headers_sent() DOES
+ * work under CLI (true after any output) - the headers-sent variants rely on
+ * that, and it's also why orRedirect's happy path must run here rather than
+ * under PHPUnit, whose console output makes headers_sent() true in-process.
  */
 
 require dirname(__DIR__, 3) . '/vendor/autoload.php';
@@ -32,10 +35,11 @@ register_shutdown_function(function () {
     fwrite(STDERR, "status=" . var_export(http_response_code(), true));
 });
 
-$method  = $argv[1] ?? '';
-$arg     = $argv[2] ?? null;
-$missing = SmartString::new(null);
-$present = SmartString::new('ok');
+$isWebRequest = PHP_SAPI === 'cli-server';
+$method       = $isWebRequest ? (string)($_GET['method'] ?? '') : ($argv[1] ?? '');
+$arg          = $isWebRequest ? (string)($_GET['arg'] ?? '')    : ($argv[2] ?? null);
+$missing      = SmartString::new(null);
+$present      = SmartString::new('ok');
 
 $run = match ($method) {
     'or404-default'      => fn() => $missing->or404(),

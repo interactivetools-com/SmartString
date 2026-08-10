@@ -164,10 +164,10 @@ class EncodingTest extends SmartStringTestCase
 
     public function testJsonEncodeInfAndNanEncodeAsNull(): void
     {
-        // INF/NAN store as null in the constructor, so JSON output stays valid -
-        // previously jsonEncode() threw "Inf and NaN cannot be JSON encoded" and
-        // json_encode($smartString) returned false
-        $this->assertSame('null', SmartString::new(INF)->subtract(INF)->jsonEncode());
+        // INF/NAN never reach the encoder: an overflowed result stores as null just
+        // like a non-finite input does, so JSON output stays valid instead of
+        // throwing "Inf and NaN cannot be JSON encoded"
+        $this->assertSame('null', SmartString::new(-1.7976931348623157e+308)->subtract(1.7976931348623157e+308)->jsonEncode());
         $this->assertSame('null', json_encode(SmartString::new(NAN)));
     }
 

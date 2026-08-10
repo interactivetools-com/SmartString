@@ -38,6 +38,7 @@ class HelpTest extends SmartStringTestCase
 
         $this->assertSame('passthrough', $staticResult);
         $this->assertSame('original value', $instanceResult);
+        $this->assertStringContainsString('https://github.com/interactivetools-com/SmartString#readme', $staticOutput);
         $this->assertSame($staticOutput, $instanceOutput);
     }
 
@@ -45,15 +46,17 @@ class HelpTest extends SmartStringTestCase
      * The <xmp> web branch is reachable under PHP's built-in server (SAPI
      * cli-server), so this is the one test that asserts the wrapped path: a
      * literal </xmp> can't end the block early - it displays as <\/xmp>, the
-     * same escaping as CMSB's xmp_safe().
+     * same escaping as CMSB's xmp_safe(). HTML tag names are case-insensitive,
+     * so </XMP> has to be escaped too and the fixture sends both spellings.
      */
     public function testXmpWrapEscapesXmpClosingTagOnWebResponses(): void
     {
         $body = $this->requestViaBuiltInServer('xmp-breakout.php');
 
         $this->assertStringContainsString('<xmp>', $body);
-        $this->assertStringContainsString('<\/xmp><script>alert(1)</script>', $body, 'payload displays escaped');
-        $this->assertSame(1, substr_count($body, '</xmp>'), 'only the wrapper itself closes the block');
+        $this->assertStringContainsString('<\/xmp><script>alert(1)</script>', $body, 'lowercase payload displays escaped');
+        $this->assertStringContainsString('<\/xmp><script>alert(2)</script>', $body, 'uppercase payload displays escaped');
+        $this->assertSame(1, substr_count(strtolower($body), '</xmp>'), 'only the wrapper itself closes the block');
     }
 
     /**

@@ -80,24 +80,46 @@ abstract class SmartStringTestCase extends TestCase
     }
 
     /**
-     * Run $fn collecting E_USER_DEPRECATED messages. The library sends these via
-     * @trigger_error, so only an error handler can observe them. Returns [result, messages].
+     * Run $fn with an error handler registered for every level, collecting the messages
+     * whose level is in $collectLevels and passing every other level to the handler
+     * PHPUnit installed. Returns [result, messages].
+     *
+     * Registering for every level is what makes native E_WARNING and E_DEPRECATED
+     * visible: PHP sends a level outside a handler's mask to its own internal handler,
+     * not to the handler this one replaced, so a mask narrowed to $collectLevels hides
+     * the rest from this helper and from PHPUnit both. Suppressed errors are collected
+     * like any other, which is what the library's @trigger_error deprecations need.
      *
      * @return array{0: mixed, 1: string[]}
      */
-    protected function captureDeprecations(callable $fn): array
+    private function captureErrors(callable $fn, int $collectLevels): array
     {
         $messages = [];
-        set_error_handler(static function (int $errno, string $errstr) use (&$messages): bool {
-            $messages[] = $errstr;
-            return $errno === E_USER_DEPRECATED; // always true given the mask; anything else falls through to PHP
-        }, E_USER_DEPRECATED);
+        $previous = set_error_handler(static function (int $errno, string $errstr, string $errfile = '', int $errline = 0) use (&$messages, &$previous, $collectLevels): bool {
+            if (($errno & $collectLevels) !== 0) {
+                $messages[] = $errstr;
+                return true;
+            }
+            return $previous !== null && $previous($errno, $errstr, $errfile, $errline) === true;
+        });
         try {
             $result = $fn();
         } finally {
             restore_error_handler();
         }
         return [$result, $messages];
+    }
+
+    /**
+     * Run $fn collecting deprecation messages, native and E_USER_DEPRECATED alike. The
+     * library sends its own via @trigger_error, so only an error handler can observe them.
+     * Returns [result, messages].
+     *
+     * @return array{0: mixed, 1: string[]}
+     */
+    protected function captureDeprecations(callable $fn): array
+    {
+        return $this->captureErrors($fn, E_DEPRECATED | E_USER_DEPRECATED);
     }
 
     /**
@@ -116,25 +138,17 @@ abstract class SmartStringTestCase extends TestCase
     }
 
     /**
-     * Run $fn expecting exactly one E_USER_WARNING starting with exactly $expected.
-     * The library appends an "Occurred in file:line ..." block pointing at the calling
-     * test, so that block is asserted by format and stripped before the exact comparison.
-     * $expected includes everything up to it, trailing newline included. Returns $fn's result.
+     * Run $fn expecting exactly one warning, native E_WARNING or E_USER_WARNING, starting
+     * with exactly $expected. The library appends an "Occurred in file:line ..." block
+     * pointing at the calling test, so that block is asserted by format and stripped before
+     * the exact comparison. $expected includes everything up to it, trailing newline
+     * included. Returns $fn's result.
      */
     protected function expectUserWarning(callable $fn, string $expected): mixed
     {
-        $messages = [];
-        set_error_handler(static function (int $errno, string $errstr) use (&$messages): bool {
-            $messages[] = $errstr;
-            return $errno === E_USER_WARNING; // always true given the mask; anything else falls through to PHP
-        }, E_USER_WARNING);
-        try {
-            $result = $fn();
-        } finally {
-            restore_error_handler();
-        }
+        [$result, $messages] = $this->captureErrors($fn, E_WARNING | E_USER_WARNING);
 
-        $this->assertCount(1, $messages, "Expected exactly one E_USER_WARNING, got: " . var_export($messages, true));
+        $this->assertCount(1, $messages, "Expected exactly one warning, got: " . var_export($messages, true));
         $this->assertMatchesRegularExpression('/Occurred in .+:\d+.*\nReported$/s', $messages[0], 'Warning should end with the "Occurred in file:line" location block');
         $this->assertSame($expected, preg_replace('/Occurred in .*$/s', '', $messages[0]));
         return $result;
@@ -146,19 +160,12 @@ abstract class SmartStringTestCase extends TestCase
      */
     protected function assertNoOutput(callable $fn): mixed
     {
-        $userErrors = [];
-        set_error_handler(static function (int $errno, string $errstr) use (&$userErrors): bool {
-            $userErrors[] = $errstr;
-            return ($errno & (E_USER_WARNING | E_USER_DEPRECATED | E_USER_NOTICE)) !== 0; // always true given the mask
-        }, E_USER_WARNING | E_USER_DEPRECATED | E_USER_NOTICE);
-        try {
-            [$result, $output] = $this->captureOutput($fn);
-        } finally {
-            restore_error_handler();
-        }
+        $diagnosticLevels         = E_WARNING | E_NOTICE | E_DEPRECATED | E_USER_WARNING | E_USER_NOTICE | E_USER_DEPRECATED;
+        [$captured, $diagnostics] = $this->captureErrors(fn() => $this->captureOutput($fn), $diagnosticLevels);
+        [$result, $output]        = $captured;
 
         $this->assertSame('', $output, "Expected no echoed output");
-        $this->assertSame([], $userErrors, "Expected no warnings or deprecation notices");
+        $this->assertSame([], $diagnostics, "Expected no warnings or deprecation notices");
         return $result;
     }
 

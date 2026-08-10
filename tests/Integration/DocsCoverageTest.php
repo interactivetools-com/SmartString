@@ -39,10 +39,11 @@ class DocsCoverageTest extends SmartStringTestCase
     #[DataProvider('publicMethodsProvider')]
     public function testMethodIsInAiReference(string $method): void
     {
-        // ai-reference writes methods bare (`textOnly(): SmartString`), so no arrow prefix
+        // ai-reference writes methods bare (`textOnly(): SmartString`), so there's no arrow or
+        // colons to anchor on; the left boundary is what keeps map() from matching array_map()
         $reference = file_get_contents(dirname(__DIR__, 2) . '/docs/ai-reference.md');
         $this->assertTrue(
-            str_contains($reference, "$method("),
+            preg_match('/(?<![A-Za-z0-9_])' . preg_quote($method, '/') . '\(/', $reference) === 1,
             "Public method $method() is not mentioned in docs/ai-reference.md"
         );
     }
