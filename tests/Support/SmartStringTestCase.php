@@ -174,16 +174,16 @@ abstract class SmartStringTestCase extends TestCase
     //region Exit-Path Subprocess
 
     /**
-     * Run one guard in Support/bin/empty-guard.php as a separate PHP process so exit
-     * paths can be observed from outside. Returns [stdout, stderr, exitCode]; the
-     * script reports "status=<int|false>" and a NOT-REACHED sentinel on stderr (full
-     * protocol in the script header).
+     * Run one Support/bin script as a separate PHP process so exit paths can be
+     * observed from outside. Returns [stdout, stderr, exitCode]. The default
+     * script, empty-guard.php, reports "status=<int|false>" and a NOT-REACHED
+     * sentinel on stderr (full protocol in the script header).
      *
      * @return array{0: string, 1: string, 2: int}
      */
-    protected function runScript(string $method, ?string $arg = null): array
+    protected function runScript(string $method, ?string $arg = null, string $script = 'empty-guard.php'): array
     {
-        $command = [PHP_BINARY, __DIR__ . '/bin/empty-guard.php', $method];
+        $command = [PHP_BINARY, __DIR__ . "/bin/$script", $method];
         if ($arg !== null) {
             $command[] = $arg;
         }

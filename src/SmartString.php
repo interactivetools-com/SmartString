@@ -105,6 +105,9 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     public static function new(string|int|float|bool|null|array|SmartString|SmartNull $value): SmartArrayHtml|SmartString
     {
         if (is_array($value)) {
+            if (!class_exists(SmartArrayHtml::class)) { // itools/smartarray is suggested, not required: name the fix instead of a class-not-found fatal
+                throw new RuntimeException("SmartString::new(\$array) needs the itools/smartarray package: run \"composer require itools/smartarray\", then replace the call with SmartArrayHtml::new(\$array).\n" . self::occurredInFile());
+            }
             self::logDeprecation('Replace SmartString::new($array) with SmartArrayHtml::new($array)');
             return new SmartArrayHtml($value);
         }
@@ -1253,6 +1256,9 @@ final class SmartString implements JsonSerializable, IteratorAggregate
 
         // deprecated methods, log and return new method (these may be removed in the future)
         if ($methodLc === 'fromarray') {
+            if (!class_exists(SmartArray::class)) { // itools/smartarray is suggested, not required: name the fix instead of a class-not-found fatal
+                throw new RuntimeException("SmartString::$method() needs the itools/smartarray package: run \"composer require itools/smartarray\", then replace the call with SmartArrayHtml::new(\$array).\n" . self::occurredInFile());
+            }
             self::logDeprecation("Replace SmartString::$method() with SmartArrayHtml::new(\$array)");
             return SmartArray::new(...$args)->asHtml();
         }
