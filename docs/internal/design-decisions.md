@@ -34,3 +34,12 @@ in signatures, docblocks, the changelog, and tests.
   (2026-07-14): exit paths are subprocess-tested, and `SharedHelpers.php`
   keeps its unused branch because it is a twin of SmartArray's copy (identical
   except the namespace line) - never prune or edit one without the other.
+- **HTML composition stops at the two terminal exits `appendHtml()`/`wrapHtml()`**
+  (shipped 2026-07-14, ruled final 2026-08-10). A SmartHtml type,
+  encode-on-append, and entity-sniffing were rejected: if richer safe-HTML
+  composition is ever needed, the design is a dedicated safe-HTML type, not
+  name suffixes or content sniffing. Further `*Html()` variants were rejected
+  too - the presence-guard-wrapper idiom from the 2026-07 pattern sweep is
+  fully served by these two, and both are terminal (plain-string return) so
+  markup can't be re-encoded downstream. No prepend-side method:
+  `wrapHtml($before, '')` covers it.
