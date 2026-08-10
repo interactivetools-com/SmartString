@@ -6,6 +6,9 @@ namespace Itools\SmartString;
 use Itools\SmartArray\SmartNull;
 use JetBrains\PhpStorm\Deprecated;
 
+// compiles to a single opcode instead of a runtime name lookup; see the note in SmartString.php
+use function count;
+
 /**
  * Old and retired method names, phased out in stages.
  *
