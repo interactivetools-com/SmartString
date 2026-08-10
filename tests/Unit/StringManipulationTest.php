@@ -320,6 +320,20 @@ class StringManipulationTest extends SmartStringTestCase
         $this->assertSame('n/a', $result->or('n/a')->value());
     }
 
+    /**
+     * A value big enough to hit PCRE's runtime limits (JIT stack or backtrack
+     * limit, depending on the build) returns null like bad UTF-8 does - the
+     * failure comes from the data, not the pattern, so or() fallbacks fire
+     * instead of one oversized row throwing.
+     */
+    public function testPregReplaceDataSizePcreFailureReturnsNull(): void
+    {
+        $big    = str_repeat('a b ', 8000) . '!';
+        $result = SmartString::new($big)->pregReplace('/(\s*\w+)+$/', 'X');
+        $this->assertTrue($result->isNull());
+        $this->assertSame('n/a', $result->or('n/a')->value());
+    }
+
     public function testPregReplaceInvalidUtf8WithoutUnicodePatternStillWorks(): void
     {
         // Without /u, PCRE treats the value as bytes and the replace succeeds

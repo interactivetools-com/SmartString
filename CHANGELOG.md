@@ -129,6 +129,11 @@ These still work, they're just no longer featured in the docs - no changes requi
   `&amp;` in the Location header. A `SmartNull` argument counts as null
   (`new()` previously stored `""`, so `isNull()` reported a missing field as
   present)
+- `pregReplace()` returns null when the value causes a PCRE runtime failure
+  (backtrack, recursion, or JIT stack limits on long values), so `->or()`
+  fallbacks fire - previously only bad UTF-8 returned null and everything else
+  threw InvalidArgumentException worded as a pattern error. Broken patterns
+  still throw
 - `percent()` and `percentOf()` return null when the result overflows to
   infinity, like the other numeric operations, so `->or()` fallbacks fire
   (previously the page printed `inf%`)

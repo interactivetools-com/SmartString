@@ -1041,9 +1041,10 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      *
      * Missing values (null or "") pass through unchanged.
      *
-     * A pattern that won't compile throws with PHP's compile error. Invalid UTF-8
-     * in the value with a `/u` pattern returns null, like any other operation that
-     * fails on bad data, so `or()` fallbacks fire.
+     * A pattern that won't compile throws with PHP's compile error. A failure the
+     * value caused (invalid UTF-8 with a `/u` pattern, or a value long enough to
+     * hit PCRE's backtrack or JIT stack limits) returns null, like any other
+     * operation that fails on bad data, so `or()` fallbacks fire.
      *
      * @param string $pattern     Regex pattern
      * @param string|SmartString|SmartNull $replacement Replacement string (supports backreferences)
@@ -1066,7 +1067,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         error_clear_last();
         $newValue = @preg_replace($pattern, $replacement, (string)$this->rawData); // @: PHP warning becomes the exception below
         if (is_null($newValue)) {
-            if (preg_last_error() === PREG_BAD_UTF8_ERROR) { // broken data, not a broken pattern: null so or() fallbacks fire
+            if (preg_last_error() !== PREG_INTERNAL_ERROR) { // data failure (bad UTF-8, backtrack/JIT/recursion limits), not a broken pattern: null so or() fallbacks fire
                 return new self(null);
             }
             $reason = error_get_last()['message'] ?? preg_last_error_msg();

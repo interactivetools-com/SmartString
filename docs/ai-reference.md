@@ -153,7 +153,7 @@ through unchanged, so a later `or()` still works.
 | `trim(...$args): SmartString`                                    | PHP `trim()` semantics incl. custom char list (a SmartString char list unwraps)                                                  |
 | `maxWords(int $max, string $ellipsis = '...'): SmartString`      | Word limit; `$ellipsis` only if cut; trailing punctuation stripped before ellipsis                                               |
 | `maxChars(int $max, string $ellipsis = '...'): SmartString`      | Char limit breaking at last whole word; whitespace runs collapse to single spaces; trailing punctuation stripped before ellipsis |
-| `pregReplace(string $pattern, string $replacement): SmartString` | `preg_replace()`; a SmartString `$replacement` unwraps raw; invalid pattern throws InvalidArgumentException                      |
+| `pregReplace(string $pattern, string $replacement): SmartString` | `preg_replace()`; a SmartString `$replacement` unwraps raw; invalid pattern throws InvalidArgumentException; a failure the value caused (bad UTF-8, PCRE limits) returns null |
 
 Arguments to `append`/`prepend`/`wrap` accept
 `int|float|string|bool|null|SmartString|SmartNull`.
