@@ -1118,6 +1118,8 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         $methodLc = strtolower($method);
 
         // Deprecated Warnings: log warning and return proper value.  This will be removed in a future version
+        // SmartArray's SmartNull::__call keeps a copy of these shim names (method_exists()
+        // can't see them). Keep both sites in sync: when a shim is dropped here, drop it there too.
         [$return, $deprecationError] = match ($methodLc) {  // use lowercase names below for comparison
             'noencode'  => [$this->rawHtml(), "Replace ->$method() with ->rawHtml()"],
             'tostring'  => [$this->htmlEncode(), "Replace ->$method() with ->htmlEncode() or ->string()"], // htmlEncode() first: it matches this shim's output
