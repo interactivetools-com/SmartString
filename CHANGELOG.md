@@ -129,6 +129,10 @@ These still work, they're just no longer featured in the docs - no changes requi
   `&amp;` in the Location header. A `SmartNull` argument counts as null
   (`new()` previously stored `""`, so `isNull()` reported a missing field as
   present)
+- Deprecation notices and error messages name the developer's file when the
+  call routes through SmartArray's SmartNull (a missing field like
+  `$record->missingField->noEncode()` previously reported "in SmartNull.php"
+  instead of the template that needs fixing)
 - `SmartString::new($array)` and `SmartString::fromArray()` throw a
   RuntimeException naming the missing package, the composer command, and the
   calling file when itools/smartarray (a suggested dependency) isn't installed

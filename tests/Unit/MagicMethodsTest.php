@@ -89,6 +89,18 @@ class MagicMethodsTest extends SmartStringTestCase
         $this->assertSame('<b>x</b> & y', $result);
     }
 
+    public function testDeprecationViaSmartNullDelegationNamesTheRealCaller(): void
+    {
+        // A missing field routes through SmartArray's SmartNull, which forwards
+        // the shim call to SmartString. The notice must name this file - the
+        // developer's code - not the delegating SmartNull.php, or there is no
+        // file and line to go fix before the shims are removed.
+        [, $messages] = $this->captureDeprecations(fn() => SmartArrayHtml::new([])->missingField->noEncode());
+        $this->assertCount(1, $messages);
+        $this->assertStringContainsString('MagicMethodsTest.php', $messages[0]);
+        $this->assertStringNotContainsString('SmartNull.php', $messages[0]);
+    }
+
     public function testToStringShimReturnsHtmlEncoded(): void
     {
         // the message names htmlEncode() first because that is the
