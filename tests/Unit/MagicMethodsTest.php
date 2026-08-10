@@ -46,6 +46,19 @@ class MagicMethodsTest extends SmartStringTestCase
         $this->assertSmartString(null, $result);
     }
 
+    public function testGetEncodesAttackerSuppliedPropertyName(): void
+    {
+        // SECURITY: dynamic property names can carry request data
+        // ($col = $_GET['sort']; $row->title->$col) and error handlers often
+        // echo messages into pages, so the name must arrive encoded
+        $property = '<script>alert(1)</script>';
+        $result   = $this->expectUserWarning(
+            fn() => SmartString::new('x')->$property,
+            "Undefined property: SmartString->&lt;script&gt;alert(1)&lt;/script&gt;\n"
+        );
+        $this->assertSmartString(null, $result);
+    }
+
     public function testGetInterpolatesAsEmptyStringAfterWarning(): void
     {
         // "$str->htmlEncode" in a string triggers __get, which returns
@@ -205,6 +218,17 @@ class MagicMethodsTest extends SmartStringTestCase
         );
     }
 
+    public function testUnknownMethodEncodesAttackerSuppliedName(): void
+    {
+        // SECURITY: same rule as __get() - exception handlers often echo
+        // messages into pages, so the name must arrive encoded
+        $method = '<script>alert(1)</script>';
+        $this->assertUndefinedMethodError(
+            "Call to undefined method SmartString->&lt;script&gt;alert(1)&lt;/script&gt;(), see the SmartString docs for available methods.\n",
+            fn() => SmartString::new('x')->$method()
+        );
+    }
+
     //endregion
     //region __callStatic()
 
@@ -232,6 +256,17 @@ class MagicMethodsTest extends SmartStringTestCase
         $this->assertUndefinedMethodError(
             "Call to undefined method SmartString::bogusStatic(), see the SmartString docs for available methods.\n",
             fn() => SmartString::bogusStatic()
+        );
+    }
+
+    public function testUnknownStaticMethodEncodesAttackerSuppliedName(): void
+    {
+        // SECURITY: same rule as __get() - exception handlers often echo
+        // messages into pages, so the name must arrive encoded
+        $method = '<script>alert(1)</script>';
+        $this->assertUndefinedMethodError(
+            "Call to undefined method SmartString::&lt;script&gt;alert(1)&lt;/script&gt;(), see the SmartString docs for available methods.\n",
+            fn() => SmartString::$method()
         );
     }
 

@@ -129,6 +129,10 @@ These still work, they're just no longer featured in the docs - no changes requi
   `&amp;` in the Location header. A `SmartNull` argument counts as null
   (`new()` previously stored `""`, so `isNull()` reported a missing field as
   present)
+- The "Undefined property" and "Call to undefined method" error messages
+  HTML-encode the caller-supplied name, matching `orThrow()` and `orDie()` -
+  dynamic names can carry request data (`$row->title->$_GET['sort']`), and
+  error handlers often echo messages into pages
 - `pregReplace()` returns null when the value causes a PCRE runtime failure
   (backtrack, recursion, or JIT stack limits on long values), so `->or()`
   fallbacks fire - previously only bad UTF-8 returned null and everything else

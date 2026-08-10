@@ -1136,6 +1136,10 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      */
     public function __get(string $property): SmartString
     {
+        // SECURITY: encode the caller-supplied name - error handlers often echo messages into pages (see orThrow).
+        // Real method names encode to themselves, so the method_exists branch below is unaffected.
+        $property = htmlspecialchars($property, self::HTML_ENCODE_FLAGS, 'UTF-8');
+
         // throw unknown property warning
         // PHP Default Error: Warning: Undefined property: stdClass::$property in /path/to/template.php on line 28
         if (method_exists($this, $property)) {
@@ -1231,6 +1235,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
 
         // throw unknown method Error
         // PHP Default Error: Fatal error: Uncaught Error: Call to undefined method SmartString::method() in /path/to/template.php:17
+        $method     = htmlspecialchars($method, self::HTML_ENCODE_FLAGS, 'UTF-8'); // SECURITY: encode the caller-supplied name - exception handlers often echo messages into pages (see orThrow)
         $suggestion ??= "see the SmartString docs for available methods.";
         $class      = self::stripNamespace(self::class);
         $error      = "Call to undefined method $class->$method(), $suggestion\n" . self::occurredInFile();
@@ -1258,6 +1263,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
 
         // throw unknown method Error
         // PHP Default Error: Fatal error: Uncaught Error: Call to undefined method SmartString::method() in /path/to/template.php:17
+        $method    = htmlspecialchars($method, self::HTML_ENCODE_FLAGS, 'UTF-8'); // SECURITY: encode the caller-supplied name - exception handlers often echo messages into pages (see orThrow)
         $baseClass = self::stripNamespace(self::class);
         $error     = "Call to undefined method $baseClass::$method(), see the SmartString docs for available methods.\n";
         $error     .= self::occurredInFile();
