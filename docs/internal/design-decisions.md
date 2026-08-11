@@ -43,3 +43,10 @@ in signatures, docblocks, the changelog, and tests.
   fully served by these two, and both are terminal (plain-string return) so
   markup can't be re-encoded downstream. No prepend-side method:
   `wrapHtml($before, '')` covers it.
+- **The `@` on `trigger_error()` stays** (2026-08-10). `logDeprecation()` sends
+  notices as `@trigger_error(...)`, and the `@` mutes PHP's own display *and*
+  its logging, so only a `set_error_handler()` ever sees them. That is the
+  intent: notices are for handlers that collect them (CMS Builder's developer
+  log), never for page output or PHP's default error log. Don't remove the `@`
+  to make PHP log them. The rule is stated at the call site in
+  `SharedHelpers.php`, a twin of SmartArray's copy, so any change goes to both.
