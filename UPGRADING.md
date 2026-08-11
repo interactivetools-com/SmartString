@@ -2,17 +2,13 @@
 
 Most old code keeps working after an upgrade:
 
-- **Renamed methods are removed slowly, never silently.** Old names keep
-  working while they step through deprecation stages over multiple releases
-  (IDE strikethrough, logged notice, visible notice, then a clear Error),
-  always naming their replacement.
-- **Breaking changes produce clear errors.** Removed methods and wrong named
-  arguments throw an Error with your file and line, and deprecated calls raise
-  a deprecation notice with their exact replacement, e.g. "Replace
-  ->stripTags() with ->textOnly() in listings.php:14" - error handlers like
-  CMS Builder's developer log catch these.
-- **Breaking and silent changes are listed below.** Each version's section
-  gives a search for every change worth checking.
+- **If it breaks, it tells you.** Old names phase out over multiple
+  releases - IDE strikethrough, then a quietly logged notice with your file
+  and line (CMS Builder shows these in the Developer Log), then a clear
+  error - always naming the replacement.
+- **Everything worth checking is listed here.** Silent behavior changes,
+  deprecations, and optional renames, per version, each with a search that
+  finds affected code.
 
 Full lists of what changed per release: [CHANGELOG.md](CHANGELOG.md).
 

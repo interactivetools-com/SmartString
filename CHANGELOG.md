@@ -24,13 +24,11 @@ hardening and fixes.
 
 ### Performance
 
-- HTML-encoded output (echo and `htmlEncode()`) is ~4x faster than v2.7.0
-  (six-field article page: 38.2 → 9.3 microseconds, both versions measured
-  back to back on the same machine), and at least 2.5x faster than calling
-  `htmlspecialchars()` yourself, up to 10x on Windows: values are scanned
-  first and only encoded when something needs encoding. Output stays
-  byte-identical to `htmlspecialchars()`. Benchmarks and verification:
-  [docs/performance.md](docs/performance.md)
+- **HTML-encoded output is ~4x faster** than v2.7.0 (six-field article
+  page: 38.2 → 9.3 microseconds), and at least 2.5x faster than calling
+  `htmlspecialchars()` yourself: values are scanned first and only encoded
+  when something needs encoding. Output stays byte-identical. Benchmarks
+  and verification: [docs/performance.md](docs/performance.md)
 
 ### Renamed
 
@@ -65,138 +63,61 @@ These still work, they're just no longer featured in the docs - no changes requi
 - `dateTimeFormat()` - same as `dateFormat()` with a different default; pass the format instead
 - `ifBlank()` - use `or()`, which also covers null
 - `phoneFormat()` - North-America formats by default; `pregReplace()` covers custom needs
-- `help()` - the online docs replaced the built-in cheat sheet (`src/help.txt`); `help()` now prints doc links instead, and error messages say "see the SmartString docs" rather than suggesting it
-
-### Removed
-
-- Constructor/`new()` no longer accept a `$properties` array (carried an internal
-  flag only; nothing outside the class used it)
+- `help()` - the online docs replaced the built-in cheat sheet; it now prints doc links instead
 
 ### Behavior changes
 
-- `nl2br()` ends the chain - it returns a string now, so echo it directly;
-  anything chained after it (`->nl2br()->value()`) is an error - move those
-  calls before it
-- `percent()` and `percentOf()` format with your `$numberFormatDecimal` and
-  `$numberFormatThousands` settings, same as `numberFormat()` - previously
-  hardcoded '.' and ','
-- `pregReplace()`:
-  - passes `""` through unchanged, like null - previously an empty-matching
-    pattern could turn a missing value into content, defeating a later `or()`
-    fallback
-  - throws on a bad pattern - was a PHP warning and a null result; now an
-    InvalidArgumentException that includes PHP's compile error
-- `dateFormat()` on booleans returns null - like any other value that isn't a date
-- `textOnly()` converts non-breaking and other Unicode spaces to plain spaces
-  (newlines and tabs untouched), so an "empty" WYSIWYG value like
-  `<p>&nbsp;</p>` trims to `""` and a later `or()` fallback fires - previously
-  it returned a single invisible character that counted as content
-- `textOnly()` replaces invalid UTF-8 bytes with � like `maxChars()` and
-  `maxWords()`, so its text is always valid UTF-8 and safe to store -
-  previously bad bytes passed through unchanged
-- Math: a failed step (missing value, non-numeric input, divide by zero) returns
-  null, and a fallback like `or()` now fully recovers the chain - previously any
-  math after the fallback still returned null:
-  - `SmartString::new(null)->add(5)->or(10)->add(5)` returns 15 (was null)
-  - `null`, `bool`, and `SmartNull` arguments no longer throw TypeError (same
-    fix for the conditional methods)
-- `print_r()` and `var_dump()` show just the stored value, keyed by the
-  accessor that returns it (`[value] => Jean O'Brien`, see `->value()`) - no
-  help line or added quotes/`TRUE`/`FALSE`/`NULL` annotations, so dumps read
-  like native PHP. Matches the same change in SmartArray.
-- `jsonEncode()` hardening:
-  - malformed UTF-8 bytes become � instead of throwing - one corrupt byte no
-    longer breaks the page (same fix for `json_encode($smartString)`, which
-    returned false)
-  - invisible Unicode (zero-width, bidi, tag chars) is re-escaped as visible
-    `\uXXXX` so nothing can hide in page source - lossless, JavaScript sees
-    the identical value
-- `orDie()` and `or404()` exit with code 1 - CLI and cron scripts see the failure
-- `orRedirect()` throws on a blank URL (null or ""), checked immediately like
-  the headers-sent check, so a misconfigured redirect fails on the first
-  request instead of sending an empty Location header
-- foreach over a SmartString throws a RuntimeException showing the value and
-  suggesting the SmartArray row - previously the loop silently ran zero times
+- **`nl2br()` ends the chain** - it returns a string now, so echo it
+  directly and move other calls before it. See
+  [UPGRADING.md](UPGRADING.md)
+- **Math chains recover after a fallback** -
+  `SmartString::new(null)->add(5)->or(10)->add(5)` returns 15 (was null);
+  null, bool, and SmartNull arguments no longer throw
+- **`percent()` and `percentOf()` use your number-format settings** - same
+  as `numberFormat()`; previously hardcoded `.` and `,`
+- **`textOnly()` output is always clean text** - Unicode spaces become
+  plain spaces, so an "empty" WYSIWYG value like `<p>&nbsp;</p>` trims to
+  `""` and `or()` fallbacks fire, and invalid UTF-8 bytes become �
+- **`jsonEncode()` survives hostile input** - malformed UTF-8 becomes �
+  instead of throwing, and invisible Unicode (zero-width, bidi, tag chars)
+  is re-escaped as visible `\uXXXX` - lossless, JavaScript sees the
+  identical value
+- **`orDie()` and `or404()` exit with status 1** - CLI and cron scripts
+  see the failure
 
 ### Fixed
 
-- SmartString arguments unwrap everywhere: `new()`, the guard messages
-  (`or404()`/`orDie()`/`orThrow()`), `orRedirect($url)`,
-  `pregReplace($replacement)`, and the `appendHtml()`/`wrapHtml()` markup
-  arguments now use the raw value - previously PHP coerced the object through
-  `__toString`, which returns the HTML-encoded text, so pages showed
-  double-encoded output (`Bob &amp; Sons` as literal text) and redirects sent
-  `&amp;` in the Location header. A `SmartNull` argument counts as null
-  (`new()` previously stored `""`, so `isNull()` reported a missing field as
-  present)
-- Deprecation notices and error messages name the developer's file when the
-  call routes through SmartArray's SmartNull (a missing field like
-  `$record->missingField->noEncode()` previously reported "in SmartNull.php"
-  instead of the template that needs fixing)
-- `SmartString::new($array)` and `SmartString::fromArray()` throw a
-  RuntimeException naming the missing package, the composer command, and the
-  calling file when itools/smartarray (a suggested dependency) isn't installed
-  (previously a "Class not found" fatal pointing at SmartString internals)
-- The "Undefined property" and "Call to undefined method" error messages
-  HTML-encode the caller-supplied name, matching `orThrow()` and `orDie()` -
-  dynamic names can carry request data (`$row->title->$_GET['sort']`), and
-  error handlers often echo messages into pages
-- `pregReplace()` returns null when the value causes a PCRE runtime failure
-  (backtrack, recursion, or JIT stack limits on long values), so `->or()`
-  fallbacks fire - previously only bad UTF-8 returned null and everything else
-  threw InvalidArgumentException worded as a pattern error. Broken patterns
-  still throw
-- `percent()` and `percentOf()` return null when the result overflows to
-  infinity, like the other numeric operations, so `->or()` fallbacks fire
-  (previously the page printed `inf%`)
-- `SmartString::help()` works as a static call (the documented form was a fatal error)
-- `getRawValue()` unwraps `SmartArrayHtml` (previously "Unsupported value type")
-- `maxChars()` and `maxWords()` handle invalid UTF-8 - bad bytes become � like
-  `htmlEncode()` (previously a fatal TypeError)
-- `textOnly()` keeps prose containing `<` ("Kids <12 eat free", "I <3 PHP") -
-  only `<` followed by a letter, `/`, `!`, or `?` counts as a tag, the same rule
-  browsers use (previously everything from the `<` to the next `>` or the end of
-  the string was removed, whether the `<` arrived raw or entity-encoded)
-- `maxChars()` works above 65535 characters - the word-boundary cut previously
-  hit PCRE's quantifier limit above that, leaking a "Compilation failed" warning
-  into the page or log and cutting mid-word
-- `maxChars()` and `maxWords()` clamp negative limits to 0, showing just the
-  ellipsis like a limit of 0 does - `maxChars(-5)` previously returned all but
-  the last 5 characters via PHP's negative-length semantics, so a computed
-  limit that went negative showed nearly the whole value
-- `maxChars()` counts UTF-8 characters regardless of `mb_internal_encoding()` -
-  that global can be changed by any include in the request (previously a
-  non-UTF-8 setting made multibyte text falsely truncate or slice mid-character)
-- `dateFormat()` formats date strings that parse to exactly the Unix epoch
-  ("1970-01-01 00:00:00 UTC" previously returned null - timestamp 0 was
-  mistaken for a parse failure)
-- `dateFormat()` returns null for timestamps outside years 1000-9999, so
-  `->or('Date not set')` fallbacks fire - a millisecond timestamp from
-  JavaScript or an overflowed numeric previously formatted as a nonsense year
-  like 55338
-- INF and NAN store as null, like any other failed math step, so `or()`
-  fallbacks fire - a float overflow previously printed "INF" into the page,
-  made `json_encode()` return false, and made `jsonEncode()` throw
-- `or404()` called mid-page discards the partial output and renders a clean
-  404 page, without "Cannot modify header" warnings
-- `percent(ifZero:)` and `trim()` accept SmartString arguments like every other
-  value parameter (previously a TypeError under `strict_types`; in weak mode a
-  SmartString `$ifZero` was stored HTML-encoded and double-encoded on output)
-- `help()` prints plain text on the command line (previously wrapped the
-  output in literal `<xmp>` tags, which only make sense in HTML)
-- The deprecated `jsEncode()` shim escapes `<`, `>`, and `&` as `\uXXXX` instead
-  of backslashing them, matching `jsonEncode()`. A backslash escape satisfies the
-  JavaScript parser but leaves the raw character in the page, so a stored
-  `</script>` still ended the script block early and the rest of the value parsed
-  as HTML. `&` mattered the same way in inline event handlers, where the browser
-  decodes entities before the JavaScript runs
+- **No more double-encoded arguments** - SmartString arguments unwrap
+  everywhere (`new()`, the guard messages, `orRedirect()`,
+  `pregReplace()`, `appendHtml()`/`wrapHtml()`), so pages no longer show
+  `Bob &amp; Sons` as literal text; a SmartNull argument counts as null
+- **`textOnly()` keeps prose containing `<`** - "Kids <12 eat free"
+  survives; only `<` starting a real tag counts, the same rule browsers
+  use
+- **`maxChars()` and `maxWords()` are more robust** - they handle invalid
+  UTF-8, values over 65535 characters, and negative limits, and ignore
+  `mb_internal_encoding()` changes from other includes
+- **`dateFormat()` edge cases** - the exact Unix epoch formats as a date,
+  while booleans and timestamps outside years 1000-9999 return null, so
+  `or()` fallbacks fire instead of printing a nonsense year like 55338
+- **Errors name your file, not the library's** - including calls routed
+  through a missing SmartArray field, and error messages HTML-encode
+  caller-supplied names (dynamic names can carry request data)
 
-### Other
+### Minor
 
-- The `<xmp>` wrapper on `help()`'s web output escapes a literal `</xmp` as
-  `<\/xmp`, same as CMSB's `xmp_safe()` - keeps the shared helper in sync
-  with SmartArray's `debug()` fix (the help text itself is static)
-- Misc internal code cleanup and modernization
+Also: `pregReplace()` returns null on PCRE runtime limits so `or()`
+fallbacks fire, throws clearly on broken patterns, and passes `""`
+through unchanged; `percent()` overflow and INF/NAN store as null instead
+of printing `inf`; `orRedirect()` throws on a blank URL so a
+misconfigured redirect fails on the first request; `or404()` mid-page
+renders a clean 404 without header warnings; `foreach` over a SmartString
+throws instead of silently looping zero times; `print_r()` and
+`var_dump()` show just the stored value; the deprecated `jsEncode()` shim
+escapes `<` `>` `&` as `\uXXXX` so a stored `</script>` can't end the
+script block; the constructor no longer takes a `$properties` array; and
+a dozen more small fixes (static `help()`, CLI-friendly output,
+SmartString-typed arguments, clearer setup errors).
 
 ## [2.6.3] - 2026-04-27
 
