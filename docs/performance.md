@@ -25,6 +25,13 @@ php -d opcache.enable_cli=1 -d xdebug.mode=off .github/scripts/speed-page-table.
 In a Composer project the script is at
 `vendor/itools/smartstring/.github/scripts/speed-page-table.php`.
 
+Contents:
+
+- [How It Works](#how-it-works)
+- [The Numbers](#the-numbers)
+- [How We Know It's Safe](#how-we-know-its-safe)
+- [The Fine Print](#the-fine-print)
+
 ## How It Works
 
 Every `<?= $row->title ?>` runs the cheapest check that can settle the value.

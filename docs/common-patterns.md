@@ -9,6 +9,23 @@ The examples assume database rows from
 [ZenDB](https://github.com/interactivetools-com/ZenDB) or
 `SmartArrayHtml::new($record)`, where every field is already a SmartString.
 
+Contents:
+
+- [Formatting Dates](#formatting-dates)
+- [Text Previews and Excerpts](#text-previews-and-excerpts)
+- [Address Blocks](#address-blocks)
+- [Labels Only When Present](#labels-only-when-present)
+- [Clickable Phone Numbers](#clickable-phone-numbers)
+- [Show a 404 for Missing Records](#show-a-404-for-missing-records)
+- [Displaying WYSIWYG or HTML Content](#displaying-wysiwyg-or-html-content)
+- [Building URLs](#building-urls)
+- [Formatting Currency](#formatting-currency)
+- [Report Tables: Hiding Zeros and Nulls](#report-tables-hiding-zeros-and-nulls)
+- [Report Tables: Inline Math](#report-tables-inline-math)
+- [Run Any Function with map()](#run-any-function-with-map)
+- [Where or() Goes Changes What It Means](#where-or-goes-changes-what-it-means)
+- [Methods or Plain PHP?](#methods-or-plain-php)
+
 ## Formatting Dates
 
 If the whole site uses one date format, set `SmartString::$dateFormat` once

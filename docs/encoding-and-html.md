@@ -10,6 +10,15 @@ those named methods, which is what makes SmartString output reviewable:
 search for `rawHtml(` and `Html(` and you have found every place unencoded
 markup can appear.
 
+Contents:
+
+- [How Auto-Encoding Works](#how-auto-encoding-works)
+- [Encoding Is Output, Not Storage](#encoding-is-output-not-storage)
+- [The Encoding Methods](#the-encoding-methods)
+- [Newlines to `<br>` - `nl2br()`](#newlines-to-br---nl2br)
+- [Trusted HTML - `rawHtml()`](#trusted-html---rawhtml)
+- [Adding Markup Around Values - `appendHtml()` and `wrapHtml()`](#adding-markup-around-values---appendhtml-and-wraphtml)
+
 ## How Auto-Encoding Works
 
 Whenever a SmartString is used in a string context, PHP calls the object's

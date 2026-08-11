@@ -6,6 +6,16 @@ values, targeted replacements, true/false checks, and the guards that stop
 the page when required data is missing. One definition of "missing" drives
 all of them, so that's where we start.
 
+Contents:
+
+- [What "Missing" Means](#what-missing-means)
+- [Fallbacks - `or()`](#fallbacks---or)
+- [Targeted Replacements - `ifNull()`, `ifZero()`, `ifEquals()`, `ifTrue()`, `set()`](#targeted-replacements---ifnull-ifzero-ifequals-iftrue-set)
+- [Run Conditionals Before Formatting](#run-conditionals-before-formatting)
+- [True/False Checks - `isEmpty()`, `isNotEmpty()`, `isMissing()`, `isNull()`](#truefalse-checks---isempty-isnotempty-ismissing-isnull)
+- [Requiring a Value - `or404()`, `orDie()`, `orThrow()`, `orRedirect()`](#requiring-a-value---or404-ordie-orthrow-orredirect)
+- [Putting It Together](#putting-it-together)
+
 ## What "Missing" Means
 
 All the methods on this page react to missing values: `or()` fills them

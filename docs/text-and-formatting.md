@@ -20,6 +20,20 @@ Two group contracts to know up front:
   `percentOf`, `add`, `subtract`, `multiply`, `divide`): missing or invalid
   input makes the result null; add `or()` after to show a fallback.
 
+Contents:
+
+- [Stripping HTML - `textOnly()`](#stripping-html---textonly)
+- [Trimming - `trim()`](#trimming---trim)
+- [Truncating - `maxWords()` and `maxChars()`](#truncating---maxwords-and-maxchars)
+- [Adding Text Around Values - `append()`, `prepend()`, and `wrap()`](#adding-text-around-values---append-prepend-and-wrap)
+- [Regex Replacement - `pregReplace()`](#regex-replacement---pregreplace)
+- [Formatting Dates - `dateFormat()`](#formatting-dates---dateformat)
+- [Formatting Numbers - `numberFormat()`](#formatting-numbers---numberformat)
+- [Percentages - `percent()` and `percentOf()`](#percentages---percent-and-percentof)
+- [Math - `add()`, `subtract()`, `multiply()`, `divide()`](#math---add-subtract-multiply-divide)
+- [Custom Functions - `map()`](#custom-functions---map)
+- [Putting It Together](#putting-it-together)
+
 ## Stripping HTML - `textOnly()`
 
 Removes HTML tags, decodes entities, and trims whitespace. Use it whenever

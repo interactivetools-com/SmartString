@@ -13,22 +13,22 @@ explanations, see [Getting Started](https://github.com/interactivetools-com/Smar
 
 Contents:
 
-- What is SmartString
-- Creating Values
-- Auto-Encoding Mechanics
-- Type Conversion - value(), int(), float(), bool(), string(), getRawValue()
-- Encoding Methods - htmlEncode(), urlEncode(), jsonEncode(), nl2br(), rawHtml(), appendHtml(), wrapHtml()
-- String Manipulation - append(), prepend(), wrap(), textOnly(), trim(), maxWords(), maxChars(), pregReplace()
-- Dates and Numbers - dateFormat(), numberFormat(), percent(), percentOf(), add(), subtract(), multiply(), divide()
-- Conditional Replacement - or(), ifNull(), ifZero(), ifTrue(), ifEquals(), set()
-- Guards - or404(), orDie(), orThrow(), orRedirect()
-- Value Checks - isEmpty(), isNotEmpty(), isMissing(), isNull()
-- Custom Functions - map()
-- Static Configuration
-- Debugging - print_r()
-- Errors and Exceptions
-- Gotchas Quick Reference
-- Old Method Names (Deprecated, Still Work)
+- [What is SmartString](#what-is-smartstring)
+- [Creating Values](#creating-values)
+- [Auto-Encoding Mechanics](#auto-encoding-mechanics)
+- [Type Conversion](#type-conversion) - value(), int(), float(), bool(), string(), getRawValue()
+- [Encoding Methods](#encoding-methods) - htmlEncode(), urlEncode(), jsonEncode(), nl2br(), rawHtml(), appendHtml(), wrapHtml()
+- [String Manipulation](#string-manipulation) - append(), prepend(), wrap(), textOnly(), trim(), maxWords(), maxChars(), pregReplace()
+- [Dates and Numbers](#dates-and-numbers) - dateFormat(), numberFormat(), percent(), percentOf(), add(), subtract(), multiply(), divide()
+- [Conditional Replacement](#conditional-replacement) - or(), ifNull(), ifZero(), ifTrue(), ifEquals(), set()
+- [Guards](#guards) - or404(), orDie(), orThrow(), orRedirect()
+- [Value Checks](#value-checks) - isEmpty(), isNotEmpty(), isMissing(), isNull()
+- [Custom Functions](#custom-functions) - map()
+- [Static Configuration](#static-configuration)
+- [Debugging](#debugging) - print_r()
+- [Errors and Exceptions](#errors-and-exceptions)
+- [Gotchas Quick Reference](#gotchas-quick-reference)
+- [Old Method Names (Deprecated, Still Work)](#old-method-names-deprecated-still-work)
 
 ---
 

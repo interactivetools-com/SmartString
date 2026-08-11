@@ -7,6 +7,12 @@ produce an error at all: double encoding, vanishing math results, and
 markup that prints as text. Headings quote the message or symptom so you
 can find them by search.
 
+Contents:
+
+- [Most Common Issues](#most-common-issues)
+- [Other Issues](#other-issues)
+- [Debugging](#debugging)
+
 ## Most Common Issues
 
 ### Comparisons and if() checks don't work as expected
