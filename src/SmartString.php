@@ -16,6 +16,7 @@ use RuntimeException;
 
 // import built-ins so calls resolve at compile time instead of per-call lookups; NamespacedCallsTest keeps this list exact
 use function array_map, array_slice, class_exists, count, date, error_clear_last, error_get_last, get_debug_type, header, headers_sent, html_entity_decode, htmlspecialchars, http_response_code, implode, in_array, is_array, is_bool, is_callable, is_finite, is_float, is_int, is_null, is_numeric, is_object, is_scalar, is_string, json_decode, json_encode, max, mb_strlen, mb_strrpos, mb_substr, method_exists, nl2br, number_format, ob_end_clean, preg_last_error, preg_last_error_msg, preg_match, preg_replace, preg_replace_callback, preg_split, str_replace, strip_tags, strlen, strspn, strtolower, strtotime, strtr, substr, trigger_error, trim, urlencode;
+use const ENT_DISALLOWED, ENT_HTML5, ENT_QUOTES, ENT_SUBSTITUTE, E_USER_WARNING, JSON_HEX_AMP, JSON_HEX_APOS, JSON_HEX_QUOT, JSON_HEX_TAG, JSON_INVALID_UTF8_SUBSTITUTE, JSON_THROW_ON_ERROR, JSON_UNESCAPED_SLASHES, JSON_UNESCAPED_UNICODE, PHP_OS_FAMILY, PHP_VERSION_ID, PREG_INTERNAL_ERROR, PREG_SPLIT_NO_EMPTY;
 
 /**
  * SmartString class provides a fluent interface for various string and numeric manipulations.
