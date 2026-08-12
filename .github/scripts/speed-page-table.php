@@ -26,6 +26,7 @@ declare(strict_types=1);
  * SmartString output is verified byte-identical to full-flag htmlspecialchars().
  */
 
+require __DIR__ . '/shared-md-table.php';
 require __DIR__ . '/../../src/Deprecations.php';
 require __DIR__ . '/../../src/SharedHelpers.php';
 require __DIR__ . '/../../src/SmartString.php';
@@ -184,35 +185,6 @@ function ratioLabel(float $ratio): string
     return $ratio >= 9.5 ? sprintf('%.0fx', $ratio) : sprintf('%.1fx', $ratio);
 }
 
-/** Character count without mbstring: bytes minus UTF-8 continuation bytes */
-function charWidth(string $s): int
-{
-    return strlen($s) - preg_match_all('/[\x80-\xBF]/', $s);
-}
-
-/** Markdown table with every column padded so the pipes line up (multibyte-safe) */
-function alignedTable(array $rows): string
-{
-    $widths = [];
-    foreach ($rows as $row) {
-        foreach ($row as $i => $cell) {
-            $widths[$i] = max($widths[$i] ?? 0, charWidth($cell));
-        }
-    }
-    $out = '';
-    foreach ($rows as $n => $row) {
-        $cells = [];
-        foreach ($row as $i => $cell) {
-            $cells[] = $cell . str_repeat(' ', $widths[$i] - charWidth($cell));
-        }
-        $out .= '| ' . implode(' | ', $cells) . " |\n";
-        if ($n === 0) {
-            $out .= '|' . implode('|', array_map(static fn(int $w): string => str_repeat('-', $w + 2), $widths)) . "|\n";
-        }
-    }
-    return $out;
-}
-
 #endregion
 #region Rows
 
@@ -324,7 +296,8 @@ printf(
     $xdebugLabel
 );
 
-$tableRows = [['Content', 'Size', 'Example', '`htmlspecialchars()`', 'SmartString', 'Speed vs `htmlspecialchars()`']];
+$tableHeaders = ['Content', 'Size', 'Example', '`htmlspecialchars()`', 'SmartString', 'Speed vs `htmlspecialchars()`'];
+$tableRows    = [];
 foreach ($rows as $row) {
     [$label, $sizeLabel, $example, $values, $iterations] = $row;
     [$a, $b] = bench($values, max(1, (int)($iterations * $scale)), $row[5] ?? 'echo');
@@ -342,7 +315,7 @@ foreach ($rows as $row) {
     ];
 }
 
-echo alignedTable($tableRows);
+echo renderMdTable($tableHeaders, $tableRows);
 echo "\n\\* News-article page: a 16 B quoted headline; author, category, and date (16 B plain); a 200 B caption; and a 10 KB body with quotes. This row is the whole page - all six fields together.\n";
 echo "\nPer call (per page for the News-article row), best of 7, measured on " . PHP_OS_FAMILY . ' ' . php_uname('m') . ", PHP " . PHP_VERSION . ".\n";
 

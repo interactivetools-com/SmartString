@@ -318,7 +318,7 @@ class EmptyGuardsTest extends SmartStringTestCase
     private function requestGuard(string $method, string $arg = ''): array
     {
         $query = sprintf('empty-guard.php?method=%s&arg=%s', urlencode($method), urlencode($arg));
-        return $this->requestViaBuiltInServer($query, ['follow_location' => 0, 'ignore_errors' => true]);
+        return $this->requestViaBuiltInServer(dirname(__DIR__) . '/Support/bin', $query, ['follow_location' => 0, 'ignore_errors' => true]);
     }
 
     //endregion

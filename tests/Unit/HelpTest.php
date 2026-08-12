@@ -56,7 +56,7 @@ class HelpTest extends SmartStringTestCase
      */
     public function testXmpWrapEscapesXmpClosingTagOnWebResponses(): void
     {
-        [, $body] = $this->requestViaBuiltInServer('xmp-breakout.php');
+        [, $body] = $this->requestViaBuiltInServer(dirname(__DIR__) . '/Support/bin', 'xmp-breakout.php');
 
         $this->assertStringContainsString('<xmp>', $body);
         $this->assertStringContainsStringIgnoringCase('<\/xmp><script>alert(1)</script>', $body, 'lowercase payload displays escaped');
