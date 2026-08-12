@@ -65,7 +65,7 @@ $rows = $orders->toArray();
 
 ## Related Libraries
 
-- [SmartArray](https://github.com/interactivetools-com/SmartArray) - database rows as chainable collections, with fields that HTML-encode themselves on output.
+- [SmartArray](https://github.com/interactivetools-com/SmartArray) - database rows as chainable collections, with fields returned as SmartStrings.
 - [ZenDB](https://github.com/interactivetools-com/ZenDB) - database library that returns query results as SmartArrays of SmartStrings, so fields arrive HTML-safe.
 
 ## Questions?

@@ -24,7 +24,7 @@ Contents:
 
 ## Installation
 
-Using CMS Builder or [ZenDB](https://github.com/interactivetools-com/ZenDB)?
+**Using CMS Builder or [ZenDB](https://github.com/interactivetools-com/ZenDB)?**
 SmartString is already installed, and every database value you touch is
 already a SmartString; skip ahead to
 [Your First SmartString](#your-first-smartstring) to see how they behave.
