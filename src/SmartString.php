@@ -14,14 +14,8 @@ use Itools\SmartArray\SmartNull;
 use JsonSerializable;
 use RuntimeException;
 
-// Speed: an unqualified builtin call in a namespaced file compiles to a runtime
-// name lookup; importing the name lets these compile to single opcodes instead of
-// function calls (~4ns each, measured constructor ~12% faster). Only builtins the
-// compiler turns into opcodes are listed - other builtins gain ~1ns and stay out.
-// NativeCallsTest holds the opcode list and names any uncovered call site or
-// unused import.
-use function count, is_array, is_bool, is_float, is_int, is_null, is_object,
-    is_scalar, is_string, strlen;
+// import built-ins so calls resolve at compile time instead of per-call lookups; NamespacedCallsTest keeps this list exact
+use function array_map, array_slice, class_exists, count, date, error_clear_last, error_get_last, get_debug_type, header, headers_sent, html_entity_decode, htmlspecialchars, http_response_code, implode, in_array, is_array, is_bool, is_callable, is_finite, is_float, is_int, is_null, is_numeric, is_object, is_scalar, is_string, json_decode, json_encode, max, mb_strlen, mb_strrpos, mb_substr, method_exists, nl2br, number_format, ob_end_clean, preg_last_error, preg_last_error_msg, preg_match, preg_replace, preg_replace_callback, preg_split, str_replace, strip_tags, strlen, strspn, strtolower, strtotime, strtr, substr, trigger_error, trim, urlencode;
 
 /**
  * SmartString class provides a fluent interface for various string and numeric manipulations.

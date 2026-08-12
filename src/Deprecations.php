@@ -6,8 +6,8 @@ namespace Itools\SmartString;
 use Itools\SmartArray\SmartNull;
 use JetBrains\PhpStorm\Deprecated;
 
-// compiles to a single opcode instead of a runtime name lookup; see the note in SmartString.php
-use function count;
+// import built-ins so calls resolve at compile time instead of per-call lookups; NamespacedCallsTest keeps this list exact
+use function array_column, count, htmlspecialchars, preg_replace, sprintf, str_replace, str_split;
 
 /**
  * Old and retired method names, phased out in stages.
