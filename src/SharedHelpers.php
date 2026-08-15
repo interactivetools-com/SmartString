@@ -4,6 +4,8 @@ declare(strict_types=1);
 namespace Itools\SmartString;
 
 // import built-ins so calls resolve at compile time instead of per-call lookups; NamespacedCallsTest keeps this list exact
+use ReflectionClass;
+
 use function array_column, array_map, basename, debug_backtrace, dirname, headers_list, implode, in_array, preg_match, str_ireplace, str_replace, trait_exists, trigger_error, trim;
 use const DEBUG_BACKTRACE_IGNORE_ARGS, E_USER_DEPRECATED, PHP_SAPI;
 
@@ -60,9 +62,9 @@ trait SharedHelpers
         // false) never autoloads - a library that isn't loaded can't be in the
         // backtrace anyway.
         $internalDirs = [];
-        foreach ([\Itools\SmartString\SharedHelpers::class, \Itools\SmartArray\SharedHelpers::class] as $sharedHelpers) {
+        foreach ([SharedHelpers::class, \Itools\SmartArray\SharedHelpers::class] as $sharedHelpers) {
             if (trait_exists($sharedHelpers, false)) {
-                $internalDirs[] = dirname((new \ReflectionClass($sharedHelpers))->getFileName());
+                $internalDirs[] = dirname((new ReflectionClass($sharedHelpers))->getFileName());
             }
         }
 

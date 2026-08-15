@@ -15,7 +15,7 @@ use JsonSerializable;
 use RuntimeException;
 
 // import built-ins so calls resolve at compile time instead of per-call lookups; NamespacedCallsTest keeps this list exact
-use function array_map, array_slice, class_exists, count, date, error_clear_last, error_get_last, get_debug_type, header, headers_sent, html_entity_decode, htmlspecialchars, http_response_code, implode, in_array, is_array, is_bool, is_callable, is_finite, is_float, is_int, is_null, is_numeric, is_object, is_scalar, is_string, json_decode, json_encode, max, mb_strlen, mb_strrpos, mb_substr, method_exists, nl2br, number_format, ob_end_clean, preg_last_error, preg_last_error_msg, preg_match, preg_replace, preg_replace_callback, preg_split, str_replace, strip_tags, strlen, strspn, strtolower, strtotime, strtr, substr, trigger_error, trim, urlencode;
+use function array_slice, class_exists, count, date, error_clear_last, error_get_last, get_debug_type, header, headers_sent, html_entity_decode, htmlspecialchars, http_response_code, implode, in_array, is_array, is_bool, is_callable, is_finite, is_float, is_int, is_null, is_numeric, is_object, is_scalar, is_string, json_decode, json_encode, max, mb_strlen, mb_strrpos, mb_substr, method_exists, nl2br, number_format, ob_end_clean, preg_last_error, preg_last_error_msg, preg_match, preg_replace, preg_replace_callback, preg_split, str_replace, strip_tags, strlen, strspn, strtolower, strtotime, strtr, substr, trigger_error, trim, urlencode;
 use const ENT_DISALLOWED, ENT_HTML5, ENT_QUOTES, ENT_SUBSTITUTE, E_USER_WARNING, JSON_HEX_AMP, JSON_HEX_APOS, JSON_HEX_QUOT, JSON_HEX_TAG, JSON_INVALID_UTF8_SUBSTITUTE, JSON_THROW_ON_ERROR, JSON_UNESCAPED_SLASHES, JSON_UNESCAPED_UNICODE, PHP_OS_FAMILY, PHP_VERSION_ID, PREG_INTERNAL_ERROR, PREG_SPLIT_NO_EMPTY;
 
 /**
@@ -128,15 +128,27 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      */
     public static function getRawValue(mixed $value): mixed
     {
-        return match (true) {
-            $value instanceof self           => $value->value(),
-            $value instanceof SmartArrayBase => $value->toArray(), // SmartArray and SmartArrayHtml
-            $value instanceof SmartNull      => null,
-            is_scalar($value)                => $value,
-            is_null($value)                  => $value,
-            is_array($value)                 => array_map([self::class, 'getRawValue'], $value), // for manually passed in arrays
-            default                          => throw new InvalidArgumentException("Unsupported value type: " . get_debug_type($value)),
-        };
+        // Checks ordered by measured frequency: plain scalars are the common case
+        if (is_scalar($value) || $value === null) {
+            return $value;
+        }
+        if ($value instanceof self) {
+            return $value->value();
+        }
+        if ($value instanceof SmartArrayBase) { // SmartArray and SmartArrayHtml
+            return $value->toArray();
+        }
+        if ($value instanceof SmartNull) {
+            return null;
+        }
+        if (is_array($value)) { // for manually passed in arrays
+            $raw = [];
+            foreach ($value as $key => $element) {
+                $raw[$key] = is_scalar($element) || $element === null ? $element : self::getRawValue($element);
+            }
+            return $raw;
+        }
+        throw new InvalidArgumentException("Unsupported value type: " . get_debug_type($value));
     }
 
     //endregion
@@ -309,7 +321,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         if ($this->isMissing()) {
             return '';
         }
-        return $this->htmlEncode() . self::getRawValue($html);
+        return $this->htmlEncode() . (is_string($html) ? $html : self::getRawValue($html)); // fast path: skip getRawValue() for plain values
     }
 
     /**
@@ -338,7 +350,9 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         if ($this->isMissing()) {
             return '';
         }
-        return self::getRawValue($before) . $this->htmlEncode() . self::getRawValue($after);
+        $before = is_string($before) ? $before : self::getRawValue($before); // fast path: skip getRawValue() for plain values
+        $after  = is_string($after)  ? $after  : self::getRawValue($after);
+        return $before . $this->htmlEncode() . $after;
     }
 
     /**
@@ -385,7 +399,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         // cheaper than preg_replace_callback's setup when there is nothing to replace (the common case).
         $invisibleRx = '/[\p{Cf}\x{FE00}-\x{FE0F}\x{E0100}-\x{E01EF}]/u';
         if (preg_match($invisibleRx, $json)) {
-            $json = preg_replace_callback($invisibleRx, fn($m) => substr(json_encode($m[0]), 1, -1), $json);
+            $json = preg_replace_callback($invisibleRx, static fn($m) => substr(json_encode($m[0]), 1, -1), $json);
         }
 
         return $json;
@@ -451,7 +465,9 @@ final class SmartString implements JsonSerializable, IteratorAggregate
             return new self($this->rawData);
         }
 
-        $args = array_map(self::getRawValue(...), $args); // accept a SmartString char list, like every other value parameter
+        foreach ($args as $i => $arg) { // accept a SmartString char list, like every other value parameter
+            $args[$i] = self::getRawValue($arg);
+        }
         return new self(trim((string)$this->rawData, ...$args));
     }
 
@@ -612,7 +628,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     public function percent(int $decimals = 0, string|int|float|bool|null|SmartString|SmartNull $ifZero = null): SmartString
     {
         $value    = self::getFloatOrNull($this->rawData);
-        $ifZero   = self::getRawValue($ifZero);
+        $ifZero   = is_scalar($ifZero) || $ifZero === null ? $ifZero : self::getRawValue($ifZero); // fast path: skip getRawValue() for plain values
         $newValue = match (true) {
             is_null($value)                    => null,
             $value === 0.0 && $ifZero !== null => $ifZero,
@@ -698,7 +714,9 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      */
     public function or(int|float|string|bool|null|SmartString|SmartNull $fallback): SmartString
     {
-        $newValue = $this->isMissing() ? self::getRawValue($fallback) : $this->rawData;
+        $newValue = $this->isMissing()
+            ? (is_scalar($fallback) || $fallback === null ? $fallback : self::getRawValue($fallback)) // fast path: skip getRawValue() for plain values
+            : $this->rawData;
         return new self($newValue);
     }
 
@@ -713,7 +731,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     {
         $newValue = $this->rawData;
         if (!$this->isMissing()) {
-            $newValue .= self::getRawValue($value);
+            $newValue .= (is_scalar($value) || $value === null ? $value : self::getRawValue($value)); // fast path: skip getRawValue() for plain values
         }
         return new self($newValue);
     }
@@ -729,7 +747,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     {
         $newValue = $this->rawData;
         if (!$this->isMissing()) {
-            $newValue = self::getRawValue($value) . $newValue;
+            $newValue = (is_scalar($value) || $value === null ? $value : self::getRawValue($value)) . $newValue; // fast path: skip getRawValue() for plain values
         }
         return new self($newValue);
     }
@@ -749,7 +767,9 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     {
         $newValue = $this->rawData;
         if (!$this->isMissing()) {
-            $newValue = self::getRawValue($before) . $newValue . self::getRawValue($after);
+            $before   = is_scalar($before) || $before === null ? $before : self::getRawValue($before); // fast path: skip getRawValue() for plain values
+            $after    = is_scalar($after)  || $after  === null ? $after  : self::getRawValue($after);
+            $newValue = $before . $newValue . $after;
         }
         return new self($newValue);
     }
@@ -761,7 +781,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      */
     public function ifNull(int|float|string|bool|null|SmartString|SmartNull $fallback): SmartString
     {
-        $newValue = $this->rawData ?? self::getRawValue($fallback);
+        $newValue = $this->rawData ?? (is_scalar($fallback) || $fallback === null ? $fallback : self::getRawValue($fallback)); // fast path: skip getRawValue() for plain values
         return new self($newValue);
     }
 
@@ -774,7 +794,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     public function ifZero(int|float|string|bool|null|SmartString|SmartNull $fallback): SmartString
     {
         $isZero   = is_numeric($this->rawData) && (float)$this->rawData === 0.0;
-        $newValue = $isZero ? self::getRawValue($fallback) : $this->rawData;
+        $newValue = $isZero ? (is_scalar($fallback) || $fallback === null ? $fallback : self::getRawValue($fallback)) : $this->rawData; // fast path: skip getRawValue() for plain values
         return new self($newValue);
     }
 
@@ -788,7 +808,8 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      */
     public function ifTrue(string|int|float|bool|null|SmartString|SmartNull $condition, string|int|float|bool|null|SmartString|SmartNull $newValue): SmartString
     {
-        $newValue = self::getRawValue($condition) ? self::getRawValue($newValue) : $this->rawData;
+        $isTruthy = is_scalar($condition) || $condition === null ? $condition : self::getRawValue($condition); // fast path: skip getRawValue() for plain values
+        $newValue = $isTruthy ? (is_scalar($newValue) || $newValue === null ? $newValue : self::getRawValue($newValue)) : $this->rawData;
         return new self($newValue);
     }
 
@@ -804,8 +825,8 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      */
     public function ifEquals(string|int|float|bool|null|SmartString|SmartNull $match, string|int|float|bool|null|SmartString|SmartNull $newValue): SmartString
     {
-        $isMatch  = $this->rawData == self::getRawValue($match);
-        $newValue = $isMatch ? self::getRawValue($newValue) : $this->rawData;
+        $isMatch  = $this->rawData == (is_scalar($match) || $match === null ? $match : self::getRawValue($match)); // fast path: skip getRawValue() for plain values
+        $newValue = $isMatch ? (is_scalar($newValue) || $newValue === null ? $newValue : self::getRawValue($newValue)) : $this->rawData;
         return new self($newValue);
     }
 
@@ -816,7 +837,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      */
     public function set(string|int|float|bool|null|SmartString|SmartNull $newValue): SmartString
     {
-        $newValue = self::getRawValue($newValue);
+        $newValue = is_scalar($newValue) || $newValue === null ? $newValue : self::getRawValue($newValue); // fast path: skip getRawValue() for plain values
         return new self($newValue);
     }
 
@@ -1054,7 +1075,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         if ($this->isMissing()) {
             return new self($this->rawData);
         }
-        $replacement = (string)self::getRawValue($replacement); // unwrap: replace with the raw value, not the encoded __toString output
+        $replacement = is_string($replacement) ? $replacement : (string)self::getRawValue($replacement); // fast path for plain strings; unwrap Smart values raw, not the encoded __toString output
 
         // PHP only exposes the pattern compile error ("No ending delimiter '/' found") as
         // a warning, so we @-suppress it and read it back with error_get_last(). Custom
