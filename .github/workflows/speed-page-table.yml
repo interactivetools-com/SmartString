@@ -76,11 +76,15 @@ jobs:
           # JIT off explicitly: runner images ship a non-zero jit_buffer_size
           ini-values: opcache.enable_cli=1, opcache.jit=off, opcache.jit_buffer_size=0
 
+      # scale is free-form text: pass it as an env var so the shell gets it as
+      # data, never as script source
       - name: Generate table
+        env:
+          SCALE: ${{ inputs.scale }}
         run: |
           SLUG="${{ matrix.os }}-php${{ inputs.php }}"
           php .github/scripts/speed-page-table.php \
-            --scale="${{ inputs.scale }}" \
+            --scale="$SCALE" \
             | tee "table-$SLUG.md"
           cat "table-$SLUG.md" >> "$GITHUB_STEP_SUMMARY"
 
