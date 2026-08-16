@@ -97,6 +97,22 @@ class StringManipulationTest extends SmartStringTestCase
         $this->assertSame('< b', SmartString::new('<<b> b')->textOnly()->value());
     }
 
+    public function testTextOnlyBoundsCraftedNestingCost(): void
+    {
+        // Crafted nesting surfaces one new tag per strip pass, so without the pass cap
+        // this input costs one full pass per "<": several seconds at this size. Past the
+        // cap every "<" is dropped, so the no-tags guarantee holds at linear cost.
+        $n       = 20000;
+        $crafted = str_repeat('<', $n) . str_repeat('z>', $n - 1) . 'a>'; // ~60 KB
+
+        $start  = hrtime(true);
+        $result = SmartString::new($crafted)->textOnly()->value();
+        $ms     = (hrtime(true) - $start) / 1e6;
+
+        $this->assertDoesNotMatchRegularExpression('/<[a-zA-Z\/!?]/', $result);
+        $this->assertLessThan(2000, $ms, "textOnly() took {$ms}ms on crafted input; the pass cap should keep this well under a second");
+    }
+
     public function testTextOnlyPreservesPrivateUseCharacters(): void
     {
         // U+E000 is data, not markup, so it survives even when adjacent to a prose "<"
