@@ -106,7 +106,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
             self::logDeprecation('Replace SmartString::new($array) with SmartArrayHtml::new($array)');
             return new SmartArrayHtml($value);
         }
-        return new self($value);
+        return new SmartString($value);
     }
 
     /**
@@ -318,7 +318,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      */
     public function appendHtml(string|SmartString|SmartNull $html): string
     {
-        if ($this->isMissing()) {
+        if ($this->rawData === null || $this->rawData === '') { // isMissing(), inlined for speed
             return '';
         }
         return $this->htmlEncode() . (is_string($html) ? $html : self::getRawValue($html)); // fast path: skip getRawValue() for plain values
@@ -347,7 +347,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      */
     public function wrapHtml(string|SmartString|SmartNull $before, string|SmartString|SmartNull $after): string
     {
-        if ($this->isMissing()) {
+        if ($this->rawData === null || $this->rawData === '') { // isMissing(), inlined for speed
             return '';
         }
         $before = is_string($before) ? $before : self::getRawValue($before); // fast path: skip getRawValue() for plain values
@@ -426,8 +426,8 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      */
     public function textOnly(): SmartString
     {
-        if ($this->isMissing()) {
-            return new self($this->rawData);
+        if ($this->rawData === null || $this->rawData === '') { // isMissing(), inlined for speed
+            return new SmartString($this->rawData);
         }
 
         // Prose "<" hides behind $prose so strip_tags doesn't delete from it to the next ">" or end
@@ -450,7 +450,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         } while (preg_match('/<[a-zA-Z\/!?]/', $text));
         $text = preg_replace('/\xC2\xA0|\xE1\x9A\x80|\xE2\x80[\x80-\x8A\xAF]|\xE2\x81\x9F|\xE3\x80\x80/', ' ', $text); // \p{Zs} minus U+0020, spelled as bytes so the pattern needs no /u
 
-        return new self(trim($text));
+        return new SmartString(trim($text));
     }
 
 
@@ -461,14 +461,14 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      */
     public function trim(...$args): SmartString
     {
-        if ($this->isMissing()) {
-            return new self($this->rawData);
+        if ($this->rawData === null || $this->rawData === '') { // isMissing(), inlined for speed
+            return new SmartString($this->rawData);
         }
 
         foreach ($args as $i => $arg) { // accept a SmartString char list, like every other value parameter
-            $args[$i] = self::getRawValue($arg);
+            $args[$i] = is_string($arg) ? $arg : self::getRawValue($arg); // fast path: skip getRawValue() for plain values
         }
-        return new self(trim((string)$this->rawData, ...$args));
+        return new SmartString(trim((string)$this->rawData, ...$args));
     }
 
     /**
@@ -481,8 +481,8 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      */
     public function maxWords(int $max, string $ellipsis = "..."): SmartString
     {
-        if ($this->isMissing()) {
-            return new self($this->rawData);
+        if ($this->rawData === null || $this->rawData === '') { // isMissing(), inlined for speed
+            return new SmartString($this->rawData);
         }
 
         $max      = max(0, $max); // negative limits clamp to 0: show nothing, ellipsis marks the hidden content
@@ -494,7 +494,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
             $newValue .= $ellipsis;
         }
 
-        return new self($newValue);
+        return new SmartString($newValue);
     }
 
     /**
@@ -508,8 +508,8 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      */
     public function maxChars(int $max, string $ellipsis = "..."): SmartString
     {
-        if ($this->isMissing()) {
-            return new self($this->rawData);
+        if ($this->rawData === null || $this->rawData === '') { // isMissing(), inlined for speed
+            return new SmartString($this->rawData);
         }
 
         $max  = max(0, $max); // negative limits clamp to 0: show nothing, ellipsis marks the hidden content
@@ -531,7 +531,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
             $newValue = $ellipsis; // $max is 0 and content exists: nothing shown, ellipsis marks it
         }
 
-        return new self($newValue);
+        return new SmartString($newValue);
     }
 
     //endregion
@@ -578,7 +578,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
 
         $newValue = is_int($timestamp) ? date($format, $timestamp) : null;
 
-        return new self($newValue);
+        return new SmartString($newValue);
     }
 
     /**
@@ -598,7 +598,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     {
         $value    = self::getFloatOrNull($this->rawData); // null for non-numerics and cast-time INF ('9e999')
         $newValue = is_null($value) ? null : number_format($value, $decimals, self::$numberFormatDecimal, self::$numberFormatThousands);
-        return new self($newValue);
+        return new SmartString($newValue);
     }
 
     //endregion
@@ -635,7 +635,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
             !is_finite($value * 100)           => null, // overflow: null like add()/multiply(), so ->or() fires
             default                            => number_format($value * 100, $decimals, self::$numberFormatDecimal, self::$numberFormatThousands) . '%',
         };
-        return new self($newValue);
+        return new SmartString($newValue);
     }
 
     /**
@@ -651,7 +651,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         $newValue = (is_null($left) || is_null($right) || $right === 0.0 || !is_finite($left / $right * 100)) // overflow: null like add()/multiply(), so ->or() fires
             ? null
             : number_format($left / $right * 100, $decimals, self::$numberFormatDecimal, self::$numberFormatThousands) . '%';
-        return new self($newValue);
+        return new SmartString($newValue);
     }
 
     /**
@@ -664,7 +664,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         $left     = self::getFloatOrNull($this->rawData);
         $right    = self::getFloatOrNull($value);
         $newValue = (is_null($left) || is_null($right)) ? null : $left + $right;
-        return new self($newValue);
+        return new SmartString($newValue);
     }
 
     /**
@@ -677,7 +677,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         $left     = self::getFloatOrNull($this->rawData);
         $right    = self::getFloatOrNull($value);
         $newValue = (is_null($left) || is_null($right)) ? null : $left - $right;
-        return new self($newValue);
+        return new SmartString($newValue);
     }
 
     /**
@@ -690,7 +690,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         $left     = self::getFloatOrNull($this->rawData);
         $right    = self::getFloatOrNull($value);
         $newValue = (is_null($left) || is_null($right)) ? null : $left * $right;
-        return new self($newValue);
+        return new SmartString($newValue);
     }
 
     /**
@@ -703,7 +703,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         $left     = self::getFloatOrNull($this->rawData);
         $right    = self::getFloatOrNull($value);
         $newValue = (is_null($left) || is_null($right) || $right === 0.0) ? null : $left / $right;
-        return new self($newValue);
+        return new SmartString($newValue);
     }
 
     //endregion
@@ -714,10 +714,10 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      */
     public function or(int|float|string|bool|null|SmartString|SmartNull $fallback): SmartString
     {
-        $newValue = $this->isMissing()
+        $newValue = $this->rawData === null || $this->rawData === '' // isMissing(), inlined for speed
             ? (is_scalar($fallback) || $fallback === null ? $fallback : self::getRawValue($fallback)) // fast path: skip getRawValue() for plain values
             : $this->rawData;
-        return new self($newValue);
+        return new SmartString($newValue);
     }
 
     /**
@@ -730,10 +730,10 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     public function append(int|float|string|bool|null|SmartString|SmartNull $value): SmartString
     {
         $newValue = $this->rawData;
-        if (!$this->isMissing()) {
+        if ($this->rawData !== null && $this->rawData !== '') { // !isMissing(), inlined for speed
             $newValue .= (is_scalar($value) || $value === null ? $value : self::getRawValue($value)); // fast path: skip getRawValue() for plain values
         }
-        return new self($newValue);
+        return new SmartString($newValue);
     }
 
     /**
@@ -746,10 +746,10 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     public function prepend(int|float|string|bool|null|SmartString|SmartNull $value): SmartString
     {
         $newValue = $this->rawData;
-        if (!$this->isMissing()) {
+        if ($this->rawData !== null && $this->rawData !== '') { // !isMissing(), inlined for speed
             $newValue = (is_scalar($value) || $value === null ? $value : self::getRawValue($value)) . $newValue; // fast path: skip getRawValue() for plain values
         }
-        return new self($newValue);
+        return new SmartString($newValue);
     }
 
     /**
@@ -766,12 +766,12 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     public function wrap(int|float|string|bool|null|SmartString|SmartNull $before, int|float|string|bool|null|SmartString|SmartNull $after): SmartString
     {
         $newValue = $this->rawData;
-        if (!$this->isMissing()) {
+        if ($this->rawData !== null && $this->rawData !== '') { // !isMissing(), inlined for speed
             $before   = is_scalar($before) || $before === null ? $before : self::getRawValue($before); // fast path: skip getRawValue() for plain values
             $after    = is_scalar($after)  || $after  === null ? $after  : self::getRawValue($after);
             $newValue = $before . $newValue . $after;
         }
-        return new self($newValue);
+        return new SmartString($newValue);
     }
 
     /**
@@ -782,7 +782,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     public function ifNull(int|float|string|bool|null|SmartString|SmartNull $fallback): SmartString
     {
         $newValue = $this->rawData ?? (is_scalar($fallback) || $fallback === null ? $fallback : self::getRawValue($fallback)); // fast path: skip getRawValue() for plain values
-        return new self($newValue);
+        return new SmartString($newValue);
     }
 
     /**
@@ -795,7 +795,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     {
         $isZero   = is_numeric($this->rawData) && (float)$this->rawData === 0.0;
         $newValue = $isZero ? (is_scalar($fallback) || $fallback === null ? $fallback : self::getRawValue($fallback)) : $this->rawData; // fast path: skip getRawValue() for plain values
-        return new self($newValue);
+        return new SmartString($newValue);
     }
 
     /**
@@ -810,7 +810,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     {
         $isTruthy = is_scalar($condition) || $condition === null ? $condition : self::getRawValue($condition); // fast path: skip getRawValue() for plain values
         $newValue = $isTruthy ? (is_scalar($newValue) || $newValue === null ? $newValue : self::getRawValue($newValue)) : $this->rawData;
-        return new self($newValue);
+        return new SmartString($newValue);
     }
 
     /**
@@ -827,7 +827,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     {
         $isMatch  = $this->rawData == (is_scalar($match) || $match === null ? $match : self::getRawValue($match)); // fast path: skip getRawValue() for plain values
         $newValue = $isMatch ? (is_scalar($newValue) || $newValue === null ? $newValue : self::getRawValue($newValue)) : $this->rawData;
-        return new self($newValue);
+        return new SmartString($newValue);
     }
 
     /**
@@ -838,7 +838,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     public function set(string|int|float|bool|null|SmartString|SmartNull $newValue): SmartString
     {
         $newValue = is_scalar($newValue) || $newValue === null ? $newValue : self::getRawValue($newValue); // fast path: skip getRawValue() for plain values
-        return new self($newValue);
+        return new SmartString($newValue);
     }
 
     //endregion
@@ -919,9 +919,9 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      *
      * @param string|null|SmartString|SmartNull $text Plain-text message; HTML-encoded automatically before output. Defaults to "The requested URL was not found on this server."
      */
-    public function or404(string|null|SmartString|SmartNull $text = null): self
+    public function or404(string|null|SmartString|SmartNull $text = null): SmartString
     {
-        if (!$this->isMissing()) {
+        if ($this->rawData !== null && $this->rawData !== '') { // !isMissing(), inlined for speed
             return $this;
         }
 
@@ -933,7 +933,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         // without PHP_OUTPUT_HANDLER_REMOVABLE never close, so a level check would loop forever.
         while (@ob_end_clean()) {
         }
-        $text = self::getRawValue($text) ?? "The requested URL was not found on this server.";
+        $text = (is_string($text) ? $text : self::getRawValue($text)) ?? "The requested URL was not found on this server."; // fast path: skip getRawValue() for plain values
         $text = htmlspecialchars((string)$text, self::HTML_ENCODE_FLAGS, 'UTF-8');
 
         echo <<<__HTML__
@@ -962,10 +962,10 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      *
      * @param string|SmartString|SmartNull $text Plain-text message; HTML-encoded automatically before output.
      */
-    public function orDie(string|SmartString|SmartNull $text): self
+    public function orDie(string|SmartString|SmartNull $text): SmartString
     {
-        if ($this->isMissing()) {
-            echo htmlspecialchars((string)self::getRawValue($text), self::HTML_ENCODE_FLAGS, 'UTF-8'); // SECURITY: intentional encode, do not remove (see docblock)
+        if ($this->rawData === null || $this->rawData === '') { // isMissing(), inlined for speed
+            echo htmlspecialchars(is_string($text) ? $text : (string)self::getRawValue($text), self::HTML_ENCODE_FLAGS, 'UTF-8'); // SECURITY: intentional encode, do not remove (see docblock)
             exit(1);
         }
         return $this;
@@ -985,10 +985,10 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      * @param string|SmartString|SmartNull $text Plain-text message; HTML-encoded automatically before being used as the exception message.
      * @throws RuntimeException If the value is missing (null or "")
      */
-    public function orThrow(string|SmartString|SmartNull $text): self
+    public function orThrow(string|SmartString|SmartNull $text): SmartString
     {
-        if ($this->isMissing()) {
-            $text = htmlspecialchars((string)self::getRawValue($text), self::HTML_ENCODE_FLAGS, 'UTF-8'); // SECURITY: intentional encode, do not remove (see docblock)
+        if ($this->rawData === null || $this->rawData === '') { // isMissing(), inlined for speed
+            $text = htmlspecialchars(is_string($text) ? $text : (string)self::getRawValue($text), self::HTML_ENCODE_FLAGS, 'UTF-8'); // SECURITY: intentional encode, do not remove (see docblock)
             throw new RuntimeException($text);
         }
         return $this;
@@ -1002,21 +1002,21 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      * present - so misuse fails on the first request instead of only on empty values.
      *
      * @param string|SmartString|SmartNull $url The URL to redirect to if value is missing
-     * @return self Returns $this for method chaining if not missing, redirects if missing
+     * @return SmartString Returns $this for method chaining if not missing, redirects if missing
      * @throws RuntimeException If headers have already been sent, or if the URL is blank
      */
-    public function orRedirect(string|SmartString|SmartNull $url): self
+    public function orRedirect(string|SmartString|SmartNull $url): SmartString
     {
         // Check early so developers find out immediately, not only when isMissing()
         if (headers_sent($file, $line)) {
             throw new RuntimeException("orRedirect(): headers already sent in $file on line $line");
         }
-        $url = (string)self::getRawValue($url);
+        $url = is_string($url) ? $url : (string)self::getRawValue($url); // fast path: skip getRawValue() for plain values
         if ($url === '') { // same early-check rule: report a blank URL on the first request, not only when the value is missing
             throw new RuntimeException("orRedirect(): redirect URL is blank (null or \"\")");
         }
 
-        if ($this->isMissing()) {
+        if ($this->rawData === null || $this->rawData === '') { // isMissing(), inlined for speed
             http_response_code(302);
             header("Location: $url");
             exit;
@@ -1048,7 +1048,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         if (!is_null($newValue) && !is_scalar($newValue)) {
             throw new InvalidArgumentException("The callback must return a scalar value (string, int, float, bool, or null), got " . get_debug_type($newValue)); // no method name: apply() forwards here too
         }
-        return new self($newValue);
+        return new SmartString($newValue);
     }
 
     /**
@@ -1072,8 +1072,8 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      */
     public function pregReplace(string $pattern, string|SmartString|SmartNull $replacement): SmartString
     {
-        if ($this->isMissing()) {
-            return new self($this->rawData);
+        if ($this->rawData === null || $this->rawData === '') { // isMissing(), inlined for speed
+            return new SmartString($this->rawData);
         }
         $replacement = is_string($replacement) ? $replacement : (string)self::getRawValue($replacement); // fast path for plain strings; unwrap Smart values raw, not the encoded __toString output
 
@@ -1087,12 +1087,12 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         $newValue = @preg_replace($pattern, $replacement, (string)$this->rawData); // @: PHP warning becomes the exception below
         if (is_null($newValue)) {
             if (preg_last_error() !== PREG_INTERNAL_ERROR) { // data failure (bad UTF-8, backtrack/JIT/recursion limits), not a broken pattern: null so or() fallbacks fire
-                return new self(null);
+                return new SmartString(null);
             }
             $reason = error_get_last()['message'] ?? preg_last_error_msg();
             throw new InvalidArgumentException("pregReplace(): $reason");
         }
-        return new self($newValue);
+        return new SmartString($newValue);
     }
 
     //endregion
@@ -1174,7 +1174,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         $error .= self::occurredInFile();
         trigger_error($error, E_USER_WARNING); // Emulate PHP warning
 
-        return new self(null);
+        return new SmartString(null);
     }
 
     /**
@@ -1196,7 +1196,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
             'noencode'  => [$this->rawHtml(), "Replace ->$method() with ->rawHtml()"],
             'tostring'  => [$this->htmlEncode(), "Replace ->$method() with ->htmlEncode() or ->string()"], // htmlEncode() first: it matches this shim's output
             'jsencode'  => [str_replace(['`', '$'], ['\u0060', '\u0024'], substr(self::new((string)$this->rawData)->jsonEncode(), 1, -1)), "Replace ->$method() with ->jsonEncode() (not identical functionality, code refactoring required)"], // quote-stripped jsonEncode(): a backslash escape like \< satisfies JS but the HTML parser still ends the script at </script. Backtick and $ get \u escapes too, so a template literal can't be closed or interpolated
-            'striptags' => [new self(is_null($this->rawData) ? null : strip_tags((string)$this->rawData, ...$args)), "Replace ->$method() with ->textOnly()"],
+            'striptags' => [new SmartString(is_null($this->rawData) ? null : strip_tags((string)$this->rawData, ...$args)), "Replace ->$method() with ->textOnly()"],
             default     => [null, null],
         };
         if ($deprecationError) {
@@ -1332,7 +1332,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      */
     private static function getFloatOrNull(mixed $value): ?float
     {
-        $value = self::getRawValue($value);  // unwrap SmartStrings
+        $value = is_scalar($value) || $value === null ? $value : self::getRawValue($value); // fast path: skip getRawValue() for plain values
         $float = match (true) {
             is_float($value)   => $value,
             is_numeric($value) => (float)$value,
