@@ -149,7 +149,7 @@ through unchanged, so a later `or()` still works.
 | `append($value): SmartString`                                    | Adds `$value` to the end, only when present (zero counts as present; missing passes through)                                     |
 | `prepend($value): SmartString`                                   | Adds `$value` to the beginning, only when present                                                                                |
 | `wrap($before, $after): SmartString`                             | Wraps when present; both args required, pass `""` for an unwanted side                                                           |
-| `textOnly(): SmartString`                                        | `html_entity_decode` → `strip_tags` → `trim` (entities decoded first so `&lt;script&gt;` can't survive as a tag)                 |
+| `textOnly(): SmartString`                                        | Decodes entities, strips tags, normalizes Unicode spaces to plain spaces, trims. Entities decode first so `&lt;script&gt;` is removed too. `<` counts as a tag only before a letter, `/`, `!`, or `?` (browser rule), so prose `<` survives: `Kids <12 eat free` keeps its `<`; `<p>&nbsp;</p>` trims to `""` |
 | `trim(...$args): SmartString`                                    | PHP `trim()` semantics incl. custom char list (a SmartString char list unwraps)                                                  |
 | `maxWords(int $max, string $ellipsis = '...'): SmartString`      | Word limit; `$ellipsis` only if cut; trailing punctuation stripped before ellipsis                                               |
 | `maxChars(int $max, string $ellipsis = '...'): SmartString`      | Char limit breaking at last whole word; whitespace runs collapse to single spaces; trailing punctuation stripped before ellipsis |
@@ -333,7 +333,7 @@ deprecated; always write the current name in new code.
 | `->apply($callback)`       | `->map($callback)`                                                         |
 | `->if($cond, $value)`      | `->ifTrue($cond, $value)`                                                  |
 | `->ifBlank($fallback)`     | `->or($fallback)` for missing values, `->ifEquals('', $fallback)` for `""` |
-| `->textToHtml()`           | `->nl2br()`                                                                |
+| `->textToHtml()`           | `->nl2br()`; `textToHtml(keepBr: true)` has no equivalent (`nl2br()` takes no arguments) - keep those calls as-is |
 | `->dateTimeFormat($fmt)`   | `->dateFormat($fmt)`                                                       |
 | `->stripTags()`            | `->textOnly()`                                                             |
 | `->toString()`             | `->htmlEncode()` or `->string()`                                           |

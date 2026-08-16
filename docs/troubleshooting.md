@@ -176,7 +176,7 @@ echo $price->numberFormat(2)->prepend('$')->ifEquals('$0.00', 'Free!');
 
 See [Run Conditionals Before Formatting](conditionals-and-error-checking.md#run-conditionals-before-formatting).
 
-### "orRedirect(): headers already sent in /path/to/file.php on line 12"
+### "orRedirect(): headers already sent in file.php on line 12"
 
 **What happened:** `orRedirect()` redirects when the value is missing (null
 or `""`), and redirects only work before any output has been sent - this

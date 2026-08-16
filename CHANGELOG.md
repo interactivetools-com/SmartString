@@ -4,7 +4,7 @@
 > per version - tagged releases roll up every change since the previous tag.
 > Versions bundled with CMS Builder are marked on their sections.
 
-## [3.0.0] - 2026-08-XX
+## [3.0.0] - 2026-08-16
 
 > **Bundled with CMS Builder v3.85**
 
@@ -25,7 +25,7 @@ hardening and fixes.
 ### Performance
 
 - **HTML-encoded output is ~4x faster** than v2.7.0 (six-field article
-  page: 38.2 → 9.3 microseconds), and at least 2.5x faster than calling
+  page: 38.2 → 9.3 microseconds), and at least 3x faster than calling
   `htmlspecialchars()` yourself: values are scanned first and only encoded
   when something needs encoding. Output stays byte-identical. Benchmarks
   and verification: [docs/performance.md](docs/performance.md)
@@ -41,7 +41,7 @@ IDEs like PHPStorm show them in strikethrough and offer a one-click rename.
 | `and()`                    | `append()`                 |                                                                          |
 | `andPrefix()`              | `prepend()`                |                                                                          |
 | `apply()`                  | `map()`                    | matches `array_map()` and `SmartArray::map()`                            |
-| `if()`                     | `ifTrue()`                 |                                                                          |
+| `if()`                     | `ifTrue()`                 | the parameter is `newValue:` on `ifTrue()`; `if()` keeps `valueIfTrue:`  |
 | `textToHtml()`             | `nl2br()`                  |                                                                          |
 | `textToHtml(keepBr: true)` | (no new name - keep as-is) | preserves `<br>` tags already in the value; `nl2br()` takes no arguments |
 
@@ -52,7 +52,6 @@ These only matter if you write parameter names in calls, e.g.
 "Unknown named parameter" Error:
 
 - `percent(ifZero:)` was `zeroFallback:`
-- `ifTrue(newValue:)` was `valueIfTrue:`
 - `or404()`/`orDie()`/`orThrow()` take `text:` (was `message:`)
 - `map(callback:)` was `func:` - matches `array_map()` and `SmartArray::map()`
 

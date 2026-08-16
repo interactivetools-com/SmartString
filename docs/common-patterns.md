@@ -168,7 +168,8 @@ __HTML__;
 ## Building URLs
 
 When you're building links by hand, run query-string values through
-`urlEncode()`; the rest of the URL auto-encodes as usual. Without it, an
+`urlEncode()`; the rest of the URL is literal text you typed, which needs
+no encoding. Without it, an
 `&` or `=` inside a value adds extra parameters to your link, and
 characters like `#`, `%`, and spaces arrive broken:
 

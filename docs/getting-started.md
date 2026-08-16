@@ -234,8 +234,8 @@ Note that `string()` returns the raw string, not the encoded one; it is
 actually null.
 
 For code that receives a mix of SmartStrings and plain values,
-`SmartString::getRawValue()` unwraps Smart* objects and passes everything
-else through unchanged:
+`SmartString::getRawValue()` unwraps Smart* objects and passes plain values
+and arrays through unchanged (other objects throw `InvalidArgumentException`):
 
 ```php
 SmartString::getRawValue(SmartString::new("hello"));  // "hello"

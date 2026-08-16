@@ -1,6 +1,6 @@
 {
     "name": "itools/smartstring",
-    "description": "XSS-safe strings for PHP templates: values HTML-encode themselves on echo, interpolation, and concatenation, at least 2.5x faster than calling htmlspecialchars() yourself",
+    "description": "XSS-safe strings for PHP templates: values HTML-encode themselves on echo, interpolation, and concatenation, at least 3x faster than calling htmlspecialchars() yourself",
     "keywords": ["SmartArray", "chainable", "encoding", "escape", "fluent", "format", "html", "json", "manipulation", "methods", "multibyte", "sanitize", "security", "string", "strip", "trim", "truncate", "urlencode", "utf", "utf8", "xss"],
     "type": "library",
     "homepage": "https://github.com/interactivetools-com/SmartString",

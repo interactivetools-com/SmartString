@@ -19,10 +19,10 @@ Full lists of what changed per release: [CHANGELOG.md](CHANGELOG.md).
 *Follow this section when upgrading from SmartString before v3.0.0
 (or CMS Builder before 3.85).*
 
-### Chains after `->nl2br()` or `->textToHtml()`
+### Chains after `->nl2br()`
 
-> These two methods used to return a SmartString you could keep chaining.
-> They now return a plain string, so any call chained after them is fatal
+> `nl2br()` used to return a SmartString you could keep chaining. It now
+> returns a plain string, so any call chained after it is fatal
 > ("Call to a member function ... on string"):
 >
 > ```php
@@ -32,10 +32,10 @@ Full lists of what changed per release: [CHANGELOG.md](CHANGELOG.md).
 >
 > Fix:
 >
-> - Search `->nl2br(` and `->textToHtml(` and make sure each is the last
->   call in its chain (no `->` after it)
+> - Search `->nl2br(` and make sure each is the last call in its chain
+>   (no `->` after it)
 >
-> Regex: `->(nl2br|textToHtml)\([^)]*\)->` matches only the calls that need fixing
+> Regex: `->nl2br\([^)]*\)->` matches only the calls that need fixing
 
 ### Parameter renames (named arguments only)
 
