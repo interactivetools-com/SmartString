@@ -4,10 +4,8 @@ declare(strict_types=1);
 namespace Itools\SmartString;
 
 // import built-ins so calls resolve at compile time instead of per-call lookups; NamespacedCallsTest keeps this list exact
-use ReflectionClass;
-
-use function array_column, array_map, basename, debug_backtrace, dirname, headers_list, implode, in_array, preg_match, str_ireplace, str_replace, trait_exists, trigger_error, trim;
-use const DEBUG_BACKTRACE_IGNORE_ARGS, E_USER_DEPRECATED, PHP_SAPI;
+use function array_column, array_map, basename, debug_backtrace, dirname, headers_list, htmlspecialchars, implode, in_array, preg_match, str_ireplace, str_replace, trait_exists, trigger_error, trim;
+use const DEBUG_BACKTRACE_IGNORE_ARGS, ENT_DISALLOWED, ENT_HTML5, ENT_QUOTES, ENT_SUBSTITUTE, E_USER_DEPRECATED, PHP_SAPI;
 
 /**
  * SharedHelpers - common functions used across our libraries.
@@ -62,9 +60,9 @@ trait SharedHelpers
         // false) never autoloads - a library that isn't loaded can't be in the
         // backtrace anyway.
         $internalDirs = [];
-        foreach ([SharedHelpers::class, \Itools\SmartArray\SharedHelpers::class] as $sharedHelpers) {
+        foreach ([\Itools\SmartString\SharedHelpers::class, \Itools\SmartArray\SharedHelpers::class] as $sharedHelpers) {
             if (trait_exists($sharedHelpers, false)) {
-                $internalDirs[] = dirname((new ReflectionClass($sharedHelpers))->getFileName());
+                $internalDirs[] = dirname((new \ReflectionClass($sharedHelpers))->getFileName());
             }
         }
 
@@ -109,6 +107,24 @@ trait SharedHelpers
         }
 
         return $output;
+    }
+
+    /**
+     * HTML-encode a value for safe output, same name and flags as CMS Builder's h().
+     * ENT_DISALLOWED substitutes code points HTML5 forbids (C1 controls, noncharacters)
+     * with � so they can't hide in page source.
+     *
+     * Every error, warning, or exception message encodes the values it interpolates
+     * (keys, identifiers, method names - anything that isn't safe by construction):
+     * handlers often echo messages into pages. Assign it to a variable to encode
+     * inline in interpolated strings:
+     *
+     *     $h = self::h(...);
+     *     throw new RuntimeException("Unknown key '{$h($key)}', expected a column name");
+     */
+    protected static function h(string|int|float|null $input): string
+    {
+        return htmlspecialchars((string)$input, ENT_QUOTES | ENT_SUBSTITUTE | ENT_DISALLOWED | ENT_HTML5, 'UTF-8');
     }
 
     /**

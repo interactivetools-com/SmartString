@@ -101,7 +101,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     {
         if (is_array($value)) {
             if (!class_exists(SmartArrayHtml::class)) { // itools/smartarray is suggested, not required: name the fix instead of a class-not-found fatal
-                throw new RuntimeException("SmartString::new(\$array) needs the itools/smartarray package: run \"composer require itools/smartarray\", then replace the call with SmartArrayHtml::new(\$array).\n" . self::occurredInFile());
+                throw new RuntimeException('SmartString::new($array) needs the itools/smartarray package: run "composer require itools/smartarray", then replace the call with SmartArrayHtml::new($array).' . "\n" . self::occurredInFile());
             }
             self::logDeprecation('Replace SmartString::new($array) with SmartArrayHtml::new($array)');
             return new SmartArrayHtml($value);
@@ -954,7 +954,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         while (@ob_end_clean()) {
         }
         $text = (is_string($text) ? $text : self::getRawValue($text)) ?? "The requested URL was not found on this server."; // fast path: skip getRawValue() for plain values
-        $text = htmlspecialchars((string)$text, self::HTML_ENCODE_FLAGS, 'UTF-8');
+        $text = self::h((string)$text);
 
         echo <<<__HTML__
             <!DOCTYPE html>
@@ -985,7 +985,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     public function orDie(string|SmartString|SmartNull $text): SmartString
     {
         if ($this->rawData === null || $this->rawData === '') { // isMissing(), inlined for speed
-            echo htmlspecialchars(is_string($text) ? $text : (string)self::getRawValue($text), self::HTML_ENCODE_FLAGS, 'UTF-8'); // SECURITY: intentional encode, do not remove (see docblock)
+            echo self::h(is_string($text) ? $text : (string)self::getRawValue($text)); // SECURITY: intentional encode, do not remove (see docblock)
             exit(1);
         }
         return $this;
@@ -1008,7 +1008,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     public function orThrow(string|SmartString|SmartNull $text): SmartString
     {
         if ($this->rawData === null || $this->rawData === '') { // isMissing(), inlined for speed
-            $text = htmlspecialchars(is_string($text) ? $text : (string)self::getRawValue($text), self::HTML_ENCODE_FLAGS, 'UTF-8'); // SECURITY: intentional encode, do not remove (see docblock)
+            $text = self::h(is_string($text) ? $text : (string)self::getRawValue($text)); // SECURITY: intentional encode, do not remove (see docblock)
             throw new RuntimeException($text);
         }
         return $this;
@@ -1034,7 +1034,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         }
         $url = is_string($url) ? $url : (string)self::getRawValue($url); // fast path: skip getRawValue() for plain values
         if ($url === '') { // same early-check rule: report a blank URL on the first request, not only when the value is missing
-            throw new RuntimeException("orRedirect(): redirect URL is blank (null or \"\")");
+            throw new RuntimeException('orRedirect(): redirect URL is blank (null or "")');
         }
 
         if ($this->rawData === null || $this->rawData === '') { // isMissing(), inlined for speed
@@ -1062,7 +1062,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     public function map(callable|string $callback, mixed ...$args): SmartString
     {
         if (!is_callable($callback)) {
-            $name = htmlspecialchars($callback, self::HTML_ENCODE_FLAGS, 'UTF-8'); // exception messages can end up in HTML error pages
+            $name = self::h($callback); // SECURITY: encode the caller-supplied name - handlers often echo exception messages into pages
             throw new InvalidArgumentException("Function '$name' is not callable");
         }
 
@@ -1112,7 +1112,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
                 return new SmartString(null);
             }
             $reason = error_get_last()['message'] ?? preg_last_error_msg();
-            throw new InvalidArgumentException("pregReplace(): $reason");
+            throw new InvalidArgumentException("pregReplace(): " . self::h($reason)); // SECURITY: PHP's error text echoes pattern characters - handlers often echo exception messages into pages
         }
         return new SmartString($newValue);
     }
@@ -1155,7 +1155,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     public function getIterator(): Iterator
     {
         // SECURITY: encode the preview - exception handlers often echo messages into pages (see orThrow)
-        $preview = htmlspecialchars($this->valuePreview(), self::HTML_ENCODE_FLAGS, 'UTF-8');
+        $preview = self::h($this->valuePreview());
         throw new RuntimeException(
             "Can't foreach over SmartString $preview - it holds a single value, not a collection. " .
             "Did you mean to loop the SmartArray row or result set it came from?",
@@ -1179,7 +1179,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     {
         // SECURITY: encode the caller-supplied name - error handlers often echo messages into pages (see orThrow).
         // Real method names encode to themselves, so the method_exists branch below is unaffected.
-        $property = htmlspecialchars($property, self::HTML_ENCODE_FLAGS, 'UTF-8');
+        $property = self::h($property);
 
         // throw unknown property warning
         // PHP Default Error: Warning: Undefined property: stdClass::$property in /path/to/template.php on line 28
@@ -1276,7 +1276,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
 
         // throw unknown method Error
         // PHP Default Error: Fatal error: Uncaught Error: Call to undefined method SmartString::method() in /path/to/template.php:17
-        $method     = htmlspecialchars($method, self::HTML_ENCODE_FLAGS, 'UTF-8'); // SECURITY: encode the caller-supplied name - exception handlers often echo messages into pages (see orThrow)
+        $method     = self::h($method); // SECURITY: encode the caller-supplied name - exception handlers often echo messages into pages (see orThrow)
         $suggestion ??= "see the SmartString docs for available methods.";
         $class      = self::stripNamespace(self::class);
         $error      = "Call to undefined method $class->$method(), $suggestion\n" . self::occurredInFile();
@@ -1295,7 +1295,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         // deprecated methods, log and return new method (these may be removed in the future)
         if ($methodLc === 'fromarray') {
             if (!class_exists(SmartArray::class)) { // itools/smartarray is suggested, not required: name the fix instead of a class-not-found fatal
-                throw new RuntimeException("SmartString::$method() needs the itools/smartarray package: run \"composer require itools/smartarray\", then replace the call with SmartArrayHtml::new(\$array).\n" . self::occurredInFile());
+                throw new RuntimeException("SmartString::$method()" . ' needs the itools/smartarray package: run "composer require itools/smartarray", then replace the call with SmartArrayHtml::new($array).' . "\n" . self::occurredInFile());
             }
             self::logDeprecation("Replace SmartString::$method() with SmartArrayHtml::new(\$array)");
             return SmartArray::new(...$args)->asHtml();
@@ -1307,7 +1307,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
 
         // throw unknown method Error
         // PHP Default Error: Fatal error: Uncaught Error: Call to undefined method SmartString::method() in /path/to/template.php:17
-        $method    = htmlspecialchars($method, self::HTML_ENCODE_FLAGS, 'UTF-8'); // SECURITY: encode the caller-supplied name - exception handlers often echo messages into pages (see orThrow)
+        $method    = self::h($method); // SECURITY: encode the caller-supplied name - exception handlers often echo messages into pages (see orThrow)
         $baseClass = self::stripNamespace(self::class);
         $error     = "Call to undefined method $baseClass::$method(), see the SmartString docs for available methods.\n";
         $error     .= self::occurredInFile();
@@ -1369,7 +1369,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     /**
      * Flags for HTML-encoding output. ENT_DISALLOWED substitutes code points HTML5 forbids
      * (C1 controls, noncharacters) with � so they can't hide in page source.
-     * SmartArrayBase::htmlEncode() uses the same flags - keep in sync.
+     * SharedHelpers::h() hardcodes the same flags - keep in sync.
      */
     private const HTML_ENCODE_FLAGS = ENT_QUOTES | ENT_SUBSTITUTE | ENT_DISALLOWED | ENT_HTML5;
 
