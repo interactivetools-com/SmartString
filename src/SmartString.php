@@ -1018,9 +1018,11 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      * Redirects to a URL if the current value is missing (null or ""), zero is not considered missing
      *
      * Uses a simple Location header redirect (HTTP 302, a temporary redirect).
-     * The URL is sent as-is; validate user-supplied destinations before passing one.
      * If headers have already been sent, this method throws - even when the value is
      * present - so misuse fails on the first request instead of only on empty values.
+     *
+     * SECURITY: The URL goes to the Location header as-is. Pass a fixed or
+     * validated URL, not user input, or you create an open redirect.
      *
      * @param string|SmartString|SmartNull $url The URL to redirect to if value is missing
      * @return SmartString Returns $this for method chaining if not missing, redirects if missing
