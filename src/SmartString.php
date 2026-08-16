@@ -157,6 +157,9 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     /**
      * Returns value as integer
      *
+     * PHP (int) cast rules apply: leading digits are kept and the rest is
+     * dropped ("123junk" returns 123), non-numeric text returns 0.
+     *
      * Missing values (null or "") return 0.
      */
     public function int(): int
@@ -166,6 +169,9 @@ final class SmartString implements JsonSerializable, IteratorAggregate
 
     /**
      * Returns value as float
+     *
+     * PHP (float) cast rules apply: non-numeric text returns 0.0, and a numeric
+     * string beyond float range ("9e999") returns INF.
      *
      * Missing values (null or "") return 0.0.
      */
