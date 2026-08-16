@@ -112,6 +112,9 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     /**
      * Returns original type and value.
      *
+     * The raw value is for logic - math, comparisons, SQL parameters. Echoing
+     * it skips HTML encoding; to output trusted markup use rawHtml() instead.
+     *
      * Missing values (null or "") return null or "" unchanged.
      *
      * @return string|int|float|bool|null
@@ -125,6 +128,8 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      * Converts Smart* objects to their original values, recursing into arrays; scalars and
      * null are returned as-is. Useful if you don't know the type but want the original
      * value. Any other type (objects, resources) throws InvalidArgumentException.
+     *
+     * Same rule as value(): raw values are for logic, not HTML output.
      */
     public static function getRawValue(mixed $value): mixed
     {
@@ -182,6 +187,9 @@ final class SmartString implements JsonSerializable, IteratorAggregate
 
     /**
      * Returns value as boolean
+     *
+     * PHP (bool) cast rules apply: any non-empty string except "0" is true,
+     * including "false", "off", and "no".
      *
      * Missing values (null or "") return false.
      */
@@ -797,8 +805,8 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     }
 
     /**
-     * Replaces value only if it's numeric zero (0, 0.0, "0", "0.00", "-0" - any is_numeric zero);
-     * non-numeric values never match
+     * Replaces value only if it's numeric zero (0, 0.0, "0", "0.00", "-0" - any is_numeric
+     * value that casts to float 0.0); non-numeric values never match
      *
      * Missing values (null or "") never match and pass through unchanged.
      */
@@ -813,7 +821,8 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      * Replaces the value with $newValue when $condition is truthy
      *
      * The condition is a plain value you computed, not a callback. This replaces the
-     * VALUE only - it does not gate the rest of the chain.
+     * VALUE only - it does not gate the rest of the chain. PHP truthiness applies:
+     * any non-empty string is truthy, including "false" and "off".
      *
      *     $eggs->ifTrue($eggs->int() >= 12, 'Full Carton');
      */
@@ -1009,6 +1018,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      * Redirects to a URL if the current value is missing (null or ""), zero is not considered missing
      *
      * Uses a simple Location header redirect (HTTP 302, a temporary redirect).
+     * The URL is sent as-is; validate user-supplied destinations before passing one.
      * If headers have already been sent, this method throws - even when the value is
      * present - so misuse fails on the first request instead of only on empty values.
      *
