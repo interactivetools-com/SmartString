@@ -238,9 +238,9 @@ function is called just once (the name matches `array_map()` and
 `SmartArray::map()`):
 
 ```php
-echo $province->code->map('mb_strtoupper');                          // BC
-echo $user->name->map('strval')->map('mb_convert_case', MB_CASE_TITLE); // built-ins need a string: strval converts null and numbers
-echo $sku->map(fn($v) => str_pad((string)$v, 6, '0', STR_PAD_LEFT));  // zero-pads to 6 digits: 000042
+echo $province->code->map('mb_strtoupper');                              // BC
+echo $user->name->map('strval')->map('mb_convert_case', MB_CASE_TITLE);  // built-ins need a string: strval converts null and numbers
+echo $sku->map(fn($v) => str_pad((string)$v, 6, '0', STR_PAD_LEFT));     // zero-pads to 6 digits: 000042
 ```
 
 A closure even works inside a template string; wrap the whole chain in

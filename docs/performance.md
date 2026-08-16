@@ -174,7 +174,7 @@ combinations, recorded in the repo at `.github/scripts/speed-results.md`.
 Four benchmark choices, stated plainly:
 
 - **Both sides produce identical output.** The helper is timed with the same
-  full flags SmartString uses, so the race is work-for-work:
+  full flags SmartString uses, so both sides do the same work:
 
   ```php
   htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE | ENT_DISALLOWED | ENT_HTML5, 'UTF-8');      // both what we time against and what we produce

@@ -82,7 +82,7 @@ The other cause is a database that already contains encoded text, usually
 from a form handler that encoded values before saving them. Whatever is
 stored encoded gets encoded again on output. Save the raw text instead,
 then clean up the existing rows with a one-time
-`htmlspecialchars_decode($value, ENT_QUOTES | ENT_HTML5)` (the flags
+`htmlspecialchars_decode($value, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5)` (the flags
 matter; the defaults leave `&apos;` behind).
 
 ### or() kept my zero / isEmpty() lost my zero

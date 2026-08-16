@@ -6,9 +6,7 @@ Auto-encoding is SmartString's main job, and this page covers all of it:
 how encoding works, the encoding methods for URLs and JSON, and the named
 methods that let real markup through: `nl2br()`, `rawHtml()`, and the
 `appendHtml()`/`wrapHtml()` pair. Markup enters your page only through
-those named methods, which is what makes SmartString output reviewable:
-search for `rawHtml(` and `Html(` and you have found every place unencoded
-markup can appear.
+those named methods; everything else comes out encoded.
 
 Contents:
 

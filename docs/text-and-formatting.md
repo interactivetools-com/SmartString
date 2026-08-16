@@ -160,7 +160,7 @@ shows. Numeric values are treated as unix timestamps and format in your
 server's PHP timezone; everything else is parsed with `strtotime()`:
 
 ```php
-echo SmartString::new(1684159800)->dateFormat('Y-m-d T');  // 2023-05-15 PDT
+echo SmartString::new(1778866200)->dateFormat('Y-m-d T');  // 2026-05-15 PDT
 ```
 
 Invalid dates return null rather than throwing, so a fallback chains
@@ -281,8 +281,8 @@ before the math:
 echo $value->ifNull(0)->add(50);  // 50
 ```
 
-A null result is a value like any other, so a mid-chain replacement fully
-recovers the chain; nothing is poisoned:
+A null result is a value like any other, so you can swap in a fallback
+mid-chain and the calls after it run on the new value:
 
 ```php
 echo SmartString::new("cat")->add(10)->ifNull(0)->add(5);  // 5 (recovered mid-chain)

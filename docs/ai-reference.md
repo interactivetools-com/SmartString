@@ -50,6 +50,11 @@ echo $str->value();                           // It's easy!<hr>
 echo $str->trim()->maxChars(60)->or('None');  // chains left to right
 ```
 
+`new SmartString($value)` and `SmartString::new($value)` do the same thing.
+`new()` also accepts arrays (returns `SmartArrayHtml`), and before PHP 8.4
+`new SmartString($x)->trim()` is a syntax error without wrapping parentheses;
+`SmartString::new($x)->trim()` always works.
+
 Key definitions used throughout:
 
 - **missing** = null or `""` exactly. Zero (`0`, `"0"`) and `false` are NOT
@@ -252,10 +257,10 @@ map(callable|string $callback, mixed ...$args): SmartString
 
 Calls `$callback($rawValue, ...$args)` and wraps the result. The callback ALWAYS
 runs and receives the raw value in its original type, null included (matches
-`array_map()`). Built-ins with typed string parameters throw TypeError on null
+`array_map()`). Built-ins with typed string parameters throw `TypeError` on null
 or numeric values - chain `->map('strval')` first. Callback must return scalar or null; other
-return types throw InvalidArgumentException. Non-callable `$callback` throws
-InvalidArgumentException.
+return types throw `InvalidArgumentException`. Non-callable `$callback` throws
+`InvalidArgumentException`.
 
 ```php
 echo $name->map('mb_strtoupper');
@@ -340,7 +345,7 @@ deprecated; always write the current name in new code.
 | `->noEncode()`             | `->rawHtml()`                                                              |
 | `->jsEncode()`             | `->jsonEncode()` - different output; the old name keeps the old behavior   |
 | `SmartString::fromArray()` | `SmartArrayHtml::new()` (SmartArray library)                               |
-| `->phoneFormat()`          | retired, no replacement - format phone numbers yourself                    |
+| `->phoneFormat()`          | retired - use `pregReplace()` or format the number yourself                |
 | `SmartString::help()`      | retired - this file and the GitHub docs replaced it                        |
 
 ---

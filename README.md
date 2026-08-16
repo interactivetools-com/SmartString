@@ -11,7 +11,7 @@ https://github.com/interactivetools-com/SmartString/blob/main/docs/ai-reference.
 
 SmartString lets you write template code that's shorter, easier to read, and XSS-safe by default.
 Values HTML-encode themselves the moment you echo, interpolate, or concatenate them, so one
-forgotten htmlspecialchars() can't become an injection.
+forgotten `htmlspecialchars()` can't become an injection.
 
 Instead of writing code like this:
 
@@ -70,7 +70,7 @@ $rows = $orders->toArray();
 
 ## Questions?
 
-This library was developed for CMS Builder, post a message in our "CMS Builder" forum here:
+This library was developed for CMS Builder. Post a message in our "CMS Builder" forum here:
 [https://www.interactivetools.com/forum/](https://www.interactivetools.com/forum/)
 
 ## License
