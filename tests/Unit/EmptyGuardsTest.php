@@ -256,7 +256,8 @@ class EmptyGuardsTest extends SmartStringTestCase
     {
         [$stdout, $stderr, $exitCode] = $this->runScript('orRedirect-headers-sent', 'https://example.com/login');
 
-        $this->assertStringContainsString('orRedirect(): headers already sent in', $stderr);
+        // basename only: this message can reach page output, so no full server paths
+        $this->assertMatchesRegularExpression('|orRedirect\(\): headers already sent in [^/\\\\]+ on line \d+|', $stderr);
         $this->assertStringContainsString('output-sent', $stdout); // the output that sent the headers
         $this->assertSame(255, $exitCode); // uncaught RuntimeException
     }

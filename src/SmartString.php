@@ -1009,7 +1009,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     {
         // Check early so developers find out immediately, not only when isMissing()
         if (headers_sent($file, $line)) {
-            throw new RuntimeException("orRedirect(): headers already sent in $file on line $line");
+            throw new RuntimeException("orRedirect(): headers already sent in " . basename($file) . " on line $line");
         }
         $url = is_string($url) ? $url : (string)self::getRawValue($url); // fast path: skip getRawValue() for plain values
         if ($url === '') { // same early-check rule: report a blank URL on the first request, not only when the value is missing
@@ -1041,7 +1041,8 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     public function map(callable|string $callback, mixed ...$args): SmartString
     {
         if (!is_callable($callback)) {
-            throw new InvalidArgumentException("Function '$callback' is not callable");
+            $name = htmlspecialchars($callback, self::HTML_ENCODE_FLAGS, 'UTF-8'); // exception messages can end up in HTML error pages
+            throw new InvalidArgumentException("Function '$name' is not callable");
         }
 
         $newValue = $callback($this->rawData, ...$args);
