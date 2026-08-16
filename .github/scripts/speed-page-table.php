@@ -14,11 +14,13 @@ declare(strict_types=1);
  * is not the production configuration, and a loaded xdebug taxes every PHP
  * call several-fold, so numbers measured under it are flagged invalid.
  *
- * To refresh docs/performance.md: dispatch the workflow
- * (`gh workflow run speed-page-table.yml`), paste the linux-x64 table into the
- * page verbatim, update the run link below the table, and refresh the
- * worked-example breakdown and platform bullets from the same table (the
- * News-article page row is the whole-page multiplier the bullets cite).
+ * To refresh docs/performance.md: run this script on the dedicated benchmark
+ * server (the page names the hardware below its main table), paste the table into the
+ * page verbatim, and refresh the worked-example breakdown and platform
+ * bullets from the same table (the News-article page row is the whole-page
+ * multiplier the bullets cite). The Speed Page Table workflow
+ * (`gh workflow run speed-page-table.yml`) supplies the cloud, ARM, and
+ * Windows floors.
  *
  * Harness rules (same as speed-probe.php): runtime-built pools of 64 distinct
  * strings, interleaved A/B in one process, best-of-7, results consumed. Before any
@@ -35,13 +37,13 @@ use Itools\SmartString\SmartString;
 
 const FULL_FLAGS = ENT_QUOTES | ENT_SUBSTITUTE | ENT_DISALLOWED | ENT_HTML5;
 
-// The baseline: the standard safe call wrapped once per project (Laravel's e(),
-// Twig's escaper, your own helper) - the page's comparison target. Full flags
-// (ENT_DISALLOWED | ENT_HTML5) would slow this baseline ~50% on long strings
-// (ENT_DISALLOWED checks every character); we race the faster call.
+// The baseline: htmlspecialchars() wrapped once per project (Laravel's e(),
+// Twig's escaper, your own helper) - the page's comparison target. It uses
+// the same full flags as SmartString, so both timed paths produce
+// byte-identical output and the race is work-for-work.
 function e(string $text): string
 {
-    return htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    return htmlspecialchars($text, FULL_FLAGS, 'UTF-8');
 }
 
 #region Pool builders
