@@ -1,7 +1,7 @@
-# Performance: At Least 2.5x Faster Than Calling `htmlspecialchars()` Yourself
+# Performance: At Least 3x Faster Than Calling `htmlspecialchars()` Yourself
 
 Our automatic encoding produces byte-identical output to `htmlspecialchars()`
-and is faster: at least 2.5x on a real-world page on every platform we
+and is faster: at least 3x on a real-world page on every platform we
 measure. Most values don't need encoding, and proving that with a scan costs
 less than encoding them anyway. This page shows how that works, the
 measurements, and the tests that keep the shortcut honest.
@@ -13,15 +13,10 @@ runs. Based on the real-world page measured below:
 - **Dedicated Linux x64** - the fastest `htmlspecialchars()` we measure, and
   the source of every table on this page: **3.3x**
 - **Cloud Linux x64** - GitHub's standard runners, closer to typical
-  hosting: **5x and up**
-- **Linux ARM** - Graviton-class hosts: **2.9x and up**
-- **Windows** - its PHP builds encode slowest: **10x and up**, with long
-  clean fields from 41x
-
-The cloud, ARM, and Windows numbers were measured against the faster
-two-flag `htmlspecialchars()` call quantified in The Fine Print; against the
-matching full-flag baseline used everywhere on this page they only grow, so
-they are floors.
+  hosting: **6.0x**
+- **Linux ARM** - Graviton-class hosts: **3.4x**
+- **Windows** - its PHP builds encode slowest: **13x**, with long clean
+  fields at 47x
 
 And you can benchmark your own machine any time with this command:
 
@@ -192,10 +187,10 @@ Four benchmark choices, stated plainly:
   measures 2.7x, still with every field encoded to the stronger full-flag
   output.
 - **A fast server shrinks the multiplier.** On the worked-example page, the
-  dedicated Xeon behind these tables runs `htmlspecialchars()` about 2.7x
+  dedicated Xeon behind these tables runs `htmlspecialchars()` about 2.5x
   faster than GitHub's standard cloud runners, while SmartString's scans
   speed up only about 1.4x - so the same benchmark measures 3.3x here and
-  over 5x there. Slower hosting widens every multiplier.
+  6.0x there. Slower hosting widens every multiplier.
 - **Timings include creating the object.** Every SmartString in the loop is
   built fresh (`new SmartString($value)`) and then output - the multiplier is
   the full cost of each approach per value, nothing left out.
