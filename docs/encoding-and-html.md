@@ -2,10 +2,10 @@
 
 # Encoding and HTML
 
-Auto-encoding is SmartString's main job, and this page covers all of it. The
-methods that pass markup through unencoded all carry `Html` in the name -
-`rawHtml()`, `appendHtml()`, `wrapHtml()` - so one search for `Html(` reviews
-every one of them.
+Auto-encoding is SmartString's main job, and this page covers all of it: how
+the encoding works, the methods for URL and JSON contexts, and the named
+methods that let markup through. Markup reaches your page only through those
+named methods; everything else comes out encoded.
 
 Contents:
 

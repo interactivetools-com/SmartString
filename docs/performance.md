@@ -201,7 +201,9 @@ Four benchmark choices, stated plainly:
   verdict.
 
 Most libraries and frameworks run the full encoder on every value, every time.
-SmartString checks first and skips the work when there is nothing to do.
+Checking first and skipping the work when there is nothing to do is, as far as
+we know, unique to SmartString - the kind of care we try to put into everything
+we build.
 
 ---
 

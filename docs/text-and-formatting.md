@@ -201,8 +201,8 @@ run math and zero checks before formatting; see
 
 ## Percentages - `percent()` and `percentOf()`
 
-The `percent()` method displays a stored ratio (0.75 means 75%);
-`percentOf($total)` computes what share the value is of a total:
+`percent()` displays a stored ratio (0.75 means 75%); `percentOf($total)`
+computes what share the value is of a total:
 
 ```php
 // percent($decimals = 0, $ifZero = null)
@@ -275,8 +275,8 @@ before the math:
 echo $value->ifNull(0)->add(50);  // 50
 ```
 
-A null result is a value like any other, so a mid-chain replacement takes
-effect and the calls after it run on the new value:
+A null result is a value like any other, so you can swap in a fallback
+mid-chain and the calls after it run on the new value:
 
 ```php
 echo SmartString::new("cat")->add(10)->ifNull(0)->add(5);  // 5 (recovered mid-chain)

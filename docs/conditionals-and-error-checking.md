@@ -111,11 +111,11 @@ the original value passes through. For a different value in each branch,
 write a ternary or `match` - and `set()` (below) if the expression has to
 sit inside an interpolated string.
 
-The `set()` method replaces the value unconditionally, putting the result of
-any PHP expression into a chain. It works best in heredocs and double-quoted
-strings: `{$...}` interpolation accepts property and method access but not
-operators, so a ternary or `match` written directly inside `{$...}` is a parse
-error. Inside a method call's arguments it parses fine:
+`set()` replaces the value unconditionally, putting the result of any PHP
+expression into a chain. It works best in heredocs and double-quoted strings:
+`{$...}` interpolation accepts property and method access but not operators,
+so a ternary or `match` written directly inside `{$...}` is a parse error.
+Inside a method call's arguments it parses fine:
 
 ```php
 // set($newValue)
