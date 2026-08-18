@@ -244,7 +244,8 @@ class DocsExamplesTest extends SmartStringTestCase
         SmartString::$dateFormat = 'F jS, Y';
         $this->assertSame('May 15th, 2026', (string)$date->dateFormat());
 
-        $this->assertSame('2023-05-15', (string)SmartString::new(1684159800)->dateFormat('Y-m-d'));
+        date_default_timezone_set('America/Vancouver'); // the docs show the timestamp example with T = PDT
+        $this->assertSame('2026-05-15 PDT', (string)SmartString::new(1778866200)->dateFormat('Y-m-d T'));
 
         $invalid = SmartString::new("not a date");
         $this->assertSame('Date not set', (string)$invalid->dateFormat()->or("Date not set"));
@@ -605,6 +606,18 @@ class DocsExamplesTest extends SmartStringTestCase
         $this->assertTrue($missing->isEmpty());
     }
 
+    public function testTroubleshootingIfZeroAfterFormatting(): void
+    {
+        // numberFormat() zeros stay numeric ("0.00") so ifZero() fires; percent()'s "0.00%" doesn't match
+        $this->assertSame('', (string)SmartString::new(0)->numberFormat(2)->ifZero(''));
+        $this->assertSame('0.00%', (string)SmartString::new(0)->percent(2)->ifZero('N/A'));
+
+        $rate = SmartString::new(0);
+        $this->assertSame('N/A', (string)$rate->percent(2, ifZero: 'N/A'));
+        $this->assertSame('N/A', (string)$rate->percent(2)->ifEquals('0.00%', 'N/A'));
+        $this->assertSame('Free!', (string)SmartString::new(0)->numberFormat(2)->prepend('$')->ifEquals('$0.00', 'Free!'));
+    }
+
     public function testTroubleshootingHtmlTagsPrintAsText(): void
     {
         $address = SmartString::new('12 High St');
@@ -647,6 +660,7 @@ class DocsExamplesTest extends SmartStringTestCase
         $this->assertSame('', (string)SmartString::new(null)->add(50));
         $this->assertSame('', (string)SmartString::new('1,234')->add(50));
         $this->assertSame('', (string)SmartString::new(100)->divide(0));
+        $this->assertSame('', (string)SmartString::new(1234.5)->numberFormat(2)->add(50));
     }
 
     public function testTroubleshootingChainingAfterNl2brThrows(): void

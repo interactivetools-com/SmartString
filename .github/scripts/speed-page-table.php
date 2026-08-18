@@ -14,11 +14,13 @@ declare(strict_types=1);
  * is not the production configuration, and a loaded xdebug taxes every PHP
  * call several-fold, so numbers measured under it are flagged invalid.
  *
- * To refresh docs/performance.md: dispatch the workflow
- * (`gh workflow run speed-page-table.yml`), paste the linux-x64 table into the
- * page verbatim, update the run link below the table, and refresh the
- * worked-example breakdown and platform bullets from the same table (the
- * News-article page row is the whole-page multiplier the bullets cite).
+ * To refresh docs/performance.md: run this script on the dedicated benchmark
+ * server (the page names the hardware below its main table), paste the table into the
+ * page verbatim, and refresh the worked-example breakdown and platform
+ * bullets from the same table (the News-article page row is the whole-page
+ * multiplier the bullets cite). The Speed Page Table workflow
+ * (`gh workflow run speed-page-table.yml`) supplies the cloud, ARM, and
+ * Windows floors.
  *
  * Harness rules (same as speed-probe.php): runtime-built pools of 64 distinct
  * strings, interleaved A/B in one process, best-of-7, results consumed. Before any
@@ -26,6 +28,7 @@ declare(strict_types=1);
  * SmartString output is verified byte-identical to full-flag htmlspecialchars().
  */
 
+require __DIR__ . '/shared-md-table.php';
 require __DIR__ . '/../../src/Deprecations.php';
 require __DIR__ . '/../../src/SharedHelpers.php';
 require __DIR__ . '/../../src/SmartString.php';
@@ -34,13 +37,13 @@ use Itools\SmartString\SmartString;
 
 const FULL_FLAGS = ENT_QUOTES | ENT_SUBSTITUTE | ENT_DISALLOWED | ENT_HTML5;
 
-// The baseline: the standard safe call wrapped once per project (Laravel's e(),
-// Twig's escaper, your own helper) - the page's comparison target. Full flags
-// (ENT_DISALLOWED | ENT_HTML5) would slow this baseline ~50% on long strings
-// (ENT_DISALLOWED checks every character); we race the faster call.
+// The baseline: htmlspecialchars() wrapped once per project (Laravel's e(),
+// Twig's escaper, your own helper) - the page's comparison target. It uses
+// the same full flags as SmartString, so both timed paths produce
+// byte-identical output and the race is work-for-work.
 function e(string $text): string
 {
-    return htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    return htmlspecialchars($text, FULL_FLAGS, 'UTF-8');
 }
 
 #region Pool builders
@@ -184,35 +187,6 @@ function ratioLabel(float $ratio): string
     return $ratio >= 9.5 ? sprintf('%.0fx', $ratio) : sprintf('%.1fx', $ratio);
 }
 
-/** Character count without mbstring: bytes minus UTF-8 continuation bytes */
-function charWidth(string $s): int
-{
-    return strlen($s) - preg_match_all('/[\x80-\xBF]/', $s);
-}
-
-/** Markdown table with every column padded so the pipes line up (multibyte-safe) */
-function alignedTable(array $rows): string
-{
-    $widths = [];
-    foreach ($rows as $row) {
-        foreach ($row as $i => $cell) {
-            $widths[$i] = max($widths[$i] ?? 0, charWidth($cell));
-        }
-    }
-    $out = '';
-    foreach ($rows as $n => $row) {
-        $cells = [];
-        foreach ($row as $i => $cell) {
-            $cells[] = $cell . str_repeat(' ', $widths[$i] - charWidth($cell));
-        }
-        $out .= '| ' . implode(' | ', $cells) . " |\n";
-        if ($n === 0) {
-            $out .= '|' . implode('|', array_map(static fn(int $w): string => str_repeat('-', $w + 2), $widths)) . "|\n";
-        }
-    }
-    return $out;
-}
-
 #endregion
 #region Rows
 
@@ -281,8 +255,9 @@ foreach ([['clean', UNIT_CLEAN], ['specials', UNIT_SPECIALS], ['accented', UNIT_
 
 // News-article page: the page the performance page prices field by field - a
 // quoted headline, three clean shorts, a 200 B caption, and a 10 KB body per
-// six-field cycle. The measured ratio IS the whole-page multiplier the docs
-// bullets cite; the per-field rows above are its components.
+// six-field cycle. Reported per page (the per-value timing times six fields),
+// so this row is the whole-page cost and multiplier the docs bullets cite;
+// the per-field rows above are its components.
 $sp16  = pool(UNIT_SPECIALS, 16);
 $cl16  = pool(UNIT_CLEAN, 16);
 $cl200 = pool(UNIT_CLEAN, 200);
@@ -323,10 +298,15 @@ printf(
     $xdebugLabel
 );
 
-$tableRows = [['Content', 'Size', 'Example', '`htmlspecialchars()`', 'SmartString', 'Speed vs `htmlspecialchars()`']];
+$tableHeaders = ['Content', 'Size', 'Example', '`htmlspecialchars()`', 'SmartString', 'Speed vs `htmlspecialchars()`'];
+$tableRows    = [];
 foreach ($rows as $row) {
     [$label, $sizeLabel, $example, $values, $iterations] = $row;
     [$a, $b] = bench($values, max(1, (int)($iterations * $scale)), $row[5] ?? 'echo');
+    if ($label === 'News-article page') { // six-field cycle: report the whole page, not the per-field average
+        $a *= 6;
+        $b *= 6;
+    }
     $tableRows[] = [
         $label,
         $sizeLabel,
@@ -337,8 +317,8 @@ foreach ($rows as $row) {
     ];
 }
 
-echo alignedTable($tableRows);
-echo "\n\\* News-article page: a 16 B quoted headline; author, category, and date (16 B plain); a 200 B caption; and a 10 KB body with quotes.\n";
-echo "\nPer call, best of 7, measured on " . PHP_OS_FAMILY . ' ' . php_uname('m') . ", PHP " . PHP_VERSION . ".\n";
+echo renderMdTable($tableHeaders, $tableRows);
+echo "\n\\* News-article page: a 16 B quoted headline; author, category, and date (16 B plain); a 200 B caption; and a 10 KB body with quotes. This row is the whole page - all six fields together.\n";
+echo "\nPer call (per page for the News-article row), best of 7, measured on " . PHP_OS_FAMILY . ' ' . php_uname('m') . ", PHP " . PHP_VERSION . ".\n";
 
 #endregion

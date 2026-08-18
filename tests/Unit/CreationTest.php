@@ -46,6 +46,33 @@ class CreationTest extends SmartStringTestCase
         ];
     }
 
+    /**
+     * SmartString and SmartNull arguments unwrap to their raw value - not the
+     * HTML-encoded text that __toString coercion would store - so re-wrapping
+     * a value never double-encodes and SmartNull keeps isNull() true.
+     */
+    #[DataProvider('argumentMatrixProvider')]
+    public function testConstructorAcceptsAndUnwrapsSmartValues(mixed $argument, mixed $expectedRaw): void
+    {
+        $this->assertSame($expectedRaw, (new SmartString($argument))->value());
+        $this->assertSame($expectedRaw, SmartString::new($argument)->value());
+    }
+
+    public static function argumentMatrixProvider(): array
+    {
+        return Fixtures::argumentMatrix();
+    }
+
+    public function testConstructorStoresInfAndNanAsNull(): void
+    {
+        // INF/NAN can't render, format, or JSON-encode: they store as null so
+        // or() fallbacks fire like any other failed numeric step
+        $this->assertNull(SmartString::new(INF)->value());
+        $this->assertNull(SmartString::new(-INF)->value());
+        $this->assertNull(SmartString::new(NAN)->value());
+        $this->assertSame('n/a', SmartString::new(INF)->or('n/a')->value());
+    }
+
     //endregion
     //region new()
 

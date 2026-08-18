@@ -6,6 +6,9 @@ namespace Itools\SmartString;
 use Itools\SmartArray\SmartNull;
 use JetBrains\PhpStorm\Deprecated;
 
+// import built-ins so calls resolve at compile time instead of per-call lookups; NamespacedCallsTest keeps this list exact
+use function array_column, count, htmlspecialchars, preg_replace, sprintf, str_replace, str_split;
+
 /**
  * Old and retired method names, phased out in stages.
  *
@@ -14,6 +17,11 @@ use JetBrains\PhpStorm\Deprecated;
  * and a one-click rewrite to the new name, and static analyzers report usages via
  * each method's deprecated docblock tag. PHP ignores attributes whose class isn't
  * loaded, so there is no runtime dependency.
+ *
+ * A deprecated calling convention inside a live method (a legacy argument shape,
+ * for example) can't move here whole - the live method keeps its signature and a
+ * one-line dispatch - but the body does: extract it to a private method named
+ * deprecated*() in this file (see SmartArray's deprecatedWhereArraySyntax()).
  */
 trait Deprecations
 {

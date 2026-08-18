@@ -151,11 +151,11 @@ echo $date->dateFormat();  // May 15th, 2026
 ```
 
 There is one method for dates and datetimes; the format string decides what
-shows. Numeric values are treated as unix timestamps; everything else is
-parsed with `strtotime()`:
+shows. Numeric values are treated as unix timestamps and format in your
+server's PHP timezone; everything else is parsed with `strtotime()`:
 
 ```php
-echo SmartString::new(1684159800)->dateFormat('Y-m-d');  // 2023-05-15
+echo SmartString::new(1778866200)->dateFormat('Y-m-d T');  // 2026-05-15 PDT
 ```
 
 Invalid dates return null rather than throwing, so a fallback chains
@@ -275,8 +275,8 @@ before the math:
 echo $value->ifNull(0)->add(50);  // 50
 ```
 
-A null result is a value like any other, so a mid-chain replacement fully
-recovers the chain:
+A null result is a value like any other, so a mid-chain replacement takes
+effect and the calls after it run on the new value:
 
 ```php
 echo SmartString::new("cat")->add(10)->ifNull(0)->add(5);  // 5 (recovered mid-chain)
@@ -314,17 +314,17 @@ echo $name->map('str_pad', 15, '.');                   // John Doe....... (extra
 echo $name->map(fn($v) => str_replace(' ', '_', $v));  // John_Doe
 ```
 
-The callback always runs and receives the raw value, null included, matching
-`array_map()` and `SmartArray::map()`. PHP built-ins that require a string
-raise a deprecation notice on null, so chain `ifNull('')` first when the
-value can be missing:
+The callback always runs and receives the raw value in its original type -
+null included, ints as ints - matching `array_map()` and `SmartArray::map()`.
+PHP built-ins with typed parameters throw TypeError on anything but a string,
+so chain `map('strval')` first when the value can be null or numeric:
 
 ```php
-echo $user->nickname->ifNull('')->map('mb_convert_case', MB_CASE_TITLE);
+echo $user->nickname->map('strval')->map('mb_convert_case', MB_CASE_TITLE);
 ```
 
 The callback must return a scalar or null; returning an array or object
-throws, with the error reporting your file and line.
+throws InvalidArgumentException.
 
 ## Putting It Together
 

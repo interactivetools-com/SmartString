@@ -82,7 +82,7 @@ The other cause is a database that already contains encoded text, usually
 from a form handler that encoded values before saving them. Whatever is
 stored encoded gets encoded again on output. Save the raw text instead,
 then clean up the existing rows with a one-time
-`htmlspecialchars_decode($value, ENT_QUOTES | ENT_HTML5)` (the flags
+`htmlspecialchars_decode($value, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5)` (the flags
 matter; the defaults leave `&apos;` behind).
 
 ### or() kept my zero / isEmpty() lost my zero
@@ -130,9 +130,10 @@ Math methods return null when either side is null or not numeric, and null
 echoes as an empty string. The usual causes, in order of frequency:
 
 ```php
-echo SmartString::new(null)->add(50);     // "" - null input
-echo SmartString::new("1,234")->add(50);  // "" - the comma makes it non-numeric to PHP
-echo SmartString::new(100)->divide(0);    // "" - division by zero
+echo SmartString::new(null)->add(50);                     // "" - null input
+echo SmartString::new("1,234")->add(50);                  // "" - the comma makes it non-numeric to PHP
+echo SmartString::new(100)->divide(0);                    // "" - division by zero
+echo SmartString::new(1234.5)->numberFormat(2)->add(50);  // "" - formatting made it non-numeric; format last
 ```
 
 **Fix:** Decide what null should mean and say so: `->ifNull(0)` before the
@@ -160,20 +161,22 @@ echo $bio->nl2br()->or('No bio');   // throws - nl2br() returned a string
 echo $bio->or('No bio')->nl2br();
 ```
 
-### ifZero() after percent() or numberFormat() never fires
+### ifZero() after percent() never fires
 
 Formatters return display text, and `ifZero()` only recognizes numeric
-zeros, so `"0.00%"` and `"$0.00"` never match. Use the `percent()`
-parameter, or detect zero on the raw value:
+zeros, so `"0.00%"` and `"$0.00"` never match. Plain `numberFormat()` output
+like `"0.00"` is still numeric, so `ifZero()` works after it. Use the
+`percent()` parameter, or match the formatted text with `ifEquals()`:
 
 ```php
-echo $rate->percent(2, ifZero: 'N/A');  // percent's zero rule is a parameter
-echo $price->numberFormat(2)->prepend('$')->ifEquals('$0.00', 'Free!');  // match the formatted text
+echo $rate->percent(2, ifZero: 'N/A');             // percent's zero rule is a parameter
+echo $rate->percent(2)->ifEquals('0.00%', 'N/A');  // or match the formatted text
+echo $price->numberFormat(2)->prepend('$')->ifEquals('$0.00', 'Free!');
 ```
 
 See [Run Conditionals Before Formatting](conditionals-and-error-checking.md#run-conditionals-before-formatting).
 
-### "orRedirect(): headers already sent in /path/to/file.php on line 12"
+### "orRedirect(): headers already sent in file.php on line 12"
 
 **What happened:** `orRedirect()` redirects when the value is missing (null
 or `""`), and redirects only work before any output has been sent - this
@@ -198,4 +201,4 @@ mid-chain, `print_r()` any link of it; chains are just objects.
 
 ---
 
-[← Documentation Index](README.md) | [← Prev: Method Reference](method-reference.md) | [Next: AI Reference →](ai-reference.md)
+[← Documentation Index](README.md) | [← Prev: Method Reference](method-reference.md) | [Next: Performance →](performance.md)

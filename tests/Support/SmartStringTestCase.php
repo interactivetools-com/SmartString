@@ -18,6 +18,8 @@ use PHPUnit\Framework\TestCase;
  */
 abstract class SmartStringTestCase extends TestCase
 {
+    use SharedTestHelpers;
+
     //region Global Settings Isolation
 
     private array  $savedSettings;
@@ -64,40 +66,15 @@ abstract class SmartStringTestCase extends TestCase
     //region Output and Error Capture
 
     /**
-     * Run $fn capturing echoed output. Returns [result, output].
-     *
-     * @return array{0: mixed, 1: string}
-     */
-    protected function captureOutput(callable $fn): array
-    {
-        ob_start();
-        try {
-            $result = $fn();
-        } finally {
-            $output = ob_get_clean();
-        }
-        return [$result, $output];
-    }
-
-    /**
-     * Run $fn collecting E_USER_DEPRECATED messages. The library sends these via
-     * @trigger_error, so only an error handler can observe them. Returns [result, messages].
+     * Run $fn collecting deprecation messages, native and E_USER_DEPRECATED alike. The
+     * library sends its own via @trigger_error, so only an error handler can observe them.
+     * Returns [result, messages].
      *
      * @return array{0: mixed, 1: string[]}
      */
     protected function captureDeprecations(callable $fn): array
     {
-        $messages = [];
-        set_error_handler(static function (int $errno, string $errstr) use (&$messages): bool {
-            $messages[] = $errstr;
-            return $errno === E_USER_DEPRECATED; // always true given the mask; anything else falls through to PHP
-        }, E_USER_DEPRECATED);
-        try {
-            $result = $fn();
-        } finally {
-            restore_error_handler();
-        }
-        return [$result, $messages];
+        return $this->captureErrors($fn, E_DEPRECATED | E_USER_DEPRECATED);
     }
 
     /**
@@ -116,25 +93,17 @@ abstract class SmartStringTestCase extends TestCase
     }
 
     /**
-     * Run $fn expecting exactly one E_USER_WARNING starting with exactly $expected.
-     * The library appends an "Occurred in file:line ..." block pointing at the calling
-     * test, so that block is asserted by format and stripped before the exact comparison.
-     * $expected includes everything up to it, trailing newline included. Returns $fn's result.
+     * Run $fn expecting exactly one warning, native E_WARNING or E_USER_WARNING, starting
+     * with exactly $expected. The library appends an "Occurred in file:line ..." block
+     * pointing at the calling test, so that block is asserted by format and stripped before
+     * the exact comparison. $expected includes everything up to it, trailing newline
+     * included. Returns $fn's result.
      */
     protected function expectUserWarning(callable $fn, string $expected): mixed
     {
-        $messages = [];
-        set_error_handler(static function (int $errno, string $errstr) use (&$messages): bool {
-            $messages[] = $errstr;
-            return $errno === E_USER_WARNING; // always true given the mask; anything else falls through to PHP
-        }, E_USER_WARNING);
-        try {
-            $result = $fn();
-        } finally {
-            restore_error_handler();
-        }
+        [$result, $messages] = $this->captureErrors($fn, E_WARNING | E_USER_WARNING);
 
-        $this->assertCount(1, $messages, "Expected exactly one E_USER_WARNING, got: " . var_export($messages, true));
+        $this->assertCount(1, $messages, "Expected exactly one warning, got: " . var_export($messages, true));
         $this->assertMatchesRegularExpression('/Occurred in .+:\d+.*\nReported$/s', $messages[0], 'Warning should end with the "Occurred in file:line" location block');
         $this->assertSame($expected, preg_replace('/Occurred in .*$/s', '', $messages[0]));
         return $result;
@@ -146,19 +115,13 @@ abstract class SmartStringTestCase extends TestCase
      */
     protected function assertNoOutput(callable $fn): mixed
     {
-        $userErrors = [];
-        set_error_handler(static function (int $errno, string $errstr) use (&$userErrors): bool {
-            $userErrors[] = $errstr;
-            return ($errno & (E_USER_WARNING | E_USER_DEPRECATED | E_USER_NOTICE)) !== 0; // always true given the mask
-        }, E_USER_WARNING | E_USER_DEPRECATED | E_USER_NOTICE);
-        try {
-            [$result, $output] = $this->captureOutput($fn);
-        } finally {
-            restore_error_handler();
-        }
+        $diagnosticLevels         = E_WARNING | E_NOTICE | E_DEPRECATED | E_RECOVERABLE_ERROR
+                                  | E_USER_WARNING | E_USER_NOTICE | E_USER_DEPRECATED | E_USER_ERROR;
+        [$captured, $diagnostics] = $this->captureErrors(fn() => $this->captureOutput($fn), $diagnosticLevels);
+        [$result, $output]        = $captured;
 
         $this->assertSame('', $output, "Expected no echoed output");
-        $this->assertSame([], $userErrors, "Expected no warnings or deprecation notices");
+        $this->assertSame([], $diagnostics, "Expected no warnings or deprecation notices");
         return $result;
     }
 
@@ -166,31 +129,20 @@ abstract class SmartStringTestCase extends TestCase
     //region Exit-Path Subprocess
 
     /**
-     * Run one guard in Support/bin/empty-guard.php as a separate PHP process so exit
-     * paths can be observed from outside. Returns [stdout, stderr, exitCode]; the
-     * script reports "status=<int|false>" and a NOT-REACHED sentinel on stderr (full
-     * protocol in the script header).
+     * Run one Support/bin script as a separate PHP process so exit paths can be
+     * observed from outside. Returns [stdout, stderr, exitCode]. The default
+     * script, empty-guard.php, reports "status=<int|false>" and a NOT-REACHED
+     * sentinel on stderr (full protocol in the script header).
      *
      * @return array{0: string, 1: string, 2: int}
      */
-    protected function runScript(string $method, ?string $arg = null): array
+    protected function runScript(string $method, ?string $arg = null, string $script = 'empty-guard.php'): array
     {
-        $command = [PHP_BINARY, __DIR__ . '/bin/empty-guard.php', $method];
+        $command = [PHP_BINARY, __DIR__ . "/bin/$script", $method];
         if ($arg !== null) {
             $command[] = $arg;
         }
-
-        $pipes   = [];
-        $process = proc_open($command, [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
-        $this->assertIsResource($process, "Failed to start PHP subprocess");
-
-        $stdout = stream_get_contents($pipes[1]);
-        $stderr = stream_get_contents($pipes[2]);
-        fclose($pipes[1]);
-        fclose($pipes[2]);
-        $exitCode = proc_close($process);
-
-        return [$stdout, $stderr, $exitCode];
+        return $this->runCommand($command);
     }
 
     //endregion

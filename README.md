@@ -11,7 +11,7 @@ https://github.com/interactivetools-com/SmartString/blob/main/docs/ai-reference.
 
 SmartString lets you write template code that's shorter, easier to read, and XSS-safe by default.
 Values HTML-encode themselves the moment you echo, interpolate, or concatenate them, so one
-forgotten htmlspecialchars() can't become an injection.
+forgotten `htmlspecialchars()` can't become an injection.
 
 Instead of writing code like this:
 
@@ -47,7 +47,7 @@ Full guides and references ([browse on GitHub](https://github.com/interactivetoo
 - **Lookup**
     - [Method Reference](docs/method-reference.md) - every method, grouped by what it returns
     - [Troubleshooting](docs/troubleshooting.md) - common error messages and gotchas, with fixes
-    - [Performance](docs/performance.md) - how our automatic encoding is 3x or faster than calling `htmlspecialchars()` yourself on long text fields
+    - [Performance](docs/performance.md) - how our automatic encoding is at least 3x faster than calling `htmlspecialchars()` yourself
     - [AI Reference](docs/ai-reference.md) - the complete API in one dense file, written for AI coding assistants
 
 ## You're Never Locked In
@@ -65,12 +65,12 @@ $rows = $orders->toArray();
 
 ## Related Libraries
 
-- [SmartArray](https://github.com/interactivetools-com/SmartArray) - database rows as chainable collections, with fields that HTML-encode themselves on output.
+- [SmartArray](https://github.com/interactivetools-com/SmartArray) - database rows as chainable collections, with fields returned as SmartStrings.
 - [ZenDB](https://github.com/interactivetools-com/ZenDB) - database library that returns query results as SmartArrays of SmartStrings, so fields arrive HTML-safe.
 
 ## Questions?
 
-This library was developed for CMS Builder, post a message in our "CMS Builder" forum here:
+This library was developed for CMS Builder. Post a message in our "CMS Builder" forum here:
 [https://www.interactivetools.com/forum/](https://www.interactivetools.com/forum/)
 
 ## License

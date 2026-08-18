@@ -132,25 +132,33 @@ class ProductionRecipesTest extends SmartStringTestCase
 
     /**
      * C2: two-stage guard distinguishes "no row" from "row but null column".
+     *
+     * A fail() inside the try would not work here: PHPUnit's AssertionFailedError
+     * extends RuntimeException, so the catch below would swallow it and then check
+     * the sentinel text as if it were the guard's message.
      */
     public function testC2TwoStageGuard(): void
     {
         // stage 2 fires: row exists but the column is null
-        $row = SmartArray::new(['id' => 5, 'name' => null])->asHtml();
+        $row   = SmartArray::new(['id' => 5, 'name' => null])->asHtml();
+        $threw = false;
         try {
             $row->orThrow('no row')->name->orThrow('row but null column');
-            $this->fail('Expected RuntimeException was not thrown');
         } catch (RuntimeException $e) {
+            $threw = true;
             $this->assertSame('row but null column', $e->getMessage());
         }
+        $this->assertTrue($threw, 'Expected RuntimeException was not thrown');
 
         // stage 1 fires: no row at all
+        $threw = false;
         try {
             SmartArray::new([])->asHtml()->orThrow('no row');
-            $this->fail('Expected RuntimeException was not thrown');
         } catch (RuntimeException $e) {
+            $threw = true;
             $this->assertSame('no row', $e->getMessage());
         }
+        $this->assertTrue($threw, 'Expected RuntimeException was not thrown');
 
         // both present: value comes through
         $row = SmartArray::new(['id' => 5, 'name' => 'Alice'])->asHtml();
@@ -181,6 +189,34 @@ class ProductionRecipesTest extends SmartStringTestCase
     {
         $this->assertSame('2025-01-01', SmartString::new(null)->or('2025-01-01')->string());
         $this->assertSame('2026-06-15', SmartString::new('2026-06-15')->or('2025-01-01')->string());
+    }
+
+    /**
+     * C8: SmartString methods on a missing field (an empty result's SmartNull)
+     * keep the chain alive. These three broke during 3.0 development from a
+     * SmartString-side rename, so this repo pins the pairing too; full
+     * SmartNull coverage lives in SmartArray's SmartNullTest.
+     */
+    public function testC8SmartStringMethodsOnMissingField(): void
+    {
+        $missing = SmartArray::new([])->asHtml()->first();
+
+        // map() on a missing field hands back the same SmartNull, so the chain stays
+        // open for or(). SmartArray answers map()/apply() itself and never builds a
+        // SmartString, which is why the callback doesn't run here; a real SmartString
+        // always runs it, null value included (see StringManipulationTest).
+        $callbackRan = false;
+        $mapped      = $missing->map(function ($value) use (&$callbackRan) {
+            $callbackRan = true;
+            return $value;
+        });
+        $this->assertSame($missing, $mapped, 'map() on a missing field must return the SmartNull that started the chain');
+        $this->assertFalse($callbackRan, 'SmartArray short-circuits map() before any SmartString exists to pass a value to');
+        $this->assertSame('n/a', (string)$mapped->or('n/a'));
+
+        $this->assertSame('', $missing->htmlEncode());
+
+        $this->assertSame('fallback', $missing->set('fallback')->value());
     }
 
     //endregion

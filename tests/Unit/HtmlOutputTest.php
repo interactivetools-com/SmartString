@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Itools\SmartString\Tests\Unit;
 
+use Itools\SmartArray\SmartNull;
 use Itools\SmartString\SmartString;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Itools\SmartString\Tests\Support\SmartStringTestCase;
@@ -12,8 +13,9 @@ use Itools\SmartString\Tests\Support\SmartStringTestCase;
  * silent alias textToHtml().
  *
  * All are terminal (return native string), so immutability is n/a.
- * n/a dimensions: global settings, argument matrix (markup arguments are
- * plain strings by contract - trusted literals, never user values).
+ * n/a dimensions: global settings. Markup arguments accept SmartString and
+ * SmartNull and unwrap to the raw value - the argument is trusted markup
+ * either way, so unwrapping equals passing ->rawHtml().
  */
 class HtmlOutputTest extends SmartStringTestCase
 {
@@ -69,6 +71,13 @@ class HtmlOutputTest extends SmartStringTestCase
         ];
     }
 
+    public function testAppendHtmlUnwrapsSmartValueMarkup(): void
+    {
+        // SmartString markup appends its raw value (not the encoded __toString output); the value side still encodes
+        $this->assertSame('Bob &amp; Sons<br>', SmartString::new('Bob & Sons')->appendHtml(new SmartString('<br>')));
+        $this->assertSame('Bob &amp; Sons', SmartString::new('Bob & Sons')->appendHtml(new SmartNull())); // SmartNull appends nothing
+    }
+
     //endregion
     //region wrapHtml()
 
@@ -94,6 +103,13 @@ class HtmlOutputTest extends SmartStringTestCase
             'prefix-only markup'  => ['555-1234', '<i class="icon-phone"></i> ', '', '<i class="icon-phone"></i> 555-1234'],
             'value into attribute' => ['photo "1".jpg', '<img src="/uploads/', '" alt="">', '<img src="/uploads/photo &quot;1&quot;.jpg" alt="">'],
         ];
+    }
+
+    public function testWrapHtmlUnwrapsSmartValueMarkup(): void
+    {
+        // SmartString markup wraps with its raw value (not the encoded __toString output); the value side still encodes
+        $this->assertSame('<h2>T &amp; Co</h2>', SmartString::new('T & Co')->wrapHtml(new SmartString('<h2>'), new SmartString('</h2>')));
+        $this->assertSame('T &amp; Co', SmartString::new('T & Co')->wrapHtml(new SmartNull(), new SmartNull())); // SmartNull adds nothing
     }
 
     public function testHtmlExitsAreTerminalStrings(): void

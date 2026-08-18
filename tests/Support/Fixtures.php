@@ -110,8 +110,9 @@ class Fixtures
             'int'              => [42, 42],
             'float'            => [3.14, 3.14],
             'string'           => ['text', 'text'],
+            'string with html' => ["O'Brien & Sons", "O'Brien & Sons"], // arrives raw, never encoded on the way in
             'empty string'     => ['', ''],
-            'SmartString'      => [new SmartString('wrapped'), 'wrapped'],
+            'SmartString'      => [new SmartString("O'Brien & Sons"), "O'Brien & Sons"], // unwrapped raw, not stringified through __toString()
             'SmartString int'  => [new SmartString(5), 5],
             'SmartString null' => [new SmartString(null), null],
             'SmartNull'        => [new SmartNull(), null],

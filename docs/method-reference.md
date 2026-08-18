@@ -77,10 +77,10 @@ ready for regular PHP code.
 | `->prepend($value)`                     | Adds `$value` to the beginning of the current value                                      |
 | `->wrap($before, $after)`               | Wraps the value; pass "" for a side you don't want                                       |
 | `->textOnly()`                          | Removes HTML tags, decodes entities, and trims whitespace                                |
-| `->trim()`                              | Trims whitespace (or the characters you specify) from both ends                          |
+| `->trim(...$args)`                      | Trims whitespace from both ends, or pass a character list like PHP `trim()`              |
 | `->maxWords($max, $ellipsis = '...')`   | Limits the value to `$max` words; adds `$ellipsis` if text was cut off                   |
 | `->maxChars($max, $ellipsis = '...')`   | Limits the value to `$max` characters; adds `$ellipsis` if text was cut off              |
-| `->pregReplace($pattern, $replacement)` | Replaces text matching a regex pattern                                      |
+| `->pregReplace($pattern, $replacement)` | Replaces text matching a regex; an invalid `$pattern` throws `InvalidArgumentException`, a value it can't process (bad UTF-8) returns null |
 
 ### [Dates & Numbers](text-and-formatting.md#formatting-dates---dateformat)
 
@@ -115,15 +115,15 @@ default when a field is empty.*
 ### [Require a Value](conditionals-and-error-checking.md#requiring-a-value---or404-ordie-orthrow-orredirect)
 
 *Use these for values that must exist, like a record ID from the URL. If the
-value is missing (null or "") they stop the page; otherwise they do nothing and
-the chain continues. Zero counts as present.*
+value is missing (null or "") they stop the page; otherwise the chain
+continues. Zero counts as present.*
 
 | Method                  | Description                                                                          |
 |-------------------------|--------------------------------------------------------------------------------------|
 | `->orDie($text)`        | Outputs the message and exits                                                        |
 | `->or404($text = null)` | Outputs a 404 header and the message (default: standard not-found text), then exits  |
-| `->orThrow($text)`      | Throws a RuntimeException with the message                                           |
-| `->orRedirect($url)`    | Redirects to `$url` and exits (throws RuntimeException if headers were already sent) |
+| `->orThrow($text)`      | Throws a `RuntimeException` with the message                                         |
+| `->orRedirect($url)`    | Redirects to `$url` and exits (throws `RuntimeException` if headers were already sent) |
 
 ### [Value Checks](conditionals-and-error-checking.md#truefalse-checks---isempty-isnotempty-ismissing-isnull)
 
@@ -132,8 +132,8 @@ the chain continues. Zero counts as present.*
 
 | Method           | Description                                                                          |
 |------------------|--------------------------------------------------------------------------------------|
-| `->isEmpty()`    | Returns true when the value is empty ("", null, false, 0, "0") - same as PHP empty() |
-| `->isNotEmpty()` | Returns true when the value has content - the exact opposite of isEmpty()            |
+| `->isEmpty()`    | Returns true when the value is empty ("", null, false, 0, "0") - same as PHP `empty()` |
+| `->isNotEmpty()` | Returns true when the value has content - the exact opposite of `isEmpty()`          |
 | `->isMissing()`  | Returns true when the value is missing (null or ""); zero counts as present          |
 | `->isNull()`     | Returns true when the value is null                                                  |
 

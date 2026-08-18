@@ -22,7 +22,7 @@ one before. The rest are standalone: open whichever matches your task.
 
 - [Method Reference](method-reference.md) - Every method in one place, grouped by what it returns.
 - [Troubleshooting](troubleshooting.md) - Common error messages and behavior gotchas, with fixes.
-- [Performance](performance.md) - How our automatic encoding is 3x or faster than calling `htmlspecialchars()` yourself on long text fields.
+- [Performance](performance.md) - How our automatic encoding is at least 3x faster than calling `htmlspecialchars()` yourself.
 - [AI Reference](ai-reference.md) - The complete API in one dense file, written for AI coding assistants.
 
 ---

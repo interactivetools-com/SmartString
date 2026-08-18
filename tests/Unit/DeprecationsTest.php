@@ -63,6 +63,8 @@ class DeprecationsTest extends SmartStringTestCase
     {
         $result = $this->assertNoOutput(fn() => SmartString::new('')->ifBlank('FB'));
         $this->assertSame('FB', $result->value());
-        $this->assertNull(SmartString::new(null)->ifBlank('FB')->value()); // null does not fire
+
+        $nullResult = $this->assertNoOutput(fn() => SmartString::new(null)->ifBlank('FB'));
+        $this->assertNull($nullResult->value()); // null does not fire
     }
 }

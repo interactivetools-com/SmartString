@@ -2,17 +2,13 @@
 
 Most old code keeps working after an upgrade:
 
-- **Renamed methods are removed slowly, never silently.** Old names keep
-  working while they step through deprecation stages over multiple releases
-  (IDE strikethrough, logged notice, visible notice, then a clear Error),
-  always naming their replacement.
-- **Breaking changes produce clear errors.** Removed methods and wrong named
-  arguments throw an Error with your file and line, and deprecated calls raise
-  a deprecation notice with their exact replacement, e.g. "Replace
-  ->stripTags() with ->textOnly() in listings.php:14" - error handlers like
-  CMS Builder's developer log catch these.
-- **Only the silent changes need checking.** This file lists them per
-  version, each with a search.
+- **If it breaks, it tells you.** Old names phase out over multiple
+  releases - IDE strikethrough, then a quietly logged notice with your file
+  and line (CMS Builder shows these in the Developer Log), then a clear
+  error - always naming the replacement.
+- **Everything worth checking is listed here.** Silent behavior changes,
+  deprecations, and optional renames, per version, each with a search that
+  finds affected code.
 
 Full lists of what changed per release: [CHANGELOG.md](CHANGELOG.md).
 
@@ -23,10 +19,10 @@ Full lists of what changed per release: [CHANGELOG.md](CHANGELOG.md).
 *Follow this section when upgrading from SmartString before v3.0.0
 (or CMS Builder before 3.85).*
 
-### Chains after `->nl2br()` or `->textToHtml()`
+### Chains after `->nl2br()`
 
-> These two methods used to return a SmartString you could keep chaining.
-> They now return a plain string, so any call chained after them is fatal
+> `nl2br()` used to return a SmartString you could keep chaining. It now
+> returns a plain string, so any call chained after it is fatal
 > ("Call to a member function ... on string"):
 >
 > ```php
@@ -36,10 +32,10 @@ Full lists of what changed per release: [CHANGELOG.md](CHANGELOG.md).
 >
 > Fix:
 >
-> - Search `->nl2br(` and `->textToHtml(` and make sure each is the last
->   call in its chain (no `->` after it)
+> - Search `->nl2br(` and make sure each is the last call in its chain
+>   (no `->` after it)
 >
-> Regex: `->(nl2br|textToHtml)\([^)]*\)->` matches only the calls that need fixing
+> Regex: `->nl2br\([^)]*\)->` matches only the calls that need fixing
 
 ### Parameter renames (named arguments only)
 
@@ -66,7 +62,7 @@ Full lists of what changed per release: [CHANGELOG.md](CHANGELOG.md).
 > - Search `message:` and replace with `text:` on or404/orDie/orThrow calls
 > - Search `func:` and replace with `callback:` on map/apply calls
 >
-> Regex: `->(percent\([^)]*zeroFallback:|(orDie|or404|orThrow)\(\s*message:|(map|apply)\(\s*func:)`
+> Regex: `zeroFallback:|->(orDie|or404|orThrow)\(\s*message:|->(map|apply)\(\s*func:`
 
 ### Silent changes
 
@@ -79,6 +75,11 @@ Full lists of what changed per release: [CHANGELOG.md](CHANGELOG.md).
 > Only affects code that relied on null carrying past a mid-chain fallback.
 > - `dateFormat()` on a boolean returns null (was undefined behavior) - a
 > later `or()` fallback shows instead of a date
+> - `textOnly()` turns non-breaking and other Unicode spaces into plain spaces
+> (newlines and tabs untouched), so "empty" WYSIWYG values like `<p>&nbsp;</p>`
+> now count as missing and `or()` fallbacks fire on them
+> - `textOnly()` replaces invalid UTF-8 bytes with � (previously they passed
+> through unchanged), so its text is always valid UTF-8
 > - `pregReplace()` passes `""` through unchanged, like null - previously an
 > empty-matching pattern could turn a missing value into content, so a later
 > `or()` fallback can now show where it previously didn't
@@ -102,7 +103,7 @@ Full lists of what changed per release: [CHANGELOG.md](CHANGELOG.md).
 | `->andPrefix("<br>Tel: ")`              | `->wrapHtml('<br>Tel: ', '')`           |
 | `echo $field` where the data has `<br>` | `echo $field->textToHtml(keepBr: true)` |
 
-> Regex: `->\w+\(['"][^'"]*<br` finds `<br` inside method arguments
+> Regex: `->\w+\([^)]*<br` finds `<br` inside method arguments
 
 ### Removed settings (only existed v2.1.2 - v2.6.2)
 

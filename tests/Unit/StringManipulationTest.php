@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Itools\SmartString\Tests\Unit;
 
 use InvalidArgumentException;
+use Itools\SmartArray\SmartNull;
 use Itools\SmartString\SmartString;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Itools\SmartString\Tests\Support\SmartStringTestCase;
@@ -82,6 +83,36 @@ class StringManipulationTest extends SmartStringTestCase
         $this->assertSame("{$marker}{$marker}{$marker}\x01x", SmartString::new("{$marker}{$marker}{$marker}\x01<b>x</b>")->textOnly()->value());
     }
 
+    public function testTextOnlyCannotReassembleATag(): void
+    {
+        // A prose "<" is restored after stripping, and stripping can remove the text that
+        // made it prose, leaving it directly in front of a tag name. Stripping repeats
+        // until no tag-shaped "<" remains, so output never holds anything a browser would
+        // parse as a tag.
+        $this->assertSame('', SmartString::new('<<b>img src=x onerror=alert(1)>')->textOnly()->value());
+        $this->assertSame('alert(1)', SmartString::new('<<i>script>alert(1)')->textOnly()->value());
+        $this->assertSame('', SmartString::new('<<<b>b>img src=x onerror=alert(1)>')->textOnly()->value());
+
+        // still prose after stripping, so the "<" survives and no extra pass runs
+        $this->assertSame('< b', SmartString::new('<<b> b')->textOnly()->value());
+    }
+
+    public function testTextOnlyBoundsCraftedNestingCost(): void
+    {
+        // Crafted nesting surfaces one new tag per strip pass, so without the pass cap
+        // this input costs one full pass per "<": several seconds at this size. Past the
+        // cap every "<" is dropped, so the no-tags guarantee holds at linear cost.
+        $n       = 20000;
+        $crafted = str_repeat('<', $n) . str_repeat('z>', $n - 1) . 'a>'; // ~60 KB
+
+        $start  = hrtime(true);
+        $result = SmartString::new($crafted)->textOnly()->value();
+        $ms     = (hrtime(true) - $start) / 1e6;
+
+        $this->assertDoesNotMatchRegularExpression('/<[a-zA-Z\/!?]/', $result);
+        $this->assertLessThan(2000, $ms, "textOnly() took {$ms}ms on crafted input; the pass cap should keep this well under a second");
+    }
+
     public function testTextOnlyPreservesPrivateUseCharacters(): void
     {
         // U+E000 is data, not markup, so it survives even when adjacent to a prose "<"
@@ -93,10 +124,10 @@ class StringManipulationTest extends SmartStringTestCase
         $this->assertSame("<12$marker",           SmartString::new("<12$marker")->textOnly()->value());
     }
 
-    public function testTextOnlyKeepsInvalidUtf8(): void
+    public function testTextOnlySubstitutesInvalidUtf8(): void
     {
-        // space normalization runs byte-level: a /u pattern returns null on bad bytes and would blank the value
-        $this->assertSame("caf\xE9 bad bytes", SmartString::new("caf\xE9 bad bytes")->textOnly()->value());
+        // bad bytes become U+FFFD like maxChars/maxWords, so textOnly() always returns valid UTF-8
+        $this->assertSame("caf\u{FFFD} bad bytes", SmartString::new("caf\xE9 bad bytes")->textOnly()->value());
     }
 
     //endregion
@@ -166,8 +197,10 @@ class StringManipulationTest extends SmartStringTestCase
             'null input'                => [null, 3, '...', null],
             'numeric input'             => [12345, 2, '...', '12345'],
             'very large max words'      => ['Short sentence', 1000, '...', 'Short sentence'],
-            'max words 0 pins ellipsis' => ['Test sentence', 0, '...', '...'], // pinned: bare ellipsis, not ''
+            'max words 0 shows ellipsis' => ['Test sentence', 0, '...', '...'], // nothing shown, ellipsis marks the hidden content
             'max words 0 on empty'      => ['', 0, '...', ''], // missing passes through before ellipsis logic
+            'negative max clamps to 0'  => ['Test sentence', -5, '...', '...'], // same answer as 0: even less than none
+            'whitespace-only, max 0'    => ['   ', 0, '...', ''], // no words exist, so no ellipsis
             'custom ellipsis'           => ['The quick brown fox jumps over the lazy dog', 4, ' [...]', 'The quick brown fox [...]'],
             'multiple spaces collapse'  => ['Word1    Word2     Word3', 2, '...', 'Word1 Word2...'],
             'leading/trailing spaces'   => ['  Trimmed input test  ', 2, '...', 'Trimmed input...'],
@@ -199,8 +232,10 @@ class StringManipulationTest extends SmartStringTestCase
             'null input'                => [null, 10, '...', null],
             'numeric input'             => [12345, 3, '...', '123...'],
             'very large max chars'      => ['Short sentence', 1000, '...', 'Short sentence'],
-            'max chars 0 pins ellipsis' => ['Test sentence', 0, '...', '...'], // pinned: bare ellipsis, not ''
+            'max chars 0 shows ellipsis' => ['Test sentence', 0, '...', '...'], // nothing shown, ellipsis marks the hidden content
             'max chars 0 on empty'      => ['', 0, '...', ''], // missing passes through before ellipsis logic
+            'negative max clamps to 0'  => ['Test sentence', -5, '...', '...'], // was 'Test sen...' via mb_substr negative-length semantics
+            'whitespace-only, max 0'    => ['   ', 0, '...', ''], // collapses to no content, so no ellipsis
             'custom ellipsis'           => ['The quick brown fox!', 15, ' [...]', 'The quick brown [...]'],
             'multiple spaces collapse'  => ['Word1    Word2     Word3', 12, '...', 'Word1 Word2...'],
             'leading/trailing spaces'   => ['  Trimmed  input test  ', 10, '...', 'Trimmed...'],
@@ -214,7 +249,23 @@ class StringManipulationTest extends SmartStringTestCase
             'html entities as chars'    => ['&amp; &lt; &gt;', 5, '...', '&amp...'],
             'invalid utf8 becomes �'    => ["caf\xE9 latte and more words here", 10, '...', 'caf� latte...'],
             'invalid utf8 no truncate'  => ["caf\xE9", 10, '...', 'caf�'],
+            'punctuation at hard cut'   => ['abcde,fghijklmnop', 6, '...', 'abcde...'], // trailing punctuation strips on hard cuts too
         ];
+    }
+
+    /**
+     * PCRE caps {1,n} quantifiers at 65535. The old regex-based word cut emitted
+     * "Compilation failed: number too big in {} quantifier" above that and fell
+     * back to a mid-word hard cut.
+     */
+    public function testMaxCharsAbovePcreQuantifierLimit(): void
+    {
+        $text = trim(str_repeat('word ', 20000)); // 99,999 chars
+
+        foreach ([65535 => 65534, 65536 => 65534, 70000 => 69999] as $max => $cutAt) {
+            $expected = substr($text, 0, $cutAt) . '...';
+            $this->assertSame($expected, SmartString::new($text)->maxChars($max)->value(), "max=$max");
+        }
     }
 
     /**
@@ -258,6 +309,13 @@ class StringManipulationTest extends SmartStringTestCase
         ];
     }
 
+    public function testPregReplaceUnwrapsSmartStringReplacement(): void
+    {
+        // a SmartString replacement inserts its raw value, not its encoded __toString output
+        $this->assertSame('x & y', SmartString::new('a')->pregReplace('/a/', new SmartString('x & y'))->value());
+        $this->assertSame('', SmartString::new('a')->pregReplace('/a/', new SmartNull())->value()); // SmartNull replaces with ""
+    }
+
     /**
      * An invalid pattern throws InvalidArgumentException
      * (message UX beats a PHP warning). The PCRE reason text varies by PCRE2
@@ -268,6 +326,34 @@ class StringManipulationTest extends SmartStringTestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('pregReplace(): preg_replace(): Compilation failed');
         SmartString::new('test')->pregReplace('/[/', 'X');
+    }
+
+    public function testPregReplaceInvalidUtf8WithUnicodePatternReturnsNull(): void
+    {
+        // Broken data goes null so or() fallbacks fire; only broken patterns throw
+        $result = SmartString::new("caf\xFF")->pregReplace('/f/u', 'F');
+        $this->assertTrue($result->isNull());
+        $this->assertSame('n/a', $result->or('n/a')->value());
+    }
+
+    /**
+     * A value big enough to hit PCRE's runtime limits (JIT stack or backtrack
+     * limit, depending on the build) returns null like bad UTF-8 does - the
+     * failure comes from the data, not the pattern, so or() fallbacks fire
+     * instead of one oversized row throwing.
+     */
+    public function testPregReplaceDataSizePcreFailureReturnsNull(): void
+    {
+        $big    = str_repeat('a b ', 8000) . '!';
+        $result = SmartString::new($big)->pregReplace('/(\s*\w+)+$/', 'X');
+        $this->assertTrue($result->isNull());
+        $this->assertSame('n/a', $result->or('n/a')->value());
+    }
+
+    public function testPregReplaceInvalidUtf8WithoutUnicodePatternStillWorks(): void
+    {
+        // Without /u, PCRE treats the value as bytes and the replace succeeds
+        $this->assertSame("caF\xFF", SmartString::new("caf\xFF")->pregReplace('/f/', 'F')->value());
     }
 
     public function testPregReplaceNullInputSkipsPatternCheck(): void
@@ -321,13 +407,15 @@ class StringManipulationTest extends SmartStringTestCase
         });
         $this->assertNull($received, 'callback must receive raw null, not a coerced value');
 
-        $this->expectException(TypeError::class); // strict built-ins reject null - the documented ifNull('') case
+        $this->expectException(TypeError::class); // strict built-ins reject null - the docs say to convert with map('strval') first
         SmartString::new(null)->map('strtoupper');
     }
 
     public function testMapRescueFirstRecipe(): void
     {
-        $this->assertSmartString('', SmartString::new(null)->ifNull('')->map('strtoupper'));
+        // the documented recipe: map('strval') converts null AND numerics before strict built-ins
+        $this->assertSmartString('', SmartString::new(null)->map('strval')->map('strtoupper'));
+        $this->assertSmartString('42', SmartString::new(42)->map('strval')->map('strtoupper'));
         $this->assertSmartString('DEFAULT', SmartString::new(null)->ifNull('default')->map('strtoupper'));
     }
 
@@ -338,10 +426,20 @@ class StringManipulationTest extends SmartStringTestCase
         SmartString::new('test')->map('non_existent_function');
     }
 
+    public function testMapEncodesUncallableNameInError(): void
+    {
+        // exception messages can end up in HTML error pages, so the name is encoded
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage("Function '&lt;b&gt;bad&lt;/b&gt;' is not callable");
+        SmartString::new('test')->map('<b>bad</b>');
+    }
+
     public function testMapRejectsNonScalarReturn(): void
     {
+        // message names no method: the deprecated apply() forwards here, and an error
+        // shouldn't name a method the caller never used
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('map() callback must return a scalar value (string, int, float, bool, or null), got array');
+        $this->expectExceptionMessage('The callback must return a scalar value (string, int, float, bool, or null), got array');
         SmartString::new('test')->map(fn($s) => [$s]);
     }
 

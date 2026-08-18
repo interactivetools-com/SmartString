@@ -100,14 +100,19 @@ jobs:
             opcache.enable_cli=1,
             ${{ inputs.jit == 'tracing' && 'opcache.jit=tracing, opcache.jit_buffer_size=64M' || 'opcache.jit=off, opcache.jit_buffer_size=0' }}
 
+      # scale and filter are free-form text: pass them as env vars so the shell
+      # gets them as data, never as script source
       - name: Run probe
+        env:
+          SCALE: ${{ inputs.scale }}
+          FILTER: ${{ inputs.filter }}
         run: |
           SLUG="${{ matrix.os }}-php${{ matrix.php }}${{ inputs.jit == 'tracing' && '-jit' || '' }}"
           echo "SLUG=$SLUG" >> "$GITHUB_ENV"
           php .github/scripts/speed-probe.php \
             --json="probe-$SLUG.json" \
-            --scale="${{ inputs.scale }}" \
-            ${{ inputs.filter != '' && format('--filter="{0}"', inputs.filter) || '' }} \
+            --scale="$SCALE" \
+            ${FILTER:+--filter="$FILTER"} \
             >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload probe results

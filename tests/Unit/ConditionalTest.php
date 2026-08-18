@@ -100,7 +100,8 @@ class ConditionalTest extends SmartStringTestCase
             'false attaches alone' => [false, 'World', 'World'], // false is present but stringifies to ''
             'zero is present'    => [0, ' items', '0 items'],
             'numeric value'      => [100, '%', '100%'],
-            'SmartString suffix' => ['Price: ', SmartString::new('$10.00'), 'Price: $10.00'],
+            'SmartString suffix' => ['Price: ', SmartString::new('$10 & up'), 'Price: $10 & up'], // unwraps to the raw "&", not the encoded "&amp;"
+            'html in the value'  => ["Ben & Jerry's", ' Ice Cream', "Ben & Jerry's Ice Cream"],  // the stored value passes through raw too, not just the argument
         ];
     }
 
@@ -119,7 +120,8 @@ class ConditionalTest extends SmartStringTestCase
             'false attaches alone' => [false, 'Hello ', 'Hello '], // false is present but stringifies to ''
             'zero is present'    => [0, '$', '$0'],
             'numeric value'      => [100, '$', '$100'],
-            'SmartString prefix' => ['items', SmartString::new('10 '), '10 items'],
+            'SmartString prefix' => ['Sons', SmartString::new("O'Brien & "), "O'Brien & Sons"], // unwraps to the raw "'" and "&", not "&apos;" and "&amp;"
+            'html in the value'  => ["Ben & Jerry's", 'From ', "From Ben & Jerry's"],           // the stored value passes through raw too, not just the argument
         ];
     }
 
@@ -231,11 +233,17 @@ class ConditionalTest extends SmartStringTestCase
     /**
      * Every fallback shape accepted by or(), unwrapped to its raw value -
      * one row per shape from the shared matrix.
+     *
+     * Both missing subjects are tried because each one matches a row's expected
+     * value: null matches the null-ish shapes, '' matches the empty-string shape.
+     * Running both means every row differs from its subject at least once, so no
+     * row can pass on a subject or() left untouched.
      */
     #[DataProvider('argumentMatrixProvider')]
     public function testOrAcceptsEveryArgumentShape($argument, $expectedRaw): void
     {
         $this->assertSmartString($expectedRaw, SmartString::new(null)->or($argument));
+        $this->assertSmartString($expectedRaw, SmartString::new('')->or($argument));
     }
 
     public static function argumentMatrixProvider(): array
@@ -247,7 +255,7 @@ class ConditionalTest extends SmartStringTestCase
     {
         $smartNull = new SmartNull();
         $this->assertSame('x', SmartString::new('x')->or($smartNull)->value());
-        $this->assertNull(SmartString::new(null)->or($smartNull)->value());
+        $this->assertNull(SmartString::new('')->or($smartNull)->value()); // fallback applied: '' becomes null
         $this->assertNull(SmartString::new(null)->ifNull($smartNull)->value());
         $this->assertSame('kept', SmartString::new('kept')->append($smartNull)->value());
     }

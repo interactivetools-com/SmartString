@@ -152,7 +152,8 @@ __HTML__;
 ## Building URLs
 
 When you're building links by hand, run query-string values through
-`urlEncode()`; the rest of the URL auto-encodes as usual. Without it, an
+`urlEncode()`; the rest of the URL is literal text you typed, which needs
+no encoding. Without it, an
 `&` or `=` inside a value adds extra parameters to your link, and
 characters like `#`, `%`, and spaces arrive broken:
 
@@ -219,9 +220,9 @@ function is called just once (the name matches `array_map()` and
 `SmartArray::map()`):
 
 ```php
-echo $province->code->map('mb_strtoupper');                          // BC
-echo $user->name->ifNull('')->map('mb_convert_case', MB_CASE_TITLE); // built-ins reject null, so convert it first
-echo $sku->map(fn($v) => str_pad((string)$v, 6, '0', STR_PAD_LEFT));  // zero-pads to 6 digits: 000042
+echo $province->code->map('mb_strtoupper');                              // BC
+echo $user->name->map('strval')->map('mb_convert_case', MB_CASE_TITLE);  // built-ins need a string: strval converts null and numbers
+echo $sku->map(fn($v) => str_pad((string)$v, 6, '0', STR_PAD_LEFT));     // zero-pads to 6 digits: 000042
 ```
 
 A closure even works inside a template string; wrap the whole chain in

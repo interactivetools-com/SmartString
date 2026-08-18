@@ -14,6 +14,16 @@ Contents:
 - [Requiring a Value - `or404()`, `orDie()`, `orThrow()`, `orRedirect()`](#requiring-a-value---or404-ordie-orthrow-orredirect)
 - [Putting It Together](#putting-it-together)
 
+Contents:
+
+- [What "Missing" Means](#what-missing-means)
+- [Fallbacks - `or()`](#fallbacks---or)
+- [Targeted Replacements - `ifNull()`, `ifZero()`, `ifEquals()`, `ifTrue()`, `set()`](#targeted-replacements---ifnull-ifzero-ifequals-iftrue-set)
+- [Run Conditionals Before Formatting](#run-conditionals-before-formatting)
+- [True/False Checks - `isEmpty()`, `isNotEmpty()`, `isMissing()`, `isNull()`](#truefalse-checks---isempty-isnotempty-ismissing-isnull)
+- [Requiring a Value - `or404()`, `orDie()`, `orThrow()`, `orRedirect()`](#requiring-a-value---or404-ordie-orthrow-orredirect)
+- [Putting It Together](#putting-it-together)
+
 ## What "Missing" Means
 
 All the methods on this page react to missing values: `or()` fills them
@@ -198,9 +208,10 @@ if ($user->bio->isNotEmpty()) {
 }
 ```
 
-The same applies to `empty($user->bio)` (always false) and `!$user->bio`
-(always false); use the check methods instead. The difference between the
-checks is what happens to zero:
+The same applies to `empty($user->bio)` and `!$user->bio`, which are always
+false on an object; use the check methods instead, or `->value()` to test the
+raw value with plain PHP. The difference between the checks is what happens
+to zero:
 
 ```php
 $balance = SmartString::new(0);
@@ -245,10 +256,10 @@ How each guard differs:
 - **`orThrow($text)`** throws a `RuntimeException` for your error handler.
   Handlers that want plain text (CLI, logs) can decode the message with
   `htmlspecialchars_decode($e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5)`.
-- **`orRedirect($url)`** checks `headers_sent()` immediately and throws if
-  output already started, even when the value is present, so a misplaced
-  redirect fails on the first request instead of only when a value goes
-  missing.
+- **`orRedirect($url)`** checks `headers_sent()` and a blank `$url` (null or
+  `""`) immediately and throws if either fails, even when the value is
+  present, so a misplaced redirect fails on the first request instead of
+  only when a value goes missing.
 
 ### The two-stage guard
 

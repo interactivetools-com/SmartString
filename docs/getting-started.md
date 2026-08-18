@@ -21,11 +21,27 @@ Contents:
 - [What SmartString Guarantees](#what-smartstring-guarantees)
 - [What SmartString Does Not Do](#what-smartstring-does-not-do)
 
+Contents:
+
+- [Installation](#installation)
+- [Your First SmartString](#your-first-smartstring)
+- [The Mental Model](#the-mental-model)
+- [Why Auto-Encoding Matters](#why-auto-encoding-matters)
+- [Chaining Methods](#chaining-methods)
+- [Fallbacks for Missing Values](#fallbacks-for-missing-values)
+- [Working with SmartArray and ZenDB](#working-with-smartarray-and-zendb)
+- [Converting to Plain PHP Types](#converting-to-plain-php-types)
+- [Configuring Defaults](#configuring-defaults)
+- [Debugging](#debugging)
+- [What SmartString Guarantees](#what-smartstring-guarantees)
+- [What SmartString Does Not Do](#what-smartstring-does-not-do)
+
 ## Installation
 
-Using CMS Builder or [ZenDB](https://github.com/interactivetools-com/ZenDB)?
+**Using CMS Builder or [ZenDB](https://github.com/interactivetools-com/ZenDB)?**
 SmartString is already installed, and every database value you touch is
-already a SmartString; skip ahead to [The Mental Model](#the-mental-model).
+already a SmartString; skip ahead to
+[Your First SmartString](#your-first-smartstring) to see how they behave.
 
 ```bash
 composer require itools/smartstring
@@ -227,8 +243,8 @@ Note that `string()` returns the raw string, not the encoded one; it is
 actually null.
 
 For code that receives a mix of SmartStrings and plain values,
-`SmartString::getRawValue()` unwraps Smart* objects and passes everything
-else through unchanged:
+`SmartString::getRawValue()` unwraps Smart* objects and passes plain values
+and arrays through unchanged (other objects throw `InvalidArgumentException`):
 
 ```php
 SmartString::getRawValue(SmartString::new("hello"));  // "hello"
@@ -279,7 +295,9 @@ The [Method Reference](method-reference.md) lists every method with examples.
 4. **Chains never throw on bad data.** Missing values pass through
    transformations, and failed operations (an invalid date, math on a
    non-numeric value) return null, so one `or()` at the end covers anything
-   that went wrong anywhere in the chain.
+   that went wrong anywhere in the chain. Developer mistakes are the
+   opposite: an invalid regex or a call to an undefined method throws
+   immediately, with a message that says what to fix.
 
 ## What SmartString Does Not Do
 

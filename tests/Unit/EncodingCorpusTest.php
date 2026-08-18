@@ -76,9 +76,10 @@ class EncodingCorpusTest extends SmartStringTestCase
     /**
      * The type fast path returns (string)$value for non-strings with no scan. That
      * is only safe if every int/float/bool/null cast produces characters the encoder
-     * would leave untouched - digits, sign, '.', scientific 'E+', 'INF'/'NAN', '1',
-     * ''. This sweep enforces it against htmlspecialchars directly and against both
-     * output methods.
+     * would leave untouched - digits, sign, '.', scientific 'E+', '1', ''. This
+     * sweep enforces it against htmlspecialchars directly and against both output
+     * methods. INF and NAN aren't in the corpus: the constructor stores them as null,
+     * so they can never reach the encoder.
      */
     public function testNonStringValuesNeedNoEncoding(): void
     {
@@ -86,8 +87,7 @@ class EncodingCorpusTest extends SmartStringTestCase
             null, true, false,
             0, 1, -1, 42, -9876543210, PHP_INT_MAX, PHP_INT_MIN,
             0.0, -0.0, 0.5, -123.456, 1 / 3, 0.1 + 0.2,
-            1.0E+25, -1.0E-25, 9.9999999999999E+308, PHP_FLOAT_EPSILON, PHP_FLOAT_MAX, -PHP_FLOAT_MAX,
-            INF, -INF, NAN,
+            1.0E+25, -1.0E-25, PHP_FLOAT_EPSILON, PHP_FLOAT_MAX, -PHP_FLOAT_MAX,
         ];
         for ($i = 0; $i < 500; $i++) { // seeded numeric fuzz
             mt_srand($i);
@@ -96,17 +96,15 @@ class EncodingCorpusTest extends SmartStringTestCase
         }
 
         foreach ($values as $value) {
-            // PHP 8.5 warns when NAN/INF coerce to string; the outputs ('NAN', 'INF',
-            // '-INF') are still what we assert against, so suppress just those casts
-            $cast = @(string)$value;
+            $cast = (string)$value;
             $this->assertSame(
                 htmlspecialchars($cast, ENT_QUOTES | ENT_SUBSTITUTE | ENT_DISALLOWED | ENT_HTML5, 'UTF-8'),
                 $cast,
                 "cast of " . var_export($value, true) . " is not encoding-neutral"
             );
             $str = new SmartString($value);
-            $this->assertSame($cast, @(string)$str);
-            $this->assertSame($cast, @$str->htmlEncode());
+            $this->assertSame($cast, (string)$str);
+            $this->assertSame($cast, $str->htmlEncode());
         }
     }
 }

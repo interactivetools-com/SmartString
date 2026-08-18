@@ -162,6 +162,15 @@ class EncodingTest extends SmartStringTestCase
     //endregion
     //region jsonEncode()
 
+    public function testJsonEncodeInfAndNanEncodeAsNull(): void
+    {
+        // INF/NAN never reach the encoder: an overflowed result stores as null just
+        // like a non-finite input does, so JSON output stays valid instead of
+        // throwing "Inf and NaN cannot be JSON encoded"
+        $this->assertSame('null', SmartString::new(-1.7976931348623157e+308)->subtract(1.7976931348623157e+308)->jsonEncode());
+        $this->assertSame('null', json_encode(SmartString::new(NAN)));
+    }
+
     /**
      * The jsonEncode hardening contract, ported as-is: malformed UTF-8 becomes �
      * instead of throwing, and invisible Unicode is re-escaped as visible
@@ -179,6 +188,11 @@ class EncodingTest extends SmartStringTestCase
         $this->assertSame('"a\udb40\udc41b"', SmartString::new("a\u{E0041}b")->jsonEncode());
         $this->assertSame('"a\ufe0fb"',       SmartString::new("a\u{FE0F}b")->jsonEncode());
         $this->assertSame('"a\udb40\udd00b"', SmartString::new("a\u{E0100}b")->jsonEncode());
+
+        // U+2028/U+2029 line separators: invisible, legal in JSON, and syntax errors in
+        // pre-ES2019 JS string literals. json_encode escapes them only because the flags
+        // omit JSON_UNESCAPED_LINE_TERMINATORS, so adding that flag fails here
+        $this->assertSame('"a\u2028b\u2029c"', SmartString::new("a\u{2028}b\u{2029}c")->jsonEncode());
 
         // escaping is lossless: decoding returns the original characters
         $original = "x\u{200B}\u{202E}\u{E0041}y";

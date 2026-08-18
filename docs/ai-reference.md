@@ -8,25 +8,27 @@
 
 This is a consolidated reference for AI coding assistants: the complete API in
 one file, covering SmartString 3.0. For human-friendly docs with tutorials and
-explanations, see [Getting Started](getting-started.md).
+explanations, see
+[Getting Started](https://github.com/interactivetools-com/SmartString/blob/main/docs/getting-started.md).
 
 Contents:
 
-- What is SmartString
-- Creating Values
-- Auto-Encoding Mechanics
-- Type Conversion - value(), int(), float(), bool(), string(), getRawValue()
-- Encoding Methods - htmlEncode(), urlEncode(), jsonEncode(), nl2br(), rawHtml(), appendHtml(), wrapHtml()
-- String Manipulation - append(), prepend(), wrap(), textOnly(), trim(), maxWords(), maxChars(), pregReplace()
-- Dates and Numbers - dateFormat(), numberFormat(), percent(), percentOf(), add(), subtract(), multiply(), divide()
-- Conditional Replacement - or(), ifNull(), ifZero(), ifTrue(), ifEquals(), set()
-- Guards - or404(), orDie(), orThrow(), orRedirect()
-- Value Checks - isEmpty(), isNotEmpty(), isMissing(), isNull()
-- Custom Functions - map()
-- Static Configuration
-- Debugging - print_r()
-- Errors and Exceptions
-- Gotchas Quick Reference
+- [What is SmartString](#what-is-smartstring)
+- [Creating Values](#creating-values)
+- [Auto-Encoding Mechanics](#auto-encoding-mechanics)
+- [Type Conversion](#type-conversion) - value(), int(), float(), bool(), string(), getRawValue()
+- [Encoding Methods](#encoding-methods) - htmlEncode(), urlEncode(), jsonEncode(), nl2br(), rawHtml(), appendHtml(), wrapHtml()
+- [String Manipulation](#string-manipulation) - append(), prepend(), wrap(), textOnly(), trim(), maxWords(), maxChars(), pregReplace()
+- [Dates and Numbers](#dates-and-numbers) - dateFormat(), numberFormat(), percent(), percentOf(), add(), subtract(), multiply(), divide()
+- [Conditional Replacement](#conditional-replacement) - or(), ifNull(), ifZero(), ifTrue(), ifEquals(), set()
+- [Guards](#guards) - or404(), orDie(), orThrow(), orRedirect()
+- [Value Checks](#value-checks) - isEmpty(), isNotEmpty(), isMissing(), isNull()
+- [Custom Functions](#custom-functions) - map()
+- [Static Configuration](#static-configuration)
+- [Debugging](#debugging) - print_r()
+- [Errors and Exceptions](#errors-and-exceptions)
+- [Gotchas Quick Reference](#gotchas-quick-reference)
+- [Old Method Names (Deprecated, Still Work)](#old-method-names-deprecated-still-work)
 
 ---
 
@@ -47,6 +49,11 @@ echo $str;                                    // It&apos;s easy!&lt;hr&gt;
 echo $str->value();                           // It's easy!<hr>
 echo $str->trim()->maxChars(60)->or('None');  // chains left to right
 ```
+
+`new SmartString($value)` and `SmartString::new($value)` do the same thing.
+`new()` also accepts arrays (returns `SmartArrayHtml`), and before PHP 8.4
+`new SmartString($x)->trim()` is a syntax error without wrapping parentheses;
+`SmartString::new($x)->trim()` always works.
 
 Key definitions used throughout:
 
@@ -69,8 +76,10 @@ Key definitions used throughout:
 SmartString::new(string|int|float|bool|null $value): SmartString
 ```
 
-Accepted types: string, int, float, bool, null. Objects/resources are not
-accepted. Passing an array is deprecated and returns a `SmartArrayHtml`
+Accepted types: string, int, float, bool, null. SmartString and SmartNull
+also work and unwrap to their raw value (re-wrapping never double-encodes;
+SmartNull stores null). Other objects/resources are not accepted. Passing an
+array is deprecated and returns a `SmartArrayHtml`
 (use `SmartArrayHtml::new($array)` from the SmartArray package directly).
 
 Bulk creation is the SmartArray package's job; database rows from
@@ -126,8 +135,8 @@ double-encoding with additional chained methods). Missing values (null or
 | `jsonEncode(): string`                            | JSON with `JSON_HEX_TAG\|HEX_APOS\|HEX_QUOT\|HEX_AMP\|UNESCAPED_SLASHES\|UNESCAPED_UNICODE\|INVALID_UTF8_SUBSTITUTE\|THROW_ON_ERROR`. Always a valid JS expression: null → `null`, 123 → `123`. Malformed UTF-8 → �. Invisible Unicode (zero-width, bidi controls, variation selectors) re-escaped as `\uXXXX`. |
 | `nl2br(): string`                                 | HTML-encodes FIRST, then converts newlines to `<br>`; only tags in output are the added `<br>` tags                                                                                                                                                                                                             |
 | `rawHtml(): string\|int\|float\|bool\|null`       | Alias for `value()`; signals intentional raw HTML output. Null stays null (does not return `""`)                                                                                                                                                                                                                |
-| `appendHtml(string $html): string`                | Encoded value + `$html` appended AS-IS (trusted, never user input). Missing → `""` (markup suppressed too)                                                                                                                                                                                                      |
-| `wrapHtml(string $before, string $after): string` | `$before` + encoded value + `$after`, markup as-is. Missing → `""` (whole wrapper vanishes). Both args required                                                                                                                                                                                                 |
+| `appendHtml(string $html): string`                | Encoded value + `$html` appended AS-IS (trusted, never user input; a SmartString `$html` unwraps raw). Missing → `""` (markup suppressed too)                                                                                                                                                                   |
+| `wrapHtml(string $before, string $after): string` | `$before` + encoded value + `$after`, markup as-is (SmartString args unwrap raw). Missing → `""` (whole wrapper vanishes). Both args required                                                                                                                                                                   |
 
 ```php
 echo $text->nl2br();                    // "Bob & Sons\nSuite 5" → "Bob &amp; Sons<br>\nSuite 5"
@@ -147,11 +156,11 @@ through unchanged, so a later `or()` still works.
 | `append($value): SmartString`                                    | Adds `$value` to the end, only when present (zero counts as present; missing passes through)                                     |
 | `prepend($value): SmartString`                                   | Adds `$value` to the beginning, only when present                                                                                |
 | `wrap($before, $after): SmartString`                             | Wraps when present; both args required, pass `""` for an unwanted side                                                           |
-| `textOnly(): SmartString`                                        | `html_entity_decode` → `strip_tags` → `trim` (entities decoded first so `&lt;script&gt;` can't survive as a tag)                 |
+| `textOnly(): SmartString`                                        | Decodes entities, strips tags, normalizes Unicode spaces to plain spaces, trims. Entities decode first so `&lt;script&gt;` is removed too. `<` counts as a tag only before a letter, `/`, `!`, or `?` (browser rule), so prose `<` survives: `Kids <12 eat free` keeps its `<`; `<p>&nbsp;</p>` trims to `""` |
 | `trim(...$args): SmartString`                                    | PHP `trim()` semantics incl. custom char list (a SmartString char list unwraps)                                                  |
 | `maxWords(int $max, string $ellipsis = '...'): SmartString`      | Word limit; `$ellipsis` only if cut; trailing punctuation stripped before ellipsis                                               |
 | `maxChars(int $max, string $ellipsis = '...'): SmartString`      | Char limit breaking at last whole word; whitespace runs collapse to single spaces; trailing punctuation stripped before ellipsis |
-| `pregReplace(string $pattern, string $replacement): SmartString` | `preg_replace()`; invalid pattern throws InvalidArgumentException                                                                |
+| `pregReplace(string $pattern, string $replacement): SmartString` | `preg_replace()`; a SmartString `$replacement` unwraps raw; invalid pattern throws InvalidArgumentException; a failure the value caused (bad UTF-8, PCRE limits) returns null |
 
 Arguments to `append`/`prepend`/`wrap` accept
 `int|float|string|bool|null|SmartString|SmartNull`.
@@ -216,14 +225,15 @@ Placement of `or()` changes meaning: `->or(0)->numberFormat(2)` → `"0.00"`
 
 Stop the page when the value is missing (null or `""`; zero passes).
 Otherwise return `$this` unchanged for chaining. Message/`$text` params are
-HTML-encoded automatically (messages often interpolate user input).
+HTML-encoded automatically (messages often interpolate user input); a
+SmartString message unwraps first, so it is encoded once, not twice.
 
 | Method                              | On missing                                                                                                                                               |
 |-------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `or404(?string $text = null): self` | HTTP 404 + minimal HTML page + `exit`. Default text "The requested URL was not found on this server."                                                    |
+| `or404(?string $text = null): self` | HTTP 404 + minimal HTML page + `exit(1)`. Default text "The requested URL was not found on this server."                                                 |
 | `orDie(string $text): self`         | Echo encoded text + `exit(1)` (failure code for CLI/cron)                                                                                                |
 | `orThrow(string $text): self`       | `throw new RuntimeException($encodedText)`. Decode for logs/CLI with `htmlspecialchars_decode($msg, ENT_QUOTES \| ENT_SUBSTITUTE \| ENT_HTML5)`          |
-| `orRedirect(string $url): self`     | 302 + `Location: $url` + `exit`. Checks `headers_sent()` IMMEDIATELY (throws RuntimeException even when value present, so misuse fails on first request) |
+| `orRedirect(string $url): self`     | 302 + `Location: $url` + `exit`. A SmartString `$url` unwraps raw (no `&amp;` in the header). Checks `headers_sent()` and a blank `$url` IMMEDIATELY (throws RuntimeException even when value present, so misuse fails on first request) |
 
 ```php
 $article->num->or404("Article not found");
@@ -248,15 +258,16 @@ map(callable|string $callback, mixed ...$args): SmartString
 ```
 
 Calls `$callback($rawValue, ...$args)` and wraps the result. The callback ALWAYS
-runs, null included (matches `array_map()`); chain `->ifNull('')` first for
-built-ins that reject null. Callback must return scalar or null; other
-return types throw InvalidArgumentException. Non-callable `$callback` throws
-InvalidArgumentException.
+runs and receives the raw value in its original type, null included (matches
+`array_map()`). Built-ins with typed string parameters throw `TypeError` on null
+or numeric values - chain `->map('strval')` first. Callback must return scalar or null; other
+return types throw `InvalidArgumentException`. Non-callable `$callback` throws
+`InvalidArgumentException`.
 
 ```php
 echo $name->map('mb_strtoupper');
 echo $name->map('str_pad', 15, '.');
-echo $user->nickname->ifNull('')->map('mb_convert_case', MB_CASE_TITLE);
+echo $user->nickname->map('strval')->map('mb_convert_case', MB_CASE_TITLE);
 ```
 
 ## Static Configuration
@@ -317,6 +328,28 @@ operation - everything else means code to fix.
 - The `dateFormat()` method treats numeric strings as unix timestamps
   (`"2026"` is epoch + 2026 seconds, not a year).
 
+## Old Method Names (Deprecated, Still Work)
+
+Code from v1/v2 docs or training data may use these. They still run but are
+deprecated; always write the current name in new code.
+
+| Old name                   | Write instead                                                              |
+|----------------------------|----------------------------------------------------------------------------|
+| `->and($value)`            | `->append($value)`                                                         |
+| `->andPrefix($value)`      | `->prepend($value)`                                                        |
+| `->apply($callback)`       | `->map($callback)`                                                         |
+| `->if($cond, $value)`      | `->ifTrue($cond, $value)`                                                  |
+| `->ifBlank($fallback)`     | `->or($fallback)` for missing values, `->ifEquals('', $fallback)` for `""` |
+| `->textToHtml()`           | `->nl2br()`; `textToHtml(keepBr: true)` has no equivalent (`nl2br()` takes no arguments) - keep those calls as-is |
+| `->dateTimeFormat($fmt)`   | `->dateFormat($fmt)`                                                       |
+| `->stripTags()`            | `->textOnly()`                                                             |
+| `->toString()`             | `->htmlEncode()` or `->string()`                                           |
+| `->noEncode()`             | `->rawHtml()`                                                              |
+| `->jsEncode()`             | `->jsonEncode()` - different output; the old name keeps the old behavior   |
+| `SmartString::fromArray()` | `SmartArrayHtml::new()` (SmartArray library)                               |
+| `->phoneFormat()`          | retired - use `pregReplace()` or format the number yourself                |
+| `SmartString::help()`      | retired - this file and the GitHub docs replaced it                        |
+
 ---
 
-[← Documentation Index](README.md) | [← Prev: Troubleshooting](troubleshooting.md)
+Full documentation: https://github.com/interactivetools-com/SmartString/tree/main/docs
