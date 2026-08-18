@@ -21,21 +21,6 @@ Contents:
 - [What SmartString Guarantees](#what-smartstring-guarantees)
 - [What SmartString Does Not Do](#what-smartstring-does-not-do)
 
-Contents:
-
-- [Installation](#installation)
-- [Your First SmartString](#your-first-smartstring)
-- [The Mental Model](#the-mental-model)
-- [Why Auto-Encoding Matters](#why-auto-encoding-matters)
-- [Chaining Methods](#chaining-methods)
-- [Fallbacks for Missing Values](#fallbacks-for-missing-values)
-- [Working with SmartArray and ZenDB](#working-with-smartarray-and-zendb)
-- [Converting to Plain PHP Types](#converting-to-plain-php-types)
-- [Configuring Defaults](#configuring-defaults)
-- [Debugging](#debugging)
-- [What SmartString Guarantees](#what-smartstring-guarantees)
-- [What SmartString Does Not Do](#what-smartstring-does-not-do)
-
 ## Installation
 
 **Using CMS Builder or [ZenDB](https://github.com/interactivetools-com/ZenDB)?**

@@ -5,16 +5,6 @@ and is faster: at least 3x on a real-world page on every platform we measure.
 Most values don't need encoding, and proving that with a scan costs less than
 encoding them anyway.
 
-Contents:
-
-- [Overview](#overview)
-- [How It Works](#how-it-works)
-- [The Numbers](#the-numbers)
-- [How We Know It's Safe](#how-we-know-its-safe)
-- [The Fine Print](#the-fine-print)
-
-## Overview
-
 The multiplier depends on the platform: our scans cost about the same
 everywhere, so the win tracks how slowly each platform's `htmlspecialchars()`
 runs. Based on the real-world page measured below:
@@ -35,6 +25,13 @@ php -d opcache.enable_cli=1 -d xdebug.mode=off .github/scripts/speed-page-table.
 
 In a Composer project the script is at
 `vendor/itools/smartstring/.github/scripts/speed-page-table.php`.
+
+Contents:
+
+- [How It Works](#how-it-works)
+- [The Numbers](#the-numbers)
+- [How We Know It's Safe](#how-we-know-its-safe)
+- [The Fine Print](#the-fine-print)
 
 ## How It Works
 
