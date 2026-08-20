@@ -8,7 +8,7 @@ use Itools\SmartString\Tests\Support\SmartStringTestCase;
 
 /**
  * Guards the encoding fast path: __toString() and htmlEncode() skip
- * htmlspecialchars() via ENCODE_SKIP_REGEX when no byte would change, so their
+ * htmlspecialchars() via ENCODE_NEEDED_REGEX when no byte would change, so their
  * output must stay byte-identical to plain htmlspecialchars() with
  * HTML_ENCODE_FLAGS on every input. This test proves that over the ~106k-string
  * corpus in .github/scripts/speed-corpus.php (every 1- and 2-byte string, byte
@@ -21,7 +21,7 @@ use Itools\SmartString\Tests\Support\SmartStringTestCase;
  * htmlspecialchars(), never an independent "safe" claim: context-level attacks no
  * encoder stops (javascript: URLs, unquoted attributes) remain the template's job.
  *
- * If HTML_ENCODE_FLAGS or ENCODE_SKIP_REGEX changes without the other, this
+ * If HTML_ENCODE_FLAGS or ENCODE_NEEDED_REGEX changes without the other, this
  * test fails with hex samples of the mismatching inputs.
  */
 class EncodingCorpusTest extends SmartStringTestCase
@@ -51,24 +51,24 @@ class EncodingCorpusTest extends SmartStringTestCase
     }
 
     /**
-     * Tier 1 tests the same byte set two ways: ENCODE_SKIP_REGEX (preg, "any byte
+     * Tier 1 tests the same byte set two ways: ENCODE_NEEDED_REGEX (preg, "any byte
      * needing encoding?") and ENCODE_CLEAN_CHARS (strspn on PHP 8.4+, "every byte
      * clean?"). This proves they are exact complements for all 256 bytes, on every
      * PHP version - the corpus test alone only exercises the strspn path on 8.4+.
      */
-    public function testCleanCharsIsExactComplementOfSkipRegex(): void
+    public function testCleanCharsIsExactComplementOfNeededRegex(): void
     {
-        $class     = new \ReflectionClass(SmartString::class);
-        $skipRegex = $class->getConstant('ENCODE_SKIP_REGEX');
-        $cleanSet  = $class->getConstant('ENCODE_CLEAN_CHARS');
+        $class       = new \ReflectionClass(SmartString::class);
+        $neededRegex = $class->getConstant('ENCODE_NEEDED_REGEX');
+        $cleanSet    = $class->getConstant('ENCODE_CLEAN_CHARS');
 
         for ($b = 0; $b <= 0xFF; $b++) {
-            $char        = chr($b);
-            $regexSkips  = preg_match($skipRegex, $char) === 1;
-            $strspnClean = strpos($cleanSet, $char) !== false;
-            $this->assertSame($regexSkips, !$strspnClean,
-                sprintf('byte 0x%02X: ENCODE_SKIP_REGEX says %s but ENCODE_CLEAN_CHARS says %s',
-                    $b, $regexSkips ? 'encode' : 'clean', $strspnClean ? 'clean' : 'encode'));
+            $char          = chr($b);
+            $needsEncoding = preg_match($neededRegex, $char) === 1;
+            $strspnClean   = strpos($cleanSet, $char) !== false;
+            $this->assertSame($needsEncoding, !$strspnClean,
+                sprintf('byte 0x%02X: ENCODE_NEEDED_REGEX says %s but ENCODE_CLEAN_CHARS says %s',
+                    $b, $needsEncoding ? 'encode' : 'clean', $strspnClean ? 'clean' : 'encode'));
         }
         $this->assertSame(strlen(count_chars($cleanSet, 3)), strlen($cleanSet), 'ENCODE_CLEAN_CHARS has duplicate bytes');
     }
