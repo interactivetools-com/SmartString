@@ -22,7 +22,7 @@ Verdicts from this run (details in the per-test rows below):
 
 ### Adopted
 
-- **gate-preg** (identity fast path): SmartString 3.0 - see ENCODE_SKIP_REGEX in
+- **gate-preg** (identity fast path): SmartString 3.0 - see ENCODE_NEEDED_REGEX in
   src/SmartString.php. Positive on all 25 cells.
 - **arr-get** (folded __get): SmartArray 3.0 - see __get() in
   src/SmartArrayBase.php; union return kept (arr-get-mixed gain does not
@@ -30,7 +30,7 @@ Verdicts from this run (details in the per-test rows below):
 - **prop-type**: SmartString 3.0 - $rawData is untyped (typed ctor param +
   ImmutabilityTest cover the contract); see its docblock.
 - **tier-strrep + gate-unicode** (the three-tier stack): SmartString 3.0 - see
-  the ENCODE_SKIP_REGEX docblock in src/SmartString.php. Adopted ungated on all
+  the ENCODE_NEEDED_REGEX docblock in src/SmartString.php. Adopted ungated on all
   platforms: realistic mix 3.3-7.1x baseline on Linux/macOS (Linux ARM mildest),
   8.1-9.3x Windows (stack-mix); accented text 3.1-10.8x (stack-accented-mix).
   Bounded losses: short fields containing specials pay ~16-127ns extra
@@ -49,7 +49,7 @@ Verdicts from this run (details in the per-test rows below):
   windows (darwin-x64 borderline), ~128B on darwin-arm.
   Corpus covers the 63/64/65, 127/128/129, and 255/256/257 boundaries;
   EncodingCorpusTest also proves ENCODE_CLEAN_CHARS is the exact byte
-  complement of ENCODE_SKIP_REGEX.
+  complement of ENCODE_NEEDED_REGEX.
 - **thresh-128** (adopted 2026-07-19, run 29690005430): ENCODE_STRSPN_MIN_BYTES
   lowered 256 -> 128. Every 8.4+ cell wins on the 128-255B band (1.06-1.39x at
   128B, 1.11-1.61x at 200B); every 8.1-8.3 cell is an exact tie (dead branch).

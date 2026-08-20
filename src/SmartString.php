@@ -235,7 +235,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      */
     public function __toString(): string
     {
-        // speed: tiered fast paths, see ENCODE_SKIP_REGEX docblock
+        // speed: tiered fast paths, see ENCODE_NEEDED_REGEX docblock
         // Body mirrors htmlEncode() - kept inline, a shared helper costs a method call per output. Keep in sync.
         $text = $this->rawData;
         if (!is_string($text)) {
@@ -245,7 +245,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
             if (strspn($text, self::ENCODE_CLEAN_CHARS) === strlen($text)) {
                 return $text;
             }
-        } elseif (!preg_match(self::ENCODE_SKIP_REGEX, $text)) {
+        } elseif (!preg_match(self::ENCODE_NEEDED_REGEX, $text)) {
             return $text;
         }
         if (!preg_match(self::ENCODE_NON_ASCII_REGEX, $text)) {
@@ -269,7 +269,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      */
     public function htmlEncode(): string
     {
-        // speed: tiered fast paths, see ENCODE_SKIP_REGEX docblock
+        // speed: tiered fast paths, see ENCODE_NEEDED_REGEX docblock
         // Body mirrors __toString() - kept inline, a shared helper costs a method call per output. Keep in sync.
         $text = $this->rawData;
         if (!is_string($text)) {
@@ -279,7 +279,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
             if (strspn($text, self::ENCODE_CLEAN_CHARS) === strlen($text)) {
                 return $text;
             }
-        } elseif (!preg_match(self::ENCODE_SKIP_REGEX, $text)) {
+        } elseif (!preg_match(self::ENCODE_NEEDED_REGEX, $text)) {
             return $text;
         }
         if (!preg_match(self::ENCODE_NON_ASCII_REGEX, $text)) {
@@ -1394,7 +1394,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      *   accepts) cast to clean ASCII only (digits, sign, '.', 'E+', 'INF', '1', ''),
      *   so the cast returns with no scan at all. Float casts are locale-independent
      *   on PHP 8.0+. EncodingCorpusTest sweeps the cast outputs against the encoder.
-     * - Tier 1 (ENCODE_SKIP_REGEX): no byte encoding could change - return as-is.
+     * - Tier 1 (ENCODE_NEEDED_REGEX): no byte encoding could change - return as-is.
      *   Tab, LF, FF, CR are legal in HTML5 and deliberately excluded from the pattern.
      *   On PHP 8.4+, strings of ENCODE_STRSPN_MIN_BYTES or more run this same check
      *   via strspn(ENCODE_CLEAN_CHARS) instead - 8.4 rewrote strspn to scan in blocks,
@@ -1415,10 +1415,10 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      * (two scans + str_replace instead of one small encode, ~15-130ns extra);
      * invalid UTF-8 ~even.
      */
-    private const ENCODE_SKIP_REGEX = '/[\x00-\x08\x0B\x0E-\x1F"&\'<>\x7F-\xFF]/';
+    private const ENCODE_NEEDED_REGEX = '/[\x00-\x08\x0B\x0E-\x1F"&\'<>\x7F-\xFF]/';
 
     /**
-     * Tier 1's clean bytes as a list for strspn(): exactly the bytes ENCODE_SKIP_REGEX
+     * Tier 1's clean bytes as a list for strspn(): exactly the bytes ENCODE_NEEDED_REGEX
      * does NOT match (tab, LF, FF, CR, printable ASCII minus the five specials).
      * The two must stay exact complements - EncodingCorpusTest verifies byte-by-byte.
      */
