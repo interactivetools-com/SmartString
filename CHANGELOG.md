@@ -52,7 +52,6 @@ These only matter if you write parameter names in calls, e.g.
 "Unknown named parameter" Error:
 
 - `percent(ifZero:)` was `zeroFallback:`
-- `or404()`/`orDie()`/`orThrow()` take `text:` (was `message:`)
 - `map(callback:)` was `func:` - matches `array_map()` and `SmartArray::map()`
 
 ### Deprecated
@@ -77,10 +76,6 @@ These still work, they're just no longer featured in the docs - no changes requi
 - **`textOnly()` output is always clean text** - Unicode spaces become
   plain spaces, so an "empty" WYSIWYG value like `<p>&nbsp;</p>` trims to
   `""` and `or()` fallbacks fire, and invalid UTF-8 bytes become �
-- **`jsonEncode()` survives hostile input** - malformed UTF-8 becomes �
-  instead of throwing, and invisible Unicode (zero-width, bidi, tag chars)
-  is re-escaped as visible `\uXXXX` - lossless, JavaScript sees the
-  identical value
 - **`orDie()` and `or404()` exit with status 1** - CLI and cron scripts
   see the failure
 
@@ -117,6 +112,18 @@ escapes `<` `>` `&` as `\uXXXX` so a stored `</script>` can't end the
 script block; the constructor no longer takes a `$properties` array; and
 a dozen more small fixes (static `help()`, CLI-friendly output,
 SmartString-typed arguments, clearer setup errors).
+
+## [2.7.0] - 2026-07-07
+
+### Security
+
+- `jsonEncode()` now substitutes malformed UTF-8 bytes with � (U+FFFD) instead of throwing JsonException, so one corrupt byte in a value no longer breaks the whole page
+- `jsonEncode()` now re-escapes invisible Unicode (zero-width chars, bidi controls, Unicode tag chars, variation selectors) as visible \uXXXX escapes so nothing can hide in page source. Lossless: each escape decodes back to the identical character, so the value JavaScript sees never changes
+- `json_encode($smartString)` now also substitutes malformed UTF-8 with � instead of returning false, matching `jsonEncode()`
+
+### Changed
+
+- `or404()`, `orDie()`, `orThrow()` message parameter renamed to `$text` and documented as HTML-encoded before output
 
 ## [2.6.3] - 2026-04-27
 

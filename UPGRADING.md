@@ -49,9 +49,6 @@ Full lists of what changed per release: [CHANGELOG.md](CHANGELOG.md).
 > ->percent(2, zeroFallback: '-')   // before
 > ->percent(2, ifZero: '-')         // after (dropping the name works too)
 >
-> ->orDie(message: 'Not found')     // before (same for or404, orThrow)
-> ->orDie(text: 'Not found')        // after
->
 > ->map(func: strtoupper(...))      // before
 > ->map(callback: strtoupper(...))  // after - matches array_map() and SmartArray::map()
 > ```
@@ -59,10 +56,9 @@ Full lists of what changed per release: [CHANGELOG.md](CHANGELOG.md).
 > Fix:
 >
 > - Search `zeroFallback:` and replace with `ifZero:`
-> - Search `message:` and replace with `text:` on or404/orDie/orThrow calls
 > - Search `func:` and replace with `callback:` on map/apply calls
 >
-> Regex: `zeroFallback:|->(orDie|or404|orThrow)\(\s*message:|->(map|apply)\(\s*func:`
+> Regex: `zeroFallback:|->(map|apply)\(\s*func:`
 
 ### Silent changes
 
@@ -85,6 +81,40 @@ Full lists of what changed per release: [CHANGELOG.md](CHANGELOG.md).
 > `or()` fallback can now show where it previously didn't
 > - `orDie()` and `or404()` exit with code 1 (was 0) - cron and CLI wrappers
 > that check exit codes now see the failure
+
+## v2.7.0
+
+*Follow this section when upgrading from SmartString before v2.7.0
+(or CMS Builder before 3.85).*
+
+### Parameter renames (named arguments only)
+
+> PHP lets you write a parameter's name right in the call - the `text:`
+> part in `->orDie(text: 'Not found')`. If you never do this, skip this
+> check. If you do, one parameter name changed, and calls using the old
+> name fail with a clear "Unknown named parameter" Error:
+>
+> ```php
+> ->orDie('Not found')              // no parameter name - nothing changes
+> ->orDie(message: 'Not found')     // before (same for or404, orThrow)
+> ->orDie(text: 'Not found')        // after
+> ```
+>
+> Fix:
+>
+> - Search `message:` and replace with `text:` on or404/orDie/orThrow calls
+>
+> Regex: `->(orDie|or404|orThrow)\(\s*message:`
+
+### Silent changes
+
+> - `jsonEncode()` and `json_encode($smartString)` substitute malformed
+> UTF-8 bytes with � (U+FFFD) instead of throwing or returning false - one
+> corrupt byte no longer breaks the whole page, and code expecting a
+> `JsonException` no longer gets one
+> - `jsonEncode()` re-escapes invisible Unicode (zero-width chars, bidi
+> controls, tag chars) as visible `\uXXXX` escapes - lossless, JavaScript
+> sees the identical value
 
 ## v2.6.3
 
