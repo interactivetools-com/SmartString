@@ -58,7 +58,6 @@ $run = match ($method) {
         echo "partial page content";
         $missing->or404();
     },
-    'orThrow'            => fn() => $missing->orThrow((string)$arg),
     'orRedirect'         => fn() => $missing->orRedirect((string)$arg),
     // -smart variants pass the argument as a SmartString: the guard must unwrap the raw
     // value, not encode the __toString output a second time

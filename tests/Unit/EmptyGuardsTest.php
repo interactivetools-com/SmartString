@@ -284,7 +284,7 @@ class EmptyGuardsTest extends SmartStringTestCase
 
     /**
      * The redirect destination is only observable in a real web response:
-     * header() is a no-op under CLI, so the subprocess tests above see the 302
+     * header() is a no-op under CLI, so the in-process test above sees the 302
      * status but not where it points. The query string is the part a login
      * guard builds per request, e.g. ->orRedirect('/login.php?return=' . $path).
      */
