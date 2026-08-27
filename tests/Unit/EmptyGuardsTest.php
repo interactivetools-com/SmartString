@@ -3,19 +3,24 @@ declare(strict_types=1);
 
 namespace Itools\SmartString\Tests\Unit;
 
+use Closure;
 use Itools\SmartString\SmartString;
+use Itools\SmartString\Tests\Support\ExitCalled;
+use Itools\SmartString\Tests\Support\SmartStringTestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
-use Itools\SmartString\Tests\Support\SmartStringTestCase;
 
 /**
  * or404(), orDie(), orThrow(), orRedirect().
  *
  * Present values pass through in-process (each guard returns $this).
- * Exit paths run out of process via runScript() / Support/bin/empty-guard.php.
- * orRedirect's happy path also runs out of process: PHPUnit's own console
- * output does not mark headers as sent, but only a fresh process guarantees
- * headers_sent() is false at call time.
+ * The guards end in self::exit(), which throws ExitCalled under PHPUnit
+ * (tests/bootstrap.php loads the class), so orDie() and orRedirect() are
+ * asserted in-process: output, exit status, and http_response_code().
+ * or404() still runs out of process via runScript() / Support/bin/empty-guard.php:
+ * it discards every open output buffer, PHPUnit's capture buffer included, and
+ * PHPUnit fails a test that closes buffers it didn't open. The headers-sent
+ * variants need a process where output really was sent.
  * The headers the guards send are asserted by serving the same script through
  * PHP's built-in server, where responses carry real headers.
  *
@@ -24,6 +29,32 @@ use Itools\SmartString\Tests\Support\SmartStringTestCase;
  */
 class EmptyGuardsTest extends SmartStringTestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        http_response_code_clear();   // the status survives between tests in one process; start each from false
+    }
+
+    /**
+     * Run $fn expecting it to end in self::exit(). Returns [the ExitCalled it threw, what it printed first].
+     *
+     * @return array{0: ExitCalled, 1: string}
+     */
+    private function expectExit(callable $fn): array
+    {
+        ob_start();
+        try {
+            $fn();
+        } catch (ExitCalled $e) {
+            return [$e, ob_get_clean()];
+        } finally {
+            if (!isset($e)) {   // returned or threw something else: close the buffer so PHPUnit does not flag the test as risky
+                ob_end_clean();
+            }
+        }
+        $this->fail('expected self::exit() to be called');
+    }
+
     //region Present Values Pass Through
 
     #[DataProvider('presentValuesProvider')]
@@ -200,7 +231,7 @@ class EmptyGuardsTest extends SmartStringTestCase
     }
 
     //endregion
-    //region orDie() Exit Path (subprocess)
+    //region orDie() Exit Path
 
     /**
      * orDie exits 1 so CLI and cron callers see a failure, not success.
@@ -208,44 +239,33 @@ class EmptyGuardsTest extends SmartStringTestCase
      */
     public function testOrDieOutputsEncodedMessageAndExits1(): void
     {
-        [$stdout, $stderr, $exitCode] = $this->runScript('orDie', "Bad <id> & 'quote'");
+        [$exit, $output] = $this->expectExit(fn() => SmartString::new(null)->orDie("Bad <id> & 'quote'"));
 
-        $this->assertSame('Bad &lt;id&gt; &amp; &apos;quote&apos;', $stdout);
-        $this->assertStringNotContainsString('NOT-REACHED', $stderr);
-        $this->assertSame(1, $exitCode);
+        $this->assertSame('Bad &lt;id&gt; &amp; &apos;quote&apos;', $output);
+        $this->assertFalse(http_response_code(), 'orDie() sets no HTTP status');
+        $this->assertSame(1, $exit->status);
     }
 
     public function testOrDieEncodesSmartStringMessageOnce(): void
     {
         // a SmartString message unwraps to its raw value first, so the output
         // is encoded once instead of double-encoding the __toString output
-        [$stdout, $stderr, $exitCode] = $this->runScript('orDie-smart-text', "Bad <id> & 'quote'");
+        [$exit, $output] = $this->expectExit(fn() => SmartString::new(null)->orDie(SmartString::new("Bad <id> & 'quote'")));
 
-        $this->assertSame('Bad &lt;id&gt; &amp; &apos;quote&apos;', $stdout);
-        $this->assertStringNotContainsString('NOT-REACHED', $stderr);
-        $this->assertSame(1, $exitCode);
+        $this->assertSame('Bad &lt;id&gt; &amp; &apos;quote&apos;', $output);
+        $this->assertSame(1, $exit->status);
     }
 
     //endregion
-    //region orRedirect() Exit Path (subprocess)
+    //region orRedirect() Exit Path
 
     public function testOrRedirectSends302AndExits(): void
     {
-        [$stdout, $stderr, $exitCode] = $this->runScript('orRedirect', 'https://example.com/login');
+        [$exit, $output] = $this->expectExit(fn() => SmartString::new(null)->orRedirect('https://example.com/login'));
 
-        $this->assertSame('', $stdout);
-        $this->assertStringContainsString('status=302', $stderr);
-        $this->assertStringNotContainsString('NOT-REACHED', $stderr);
-        $this->assertSame(0, $exitCode);
-    }
-
-    public function testOrRedirectPassesPresentValueThrough(): void
-    {
-        [$stdout, $stderr, $exitCode] = $this->runScript('orRedirect-present', 'https://example.com/login');
-
-        $this->assertSame('ok', $stdout);
-        $this->assertStringContainsString('NOT-REACHED', $stderr); // reaching the end IS the pass-through
-        $this->assertSame(0, $exitCode);
+        $this->assertSame('', $output, 'a redirect writes no body');
+        $this->assertSame(302, http_response_code());
+        $this->assertSame(0, $exit->status, 'orRedirect() exits with the default status 0');
     }
 
     /**
@@ -303,6 +323,62 @@ class EmptyGuardsTest extends SmartStringTestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('orRedirect(): redirect URL is blank');
         SmartString::new('Hello')->orRedirect(SmartString::new(null));
+    }
+
+    //endregion
+    //region self::exit()
+
+    /**
+     * @return array<string, array{string|int, string, int}>
+     */
+    public static function exitCases(): array
+    {
+        return [
+            'string prints and exits 0'       => ['Not found', 'Not found', 0],
+            'int sets status, prints nothing' => [3, '', 3],
+            'no argument exits 0'             => [0, '', 0],
+        ];
+    }
+
+    /**
+     * The seam every guard ends in. While tests/bootstrap.php has ExitCalled loaded, self::exit()
+     * throws it, carrying the output and status with the same string-or-int rules as PHP's exit.
+     */
+    #[DataProvider('exitCases')]
+    public function testExitThrowsExitCalledUnderPhpunit(string|int $arg, string $expectedOutput, int $expectedStatus): void
+    {
+        $exit = Closure::bind(static fn() => SmartString::exit($arg), null, SmartString::class);   // protected: call from inside the class
+
+        try {
+            $exit();
+        } catch (ExitCalled $e) {
+            $this->assertSame($expectedOutput, $e->output);
+            $this->assertSame($expectedStatus, $e->status);
+            $this->assertNotInstanceOf(RuntimeException::class, $e, 'a catch (RuntimeException) in the code under test must not swallow it');
+            return;
+        }
+        $this->fail('self::exit() should have thrown ExitCalled');
+    }
+
+    /**
+     * Outside PHPUnit nothing loads ExitCalled, so self::exit() is a real exit: the message reaches
+     * stdout and the process ends with the status. One fresh php with the script on stdin: no shell
+     * (Windows escapeshellarg() drops "!" and cmd.exe reads 2>/dev/null as a file path) and no
+     * stderr pipe to deadlock on.
+     */
+    public function testExitPrintsAndSetsStatusOutsidePhpunit(): void
+    {
+        $autoload = dirname(__DIR__, 2) . '/vendor/autoload.php';
+        $script   = '<?php require ' . var_export($autoload, true) . '; \Itools\SmartString\SmartString::new(null)->orDie("Gone!");';
+        $process  = proc_open([PHP_BINARY], [['pipe', 'r'], ['pipe', 'w']], $pipes);
+        fwrite($pipes[0], $script);
+        fclose($pipes[0]);
+        $stdout = stream_get_contents($pipes[1]);
+        fclose($pipes[1]);
+        $status = proc_close($process);
+
+        $this->assertSame('Gone!', $stdout);
+        $this->assertSame(1, $status, 'orDie() exits 1 so shell scripts and cron jobs see the failure');
     }
 
     //endregion

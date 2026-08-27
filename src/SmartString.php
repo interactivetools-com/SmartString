@@ -968,7 +968,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
             </body>
             </html>
             __HTML__;
-        exit(1);
+        self::exit(1);
     }
 
     /**
@@ -986,7 +986,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     {
         if ($this->rawData === null || $this->rawData === '') { // isMissing(), inlined for speed
             echo self::h(is_string($text) ? $text : (string)self::getRawValue($text)); // SECURITY: intentional encode, do not remove (see docblock)
-            exit(1);
+            self::exit(1);
         }
         return $this;
     }
@@ -1042,7 +1042,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         if ($this->rawData === null || $this->rawData === '') { // isMissing(), inlined for speed
             http_response_code(302);
             header("Location: $url");
-            exit;
+            self::exit();
         }
         return $this;
     }
