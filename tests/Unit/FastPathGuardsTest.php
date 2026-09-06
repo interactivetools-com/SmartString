@@ -145,6 +145,17 @@ class FastPathGuardsTest extends SmartStringTestCase
     }
 
     /** Behavioral backstop for the guard pins: "0" is a present value, not a missing one */
+    /**
+     * PHP checks the class names in a union return type in the order written and repeats a
+     * failed lookup on every call for a class that isn't loaded. SmartArrayHtml is only
+     * present when the companion library is installed, so it goes after SmartString.
+     */
+    public function testNewListsSmartStringBeforeSmartArrayHtml(): void
+    {
+        $names = array_map(static fn($t) => $t->getName(), (new ReflectionMethod(SmartString::class, 'new'))->getReturnType()->getTypes());
+        $this->assertSame([SmartString::class, 'Itools\SmartArray\SmartArrayHtml'], $names);
+    }
+
     public function testZeroStringIsPresent(): void
     {
         $this->assertSame('0<br>', SmartString::new('0')->appendHtml('<br>'));

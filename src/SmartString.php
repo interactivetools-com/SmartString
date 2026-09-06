@@ -97,7 +97,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      * @param string|int|float|bool|array|null|SmartString|SmartNull $value
      * @return SmartArrayHtml|SmartString The newly created SmartString object.
      */
-    public static function new(string|int|float|bool|null|array|SmartString|SmartNull $value): SmartArrayHtml|SmartString
+    public static function new(string|int|float|bool|null|array|SmartString|SmartNull $value): SmartString|SmartArrayHtml
     {
         if (is_array($value)) {
             if (!class_exists(SmartArrayHtml::class)) { // itools/smartarray is suggested, not required: name the fix instead of a class-not-found fatal
