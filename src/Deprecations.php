@@ -157,7 +157,7 @@ trait Deprecations
     {
         $newValue = null;
 
-        // get array of digits only ('' check: str_split('') returns [''] on PHP 8.1 but [] on 8.2+)
+        // get array of digits only (TODO-PHP82: drop the '' check; str_split('') returns [''] on 8.1 but [] from 8.2)
         $digitsOnly = preg_replace('/\D/', '', (string)$this->rawData);
         $digits     = $digitsOnly === '' ? [] : str_split($digitsOnly);
 

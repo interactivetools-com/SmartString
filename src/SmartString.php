@@ -241,6 +241,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         if (!is_string($text)) {
             return (string)$text; // int/float/bool/null cast to clean ASCII only - nothing to encode
         }
+        // TODO-PHP84: drop the PHP_VERSION_ID check; keep the strlen check and the preg_match branch, short strings still take it
         if (PHP_VERSION_ID >= 80400 && strlen($text) >= self::ENCODE_STRSPN_MIN_BYTES) {
             if (strspn($text, self::ENCODE_CLEAN_CHARS) === strlen($text)) {
                 return $text;
@@ -275,6 +276,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         if (!is_string($text)) {
             return (string)$text; // int/float/bool/null cast to clean ASCII only - nothing to encode
         }
+        // TODO-PHP84: drop the PHP_VERSION_ID check; keep the strlen check and the preg_match branch, short strings still take it
         if (PHP_VERSION_ID >= 80400 && strlen($text) >= self::ENCODE_STRSPN_MIN_BYTES) {
             if (strspn($text, self::ENCODE_CLEAN_CHARS) === strlen($text)) {
                 return $text;
