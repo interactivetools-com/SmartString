@@ -57,7 +57,7 @@ jobs:
           persist-credentials: false  # no step uses git with the token, so don't leave it in .git/config
 
       - name: Setup PHP ${{ matrix.php }}
-        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2.37.2
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
           php-version: ${{ matrix.php }}
           coverage: none
@@ -76,12 +76,14 @@ jobs:
 
       - name: Verdict
         if: always()
+        env:
+          PHP: ${{ matrix.php }}
         run: |
           if [ -f __encode-mismatches.log ]; then
-            echo "MISMATCHES FOUND (PHP ${{ matrix.php }}):"
+            echo "MISMATCHES FOUND (PHP $PHP):"
             cat __encode-mismatches.log
             {
-              echo "## PHP ${{ matrix.php }}: MISMATCHES FOUND"
+              echo "## PHP $PHP: MISMATCHES FOUND"
               echo '```'
               cat __encode-mismatches.log
               echo '```'
@@ -89,4 +91,4 @@ jobs:
             exit 1
           fi
           echo "ALL MATCH: every string up to 4 bytes encodes identically to htmlspecialchars()"
-          echo "PHP ${{ matrix.php }}: ALL MATCH (4,311,810,304 strings, zero mismatches)" >> "$GITHUB_STEP_SUMMARY"
+          echo "PHP $PHP: ALL MATCH (4,311,810,304 strings, zero mismatches)" >> "$GITHUB_STEP_SUMMARY"

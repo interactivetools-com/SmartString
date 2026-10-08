@@ -77,7 +77,7 @@ jobs:
 
       # opcache enabled for CLI to match production opcode optimization
       - name: Setup PHP ${{ inputs.php }}
-        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2.37.2
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
           php-version: ${{ inputs.php }}
           coverage: none
@@ -88,10 +88,11 @@ jobs:
       # data, never as script source
       - name: Generate table
         env:
-          SCALE: ${{ inputs.scale }}
-          PHP:   ${{ inputs.php }}
+          SCALE:   ${{ inputs.scale }}
+          PHP:     ${{ inputs.php }}
+          OS_NAME: ${{ matrix.os }}
         run: |
-          SLUG="${{ matrix.os }}-php$PHP"
+          SLUG="$OS_NAME-php$PHP"
           php .github/scripts/speed-page-table.php \
             --scale="$SCALE" \
             | tee "table-$SLUG.md"
