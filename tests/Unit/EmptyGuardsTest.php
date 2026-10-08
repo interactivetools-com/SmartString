@@ -11,7 +11,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use RuntimeException;
 
 /**
- * or404(), orDie(), orThrow(), orRedirect().
+ * or404(), orDie(), orThrow(), orRedirect(), and set404Handler().
  *
  * Present values pass through in-process (each guard returns $this).
  * The guards end in self::exit(), which throws ExitCalled under PHPUnit
@@ -24,15 +24,41 @@ use RuntimeException;
  * The headers the guards send are asserted by serving the same script through
  * PHP's built-in server, where responses carry real headers.
  *
- * n/a dimensions: global settings, immutability (guards return $this, pinned
- * here as instance identity).
+ * A set404Handler() handler gets or404()'s message as plain text and encodes
+ * it itself; every other path here HTML-encodes the message.
+ *
+ * n/a dimensions: the formatting settings, immutability (guards return $this,
+ * pinned here as instance identity).
  */
 class EmptyGuardsTest extends SmartStringTestCase
 {
+    /** The exact page or404() writes, with %s for the HTML-encoded message. */
+    private const NOT_FOUND_PAGE = <<<'__HTML__'
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Not Found</title>
+        </head>
+        <body>
+            <h1>Not Found</h1>
+            <p>%s</p>
+        </body>
+        </html>
+        __HTML__;
+
+    /** The message or404() shows when called without one. */
+    private const DEFAULT_TEXT = 'The requested URL was not found on this server.';
+
     protected function setUp(): void
     {
         parent::setUp();
         http_response_code_clear();   // the status survives between tests in one process; start each from false
+    }
+
+    protected function tearDown(): void
+    {
+        SmartString::set404Handler(null);   // the handler is static, so a test that sets one would leak it into the next
+        parent::tearDown();
     }
 
     /**
@@ -146,8 +172,7 @@ class EmptyGuardsTest extends SmartStringTestCase
     {
         [$stdout, $stderr, $exitCode] = $this->runScript('or404-default');
 
-        $this->assertStringContainsString('<h1>Not Found</h1>', $stdout);
-        $this->assertStringContainsString('<p>The requested URL was not found on this server.</p>', $stdout);
+        $this->assertSame(sprintf(self::NOT_FOUND_PAGE, self::DEFAULT_TEXT), $stdout);
         $this->assertStringContainsString('status=404', $stderr);
         $this->assertStringNotContainsString('NOT-REACHED', $stderr);
         $this->assertSame(1, $exitCode, 'or404() exits with status 1 like orDie(), so shells and cron see the failure');
@@ -157,7 +182,7 @@ class EmptyGuardsTest extends SmartStringTestCase
     {
         [$stdout, $stderr, $exitCode] = $this->runScript('or404', "Bad <id> & 'quote'");
 
-        $this->assertStringContainsString("<p>Bad &lt;id&gt; &amp; &apos;quote&apos;</p>", $stdout);
+        $this->assertSame(sprintf(self::NOT_FOUND_PAGE, 'Bad &lt;id&gt; &amp; &apos;quote&apos;'), $stdout);
         $this->assertStringContainsString('status=404', $stderr);
         $this->assertStringNotContainsString('NOT-REACHED', $stderr);
         $this->assertSame(1, $exitCode, 'or404() exits with status 1 like orDie(), so shells and cron see the failure');
@@ -228,6 +253,144 @@ class EmptyGuardsTest extends SmartStringTestCase
         $this->assertContains('Content-Type: text/html; charset=utf-8', $headers, "Response headers: " . var_export($headers, true));
         $this->assertStringContainsString('404 Not Found', $headers[0]);
         $this->assertStringContainsString('<h1>Not Found</h1>', $body);
+    }
+
+    //endregion
+    //region set404Handler()
+
+    public function testSet404HandlerReturnsThePreviousHandler(): void
+    {
+        $handler = fn(?string $text) => null;
+
+        $this->assertNull(SmartString::set404Handler($handler), 'no handler was set before');
+        $this->assertSame($handler, SmartString::set404Handler(null), 'a Closure comes back as the same object');
+        $this->assertNull(SmartString::set404Handler(null), 'null went back to the built-in page');
+    }
+
+    #[DataProvider('presentValuesProvider')]
+    public function testHandlerIsNotCalledForPresentValues($value): void
+    {
+        $called = false;
+        SmartString::set404Handler(function (?string $text) use (&$called): void {
+            $called = true;
+        });
+        $smartString = SmartString::new($value);
+
+        $this->assertSame($smartString, $smartString->or404('Not found'));
+        $this->assertFalse($called);
+    }
+
+    /**
+     * @return array<string, array{array<int, string>, string|null}>
+     */
+    public static function handlerMessageProvider(): array
+    {
+        return [
+            'plain text, not encoded' => [['or404-handler', 'No <b>value</b>'], 'No <b>value</b>'],
+            'no message'              => [['or404-handler-default'], null],
+            'empty message'           => [['or404-handler', ''], ''],
+            'empty-string value'      => [['or404-handler-empty-value', 'Blank'], 'Blank'],
+            'SmartString message'     => [['or404-handler-smart-text', "O'Brien & co"], "O'Brien & co"],   // the raw value, not the encoded __toString()
+            'SmartString number'      => [['or404-handler-smart-int'], '404'],
+            'SmartNull message'       => [['or404-handler-smartnull'], null],
+        ];
+    }
+
+    /**
+     * The handler runs after the 404 status is set and the buffers are gone, and
+     * or404() exits with status 1 once it returns.
+     */
+    #[DataProvider('handlerMessageProvider')]
+    public function testHandlerGetsMessageAsPlainText(array $scriptArgs, ?string $expectedText): void
+    {
+        [$stdout, $stderr, $exitCode] = $this->runScript(...$scriptArgs);
+
+        $this->assertSame(self::handlerReport($expectedText), $stdout);
+        $this->assertSame('status=404', $stderr, 'no NOT-REACHED: or404() exited after the handler returned');
+        $this->assertSame(1, $exitCode);
+    }
+
+    public function testHandlerRunsAfterBufferedOutputIsDiscarded(): void
+    {
+        [$stdout, $stderr, $exitCode] = $this->runScript('or404-handler-ob-discard');
+
+        $this->assertSame(self::handlerReport(null), $stdout, 'the partial page is discarded before the handler runs');
+        $this->assertSame('status=404', $stderr);
+        $this->assertSame(1, $exitCode);
+    }
+
+    public function testHandlerStillRunsAfterOutputSent(): void
+    {
+        [$stdout, $stderr, $exitCode] = $this->runScript('or404-handler-headers-sent');
+
+        $this->assertSame("already-flushed\n" . self::handlerReport(null, 'false'), $stdout, 'headers already sent: no status, but the handler still prints the page');
+        $this->assertSame('status=false', $stderr);
+        $this->assertSame(1, $exitCode);
+    }
+
+    public function testSettingNullBringsBackTheBuiltInPage(): void
+    {
+        [$stdout, $stderr, $exitCode] = $this->runScript('or404-handler-reset');
+
+        $this->assertSame(sprintf(self::NOT_FOUND_PAGE, self::DEFAULT_TEXT), $stdout);
+        $this->assertSame('status=404', $stderr);
+        $this->assertSame(1, $exitCode);
+    }
+
+    /**
+     * An exception from the handler isn't caught: it reaches the app's own error
+     * handling with the 404 status already sent. The fatal error text isn't
+     * matched, since display_errors decides whether it goes to stdout or stderr.
+     */
+    public function testHandlerExceptionPassesThroughWith404Status(): void
+    {
+        [$stdout, $stderr, $exitCode] = $this->runScript('or404-handler-throws');
+
+        $this->assertStringEndsWith('status=404', $stderr);
+        $this->assertStringNotContainsString('NOT-REACHED', $stdout . $stderr);
+        $this->assertSame(255, $exitCode, 'PHP exits with 255 on an uncaught exception');
+    }
+
+    public function testOr404InsideHandlerPrintsTheBuiltInPage(): void
+    {
+        [$stdout, $stderr, $exitCode] = $this->runScript('or404-handler-nested');
+
+        $this->assertSame("handler-page\n" . sprintf(self::NOT_FOUND_PAGE, 'nested call'), $stdout, 'the handler runs once, then the nested or404() prints the built-in page');
+        $this->assertSame('status=404', $stderr);
+        $this->assertSame(1, $exitCode);
+    }
+
+    /**
+     * first() on an empty SmartArrayHtml result returns a SmartNull, and its
+     * or404() is SmartString's, so this handler runs (not SmartArray's).
+     */
+    public function testFirstOnEmptyHtmlResultUsesThisHandler(): void
+    {
+        [$stdout, $stderr, $exitCode] = $this->runScript('smartnull-or404-handler', 'No entry');
+
+        $this->assertSame(self::handlerReport('No entry'), $stdout);
+        $this->assertSame('status=404', $stderr);
+        $this->assertSame(1, $exitCode);
+    }
+
+    public function testHandlerResponseKeeps404StatusAndContentType(): void
+    {
+        [$headers, $body] = $this->requestGuard('or404-handler', 'No entry');
+
+        $this->assertStringContainsString('404 Not Found', $headers[0]);
+        $this->assertContains('Content-Type: text/html; charset=utf-8', $headers, "Response headers: " . var_export($headers, true));
+        $this->assertSame(self::handlerReport('No entry'), $body);
+    }
+
+    /**
+     * What the handler in empty-guard.php prints: the message it got, the status
+     * when it ran, and the output buffer level when it ran.
+     */
+    private static function handlerReport(?string $text, string $status = '404'): string
+    {
+        return "handler-text=" . var_export($text, true) . "\n"
+             . "handler-status=$status\n"
+             . "handler-ob-level=0\n";
     }
 
     //endregion

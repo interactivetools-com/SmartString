@@ -125,6 +125,9 @@ continues. Zero counts as present.*
 | `->orThrow($text)`      | Throws a `RuntimeException` with the message                                         |
 | `->orRedirect($url)`    | Redirects to `$url` and exits (throws `RuntimeException` if headers were already sent) |
 
+To show your site's own 404 page instead, set it once at startup with
+`SmartString::set404Handler()`.
+
 ### [Value Checks](conditionals-and-error-checking.md#truefalse-checks---isempty-isnotempty-ismissing-isnull)
 
 *These return a plain true or false, typically used in if statements. Zero is

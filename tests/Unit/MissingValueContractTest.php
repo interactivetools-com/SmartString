@@ -59,6 +59,7 @@ class MissingValueContractTest extends SmartStringTestCase
         'orDie'         => 'exits the process when missing, pinned out of process in EmptyGuardsTest',
         'orRedirect'    => 'exits the process when missing, pinned out of process in EmptyGuardsTest',
         'orThrow'       => 'throws when missing, pinned in EmptyGuardsTest',
+        'set404Handler' => 'static setter: stores the or404() handler, reads no stored value',
         'set'           => 'replaces unconditionally, missingness is irrelevant',
         'ifTrue'        => 'replaces on its condition argument, not on missingness',
         'ifEquals'      => 'replaces on its match argument, not on missingness',

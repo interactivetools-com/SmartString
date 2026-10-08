@@ -239,8 +239,8 @@ How each guard differs:
 
 - **`or404($text)`** sends the 404 status and a minimal HTML error page. The
   default message is "The requested URL was not found on this server." The
-  page is deliberately plain; for a designed not-found page, use
-  `orRedirect()` to send visitors to your own.
+  page is deliberately plain; to show your own, see
+  [Using Your Site's 404 Page](#using-your-sites-404-page).
 - **`orDie($text)`** exits with code 1, so CLI scripts and cron jobs see a
   failure instead of success.
 - **`orThrow($text)`** throws a `RuntimeException` for your error handler.
@@ -250,6 +250,23 @@ How each guard differs:
   `""`) immediately and throws if either fails, even when the value is
   present, so a misplaced redirect fails on the first request instead of
   only when a value goes missing.
+
+### Using Your Site's 404 Page
+
+`or404()` prints a plain built-in page. To show your site's own 404 page
+instead, set a handler once in your init file:
+
+```php
+SmartString::set404Handler(function (?string $text): void {
+    $message = SmartString::new($text ?? "We couldn't find that page.");  // encodes itself when echoed
+    include __DIR__ . '/404.php';                                         // your page template, which echoes $message
+});
+```
+
+If you also use [SmartArray](https://github.com/interactivetools-com/SmartArray),
+set its handler too, with `SmartArray::set404Handler()`. Each library keeps
+its own: field guards like `$article->num->or404()` use SmartString's, and
+`or404()` on a whole result uses SmartArray's.
 
 ### The two-stage guard
 

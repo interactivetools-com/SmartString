@@ -54,6 +54,9 @@ callbacks receive the raw value and their result is rewrapped. __debugInfo()
 shows the stored value. int(), float(), bool(), and the if*() conditionals
 use documented PHP cast and loose-comparison semantics. Only flag these if a
 concrete in-repo path renders their result into HTML without encoding.
+A set404Handler() handler receives or404()'s message as plain text by
+design; flag only a shipped doc example or docblock that prints it without
+encoding.
 
 Known limitations and finding criteria:
 

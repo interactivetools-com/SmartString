@@ -4,7 +4,7 @@
 > per version - tagged releases roll up every change since the previous tag.
 > Versions bundled with CMS Builder are marked on their sections.
 
-## [3.0.0] - 2026-08-16
+## [3.0.0] - [UNRELEASED]
 
 > **Bundled with CMS Builder v3.85**
 
@@ -19,6 +19,7 @@ hardening and fixes.
 |-------------------------------|-------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `appendHtml($html)`           | string      | Adds HTML after the value; missing values (null or "") return ""                                                                                                          |
 | `ifEquals($match, $newValue)` | SmartString | Replaces the value on a loose match (`==`), for placeholder values: `->ifEquals('0000-00-00', null)`, `->ifEquals(-1, 'Unlimited')`                                       |
+| `set404Handler($callback)`    | ?Closure    | Static. Shows your own page when `or404()` fires instead of the built-in one; SmartArray has its own, so set both                                                         |
 | `wrap($before, $after)`       | SmartString | Wraps the value only when present; missing (null or "") skips the wrapper. Both sides required; pass "" for a side you don't want                                         |
 | `wrapHtml($before, $after)`   | string      | Like `appendHtml()` but adds HTML on both sides: `->wrapHtml('<h2>', '</h2>')` prints nothing when the value is missing, so you don't need an `if` around optional fields |
 

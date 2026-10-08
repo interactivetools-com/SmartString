@@ -21,7 +21,7 @@ Contents:
 - [String Manipulation](#string-manipulation) - append(), prepend(), wrap(), textOnly(), trim(), maxWords(), maxChars(), pregReplace()
 - [Dates and Numbers](#dates-and-numbers) - dateFormat(), numberFormat(), percent(), percentOf(), add(), subtract(), multiply(), divide()
 - [Conditional Replacement](#conditional-replacement) - or(), ifNull(), ifZero(), ifTrue(), ifEquals(), set()
-- [Guards](#guards) - or404(), orDie(), orThrow(), orRedirect()
+- [Guards](#guards) - or404(), orDie(), orThrow(), orRedirect(), set404Handler()
 - [Value Checks](#value-checks) - isEmpty(), isNotEmpty(), isMissing(), isNull()
 - [Custom Functions](#custom-functions) - map()
 - [Static Configuration](#static-configuration)
@@ -226,11 +226,13 @@ Placement of `or()` changes meaning: `->or(0)->numberFormat(2)` → `"0.00"`
 Stop the page when the value is missing (null or `""`; zero passes).
 Otherwise return `$this` unchanged for chaining. Message/`$text` params are
 HTML-encoded automatically (messages often interpolate user input); a
-SmartString message unwraps first, so it is encoded once, not twice.
+SmartString message unwraps first, so it is encoded once, not twice. The
+exception is a `set404Handler()` handler, which gets `or404()`'s message
+unencoded.
 
 | Method                              | On missing                                                                                                                                               |
 |-------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `or404(?string $text = null): self` | HTTP 404 + minimal HTML page + `exit(1)`. Default text "The requested URL was not found on this server."                                                 |
+| `or404(?string $text = null): self` | HTTP 404 + minimal HTML page (or the `set404Handler()` page) + `exit(1)`. Default text "The requested URL was not found on this server."                 |
 | `orDie(string $text): self`         | Echo encoded text + `exit(1)` (failure code for CLI/cron)                                                                                                |
 | `orThrow(string $text): self`       | `throw new RuntimeException($encodedText)`. Decode for logs/CLI with `htmlspecialchars_decode($msg, ENT_QUOTES \| ENT_SUBSTITUTE \| ENT_HTML5)`          |
 | `orRedirect(string $url): self`     | 302 + `Location: $url` + `exit`. A SmartString `$url` unwraps raw (no `&amp;` in the header). Checks `headers_sent()` and a blank `$url` IMMEDIATELY (throws RuntimeException even when value present, so misuse fails on first request) |
@@ -239,6 +241,26 @@ SmartString message unwraps first, so it is encoded once, not twice.
 $article->num->or404("Article not found");
 $row->orThrow("no row")->memberId->orThrow("row found but memberId empty")->int();  // two-stage guard ($row is a SmartArrayHtml row; its orThrow() works the same way)
 ```
+
+`SmartString::set404Handler(?callable $callback): ?Closure` - static; sets the
+page `or404()` shows instead of the built-in one. Call once at startup.
+
+```php
+SmartString::set404Handler(function (?string $text): void {
+    $message = SmartString::new($text ?? "We couldn't find that page.");  // encodes itself when echoed
+    include __DIR__ . '/404.php';                                         // your page template, which echoes $message
+});
+```
+
+- The handler gets the message as plain text (NOT encoded; encode it before
+  output), or null when `or404()` had no message. Type it `?string`.
+- `or404()` sends the 404 status and discards output buffers before the
+  handler, and calls `exit(1)` after it returns.
+- Returns the previous handler, or null; `set404Handler(null)` restores the
+  built-in page.
+- SmartArray keeps its own handler (`SmartArray::set404Handler()`) for
+  `or404()` on collections. Fields, including `->first()->or404()` on an
+  empty SmartArrayHtml result, use this one. Set both.
 
 ## Value Checks
 
