@@ -59,15 +59,18 @@ jobs:
     steps:
       - name: Build matrix from inputs
         id: load
+        env:
+          OS:  ${{ inputs.os }}
+          PHP: ${{ inputs.php }}
         run: |
-          if [ -n "${{ inputs.os }}" ]; then
-            echo 'os=["${{ inputs.os }}"]' >> "$GITHUB_OUTPUT"
+          if [ -n "$OS" ]; then
+            echo "os=[\"$OS\"]" >> "$GITHUB_OUTPUT"
           else
             # macos-15-intel is off: setup-php often can't install PHP there and the job fails before it runs
             echo 'os=["ubuntu-latest", "ubuntu-24.04-arm", "windows-latest", "macos-latest"]' >> "$GITHUB_OUTPUT"
           fi
-          if [ -n "${{ inputs.php }}" ]; then
-            echo 'php=["${{ inputs.php }}"]' >> "$GITHUB_OUTPUT"
+          if [ -n "$PHP" ]; then
+            echo "php=[\"$PHP\"]" >> "$GITHUB_OUTPUT"
           else
             echo 'php=["8.1", "8.2", "8.3", "8.4", "8.5"]' >> "$GITHUB_OUTPUT"
           fi

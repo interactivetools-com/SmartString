@@ -45,9 +45,11 @@ jobs:
     steps:
       - name: Build matrix from inputs
         id: load
+        env:
+          OS: ${{ inputs.os }}
         run: |
-          if [ -n "${{ inputs.os }}" ]; then
-            echo 'os=["${{ inputs.os }}"]' >> "$GITHUB_OUTPUT"
+          if [ -n "$OS" ]; then
+            echo "os=[\"$OS\"]" >> "$GITHUB_OUTPUT"
           else
             echo 'os=["ubuntu-latest", "ubuntu-24.04-arm", "windows-latest"]' >> "$GITHUB_OUTPUT"
           fi
@@ -87,8 +89,9 @@ jobs:
       - name: Generate table
         env:
           SCALE: ${{ inputs.scale }}
+          PHP:   ${{ inputs.php }}
         run: |
-          SLUG="${{ matrix.os }}-php${{ inputs.php }}"
+          SLUG="${{ matrix.os }}-php$PHP"
           php .github/scripts/speed-page-table.php \
             --scale="$SCALE" \
             | tee "table-$SLUG.md"
