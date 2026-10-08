@@ -32,6 +32,10 @@ on:
         required: false
         default: '1.0'
 
+# the jobs only read the code
+permissions:
+  contents: read
+
 jobs:
   matrix:
     name: Load matrix
@@ -66,6 +70,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false  # no step uses git with the token, so don't leave it in .git/config
 
       # opcache enabled for CLI to match production opcode optimization
       - name: Setup PHP ${{ inputs.php }}
