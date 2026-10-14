@@ -72,6 +72,7 @@ described in [SECURITY.md](SECURITY.md).
 
 - [SmartArray](https://github.com/interactivetools-com/SmartArray) - database rows as chainable collections, with fields returned as SmartStrings.
 - [ZenDB](https://github.com/interactivetools-com/ZenDB) - database library that returns query results as SmartArrays of SmartStrings, so fields arrive HTML-safe.
+- [HtmlSecurityCheck](https://github.com/interactivetools-com/HtmlSecurityCheck) - allowlist check for HTML that has to be printed unencoded, such as rich text from an editor: rejects it if it could run script, send the page's data to another host, or mislead the visitor, and never rewrites what it accepts.
 
 ## Questions?
 
