@@ -61,6 +61,13 @@ $name = $user->name->value();
 $rows = $orders->toArray();
 ```
 
+## Security
+
+Values encode for HTML text and quoted attribute values, and markup reaches the page only through
+the methods in [Encoding and HTML](docs/encoding-and-html.md). A link URL from user input still
+needs its scheme checked: encoding leaves `javascript:` intact. Report a security problem as
+described in [SECURITY.md](SECURITY.md).
+
 ## Related Libraries
 
 - [SmartArray](https://github.com/interactivetools-com/SmartArray) - database rows as chainable collections, with fields returned as SmartStrings.
