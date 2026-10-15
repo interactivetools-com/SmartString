@@ -257,16 +257,22 @@ How each guard differs:
 instead, set a handler once in your init file:
 
 ```php
-SmartString::set404Handler(function (?string $text): void {
+use Itools\SmartArray\SmartArray;
+use Itools\SmartString\SmartString;
+
+$show404 = function (?string $text): void {
     $message = SmartString::new($text ?? "We couldn't find that page.");  // encodes itself when echoed
     include __DIR__ . '/404.php';                                         // your page template, which echoes $message
-});
+};
+SmartString::set404Handler($show404);
+SmartArray::set404Handler($show404);
 ```
 
-If you also use [SmartArray](https://github.com/interactivetools-com/SmartArray),
-set its handler too, with `SmartArray::set404Handler()`. Each library keeps
-its own: field guards like `$article->num->or404()` use SmartString's, and
-`or404()` on a whole result uses SmartArray's.
+SmartString and [SmartArray](https://github.com/interactivetools-com/SmartArray)
+each keep their own handler, so set both. Field guards like
+`$article->num->or404()`, and `->first()->or404()` with no match, use
+SmartString's; `or404()` on a whole result uses SmartArray's. Without
+SmartArray, leave out its two lines.
 
 ### The two-stage guard
 

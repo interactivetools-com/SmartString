@@ -134,6 +134,9 @@ Swap `or404()` for `orDie($text)`, `orThrow($text)`, or `orRedirect($url)`
 for other outcomes; all four use the same missing rules (null or `""`,
 zero counts as present).
 
+To show your site's own 404 page instead of the built-in one, see
+[Using Your Site's 404 Page](conditionals-and-error-checking.md#using-your-sites-404-page).
+
 ## Displaying WYSIWYG or HTML Content
 
 SmartString HTML-encodes everything by default, but sometimes the value is
