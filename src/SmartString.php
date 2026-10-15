@@ -16,8 +16,8 @@ use JsonSerializable;
 use RuntimeException;
 
 // import built-ins so calls resolve at compile time instead of per-call lookups; NamespacedCallsTest keeps this list exact
-use function array_slice, basename, class_exists, count, date, error_clear_last, error_get_last, get_debug_type, header, headers_sent, html_entity_decode, htmlspecialchars, http_response_code, implode, in_array, is_array, is_bool, is_callable, is_finite, is_float, is_int, is_null, is_numeric, is_object, is_scalar, is_string, json_decode, json_encode, max, mb_strlen, mb_strrpos, mb_substr, method_exists, nl2br, number_format, ob_end_clean, preg_last_error, preg_last_error_msg, preg_match, preg_replace, preg_replace_callback, preg_split, str_replace, strip_tags, strlen, strspn, strtolower, strtotime, strtr, substr, trigger_error, trim, urlencode;
-use const ENT_DISALLOWED, ENT_HTML5, ENT_QUOTES, ENT_SUBSTITUTE, E_USER_WARNING, JSON_HEX_AMP, JSON_HEX_APOS, JSON_HEX_QUOT, JSON_HEX_TAG, JSON_INVALID_UTF8_SUBSTITUTE, JSON_THROW_ON_ERROR, JSON_UNESCAPED_SLASHES, JSON_UNESCAPED_UNICODE, PHP_OS_FAMILY, PHP_VERSION_ID, PREG_INTERNAL_ERROR, PREG_SPLIT_NO_EMPTY;
+use function array_slice, basename, class_exists, count, date, error_clear_last, error_get_last, get_debug_type, header, headers_sent, html_entity_decode, htmlspecialchars, http_response_code, implode, in_array, is_array, is_bool, is_callable, is_finite, is_float, is_int, is_null, is_numeric, is_object, is_scalar, is_string, json_decode, json_encode, max, mb_strlen, mb_strrpos, mb_substr, method_exists, nl2br, number_format, ob_end_clean, preg_last_error, preg_last_error_msg, preg_match, preg_replace, preg_split, str_replace, strip_tags, strlen, strspn, strtolower, strtotime, strtr, substr, trigger_error, trim, urlencode;
+use const ENT_DISALLOWED, ENT_HTML5, ENT_QUOTES, ENT_SUBSTITUTE, E_USER_WARNING, JSON_HEX_AMP, JSON_HEX_APOS, JSON_HEX_QUOT, JSON_HEX_TAG, JSON_INVALID_UTF8_SUBSTITUTE, JSON_THROW_ON_ERROR, JSON_UNESCAPED_SLASHES, PHP_OS_FAMILY, PHP_VERSION_ID, PREG_INTERNAL_ERROR, PREG_SPLIT_NO_EMPTY;
 
 /**
  * SmartString class provides a fluent interface for various string and numeric manipulations.
@@ -393,9 +393,11 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      * Safely encodes the data as a JSON string with specific flags for secure and accurate JavaScript embedding.
      *
      * - Escapes " ' < > & as \uXXXX so values can't break out of a <script> block or JS string
+     * - Escapes every non-ASCII character as \uXXXX, so the output is plain ASCII: invisible
+     *   characters (zero-width spaces, bidi controls) can't hide in page source, and the value
+     *   still reads right on a page served with the wrong charset. JavaScript reads each escape
+     *   as the original character
      * - Substitutes malformed UTF-8 with � (U+FFFD) instead of throwing
-     * - Re-escapes invisible Unicode (zero-width chars, bidi controls, variation selectors) as
-     *   visible \uXXXX escapes so nothing can hide in page source
      * - INF, NAN, and recursion still throw JsonException - those are always code bugs
      *
      *     echo "<script>let title = {$title->jsonEncode()};</script>";
@@ -406,20 +408,10 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      */
     public function jsonEncode(): string
     {
-        $flags = JSON_THROW_ON_ERROR | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE;
-        $json  = json_encode($this->rawData, $flags);
-
-        // Re-escape invisible Unicode (format chars, variation selectors) as visible \uXXXX escapes.
-        // Lossless: each escape decodes back to the identical character, so the value JavaScript sees
-        // never changes. json_encode of the single char (without JSON_UNESCAPED_UNICODE) produces the
-        // correct escape, including surrogate pairs for chars above U+FFFF. The fast-path scan is
-        // cheaper than preg_replace_callback's setup when there is nothing to replace (the common case).
-        $invisibleRx = '/[\p{Cf}\x{FE00}-\x{FE0F}\x{E0100}-\x{E01EF}]/u';
-        if (preg_match($invisibleRx, $json)) {
-            $json = preg_replace_callback($invisibleRx, static fn($m) => substr(json_encode($m[0]), 1, -1), $json);
-        }
-
-        return $json;
+        // No JSON_UNESCAPED_UNICODE: escaping all non-ASCII means there's no list of invisible
+        // characters to keep up to date, and none can be missed
+        $flags = JSON_THROW_ON_ERROR | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE;
+        return json_encode($this->rawData, $flags);
     }
 
     //endregion

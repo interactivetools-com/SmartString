@@ -68,8 +68,8 @@ Known limitations and finding criteria:
   documentation example that puts a value into one of those contexts
   through plain encoding.
 - Malformed UTF-8 and forbidden code points are replaced with U+FFFD on
-  output (ENT_SUBSTITUTE, ENT_DISALLOWED), and jsonEncode() re-escapes
-  invisible Unicode as visible \uXXXX escapes. Both are documented in
+  output (ENT_SUBSTITUTE, ENT_DISALLOWED), and jsonEncode() escapes every
+  non-ASCII character as \uXXXX. Both are documented in
   docs/encoding-and-html.md and are not data-loss findings. Report input
   that gets through unreplaced or unescaped.
 

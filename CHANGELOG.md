@@ -79,6 +79,9 @@ These still work, they're just no longer featured in the docs - no changes requi
   `""` and `or()` fallbacks fire, and invalid UTF-8 bytes become �
 - **`orDie()` and `or404()` exit with status 1** - CLI and cron scripts
   see the failure
+- **`jsonEncode()` escapes every non-ASCII character** - `café` comes out
+  as `"caf\u00e9"`, so no invisible character can hide in page source.
+  JavaScript gets the same string as before
 
 ### Fixed
 

@@ -123,9 +123,10 @@ Types encode as themselves: null becomes `null`, `123` becomes `123`, so the
 result is always a valid JavaScript expression. Two hardening details:
 
 - Malformed UTF-8 is substituted with � instead of throwing.
-- Invisible Unicode (zero-width characters, bidi controls, variation
-  selectors) is re-escaped as visible `\uXXXX` escapes, so nothing can hide
-  in page source.
+- Every non-ASCII character is escaped as `\uXXXX` (`café` becomes
+  `"caf\u00e9"`), so invisible characters like zero-width spaces and bidi
+  controls can't hide in page source. JavaScript reads each escape as the
+  original character.
 
 ## Newlines to `<br>` - `nl2br()`
 

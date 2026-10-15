@@ -81,6 +81,9 @@ Full lists of what changed per release: [CHANGELOG.md](CHANGELOG.md).
 > `or()` fallback can now show where it previously didn't
 > - `orDie()` and `or404()` exit with code 1 (was 0) - cron and CLI wrappers
 > that check exit codes now see the failure
+> - `jsonEncode()` escapes every non-ASCII character as `\uXXXX` (`café`
+> becomes `"caf\u00e9"`) - JavaScript gets the same string, so only code that
+> compares the JSON text itself, like a test, sees a difference
 
 ## v2.7.0
 

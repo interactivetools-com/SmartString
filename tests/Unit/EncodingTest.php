@@ -121,7 +121,7 @@ class EncodingTest extends SmartStringTestCase
                 'input'            => 'Café ñ 日本語',
                 'expectedHtml'     => 'Café ñ 日本語',
                 'expectedUrl'      => 'Caf%C3%A9+%C3%B1+%E6%97%A5%E6%9C%AC%E8%AA%9E',
-                'expectedJson'     => '"Café ñ 日本語"',
+                'expectedJson'     => '"Caf\u00e9 \u00f1 \u65e5\u672c\u8a9e"',
                 'expectedRawHtml'  => 'Café ñ 日本語',
             ],
             'Empty string'             => [
@@ -172,34 +172,39 @@ class EncodingTest extends SmartStringTestCase
     }
 
     /**
-     * The jsonEncode hardening contract, ported as-is: malformed UTF-8 becomes �
-     * instead of throwing, and invisible Unicode is re-escaped as visible
-     * \uXXXX (losslessly).
+     * The jsonEncode hardening contract: malformed UTF-8 becomes � instead of
+     * throwing, and every non-ASCII character comes out as \uXXXX, so the output
+     * is plain ASCII and decodes back to the original.
      */
     public function testJsonEncodeHardening(): void
     {
         // malformed UTF-8 byte becomes U+FFFD instead of throwing
-        $this->assertSame('"a�(b"', SmartString::new("a\xC3(b")->jsonEncode());
+        $this->assertSame('"a\ufffd(b"', SmartString::new("a\xC3(b")->jsonEncode());
 
-        // invisible Unicode re-escaped as visible \uXXXX:
-        // zero-width space, RTL override, Unicode tag char, variation selectors 16 and 17
+        // visible non-ASCII is escaped too: accented letters, CJK, and emoji as surrogate pairs
+        $this->assertSame('"caf\u00e9 \u65e5"',         SmartString::new("café 日")->jsonEncode());
+        $this->assertSame('"\ud83c\uddec\ud83c\udde7"', SmartString::new("\u{1F1EC}\u{1F1E7}")->jsonEncode());
+
+        // invisible Unicode: zero-width space, RTL override, Unicode tag char, variation
+        // selectors 16 and 17, then three that aren't format characters (a Mongolian
+        // variation selector, the combining grapheme joiner, the Hangul filler)
         $this->assertSame('"a\u200bb"',       SmartString::new("a\u{200B}b")->jsonEncode());
         $this->assertSame('"a\u202eb"',       SmartString::new("a\u{202E}b")->jsonEncode());
         $this->assertSame('"a\udb40\udc41b"', SmartString::new("a\u{E0041}b")->jsonEncode());
         $this->assertSame('"a\ufe0fb"',       SmartString::new("a\u{FE0F}b")->jsonEncode());
         $this->assertSame('"a\udb40\udd00b"', SmartString::new("a\u{E0100}b")->jsonEncode());
+        $this->assertSame('"a\u180bb"',       SmartString::new("a\u{180B}b")->jsonEncode());
+        $this->assertSame('"a\u034fb"',       SmartString::new("a\u{034F}b")->jsonEncode());
+        $this->assertSame('"a\u3164b"',       SmartString::new("a\u{3164}b")->jsonEncode());
 
         // U+2028/U+2029 line separators: invisible, legal in JSON, and syntax errors in
-        // pre-ES2019 JS string literals. json_encode escapes them only because the flags
-        // omit JSON_UNESCAPED_LINE_TERMINATORS, so adding that flag fails here
+        // pre-ES2019 JS string literals
         $this->assertSame('"a\u2028b\u2029c"', SmartString::new("a\u{2028}b\u{2029}c")->jsonEncode());
 
-        // escaping is lossless: decoding returns the original characters
-        $original = "x\u{200B}\u{202E}\u{E0041}y";
+        // the output is plain ASCII, and decoding returns the original characters
+        $original = "x\u{200B}\u{202E}\u{E0041}\u{180B}\u{3164} café 日\u{1F1EC}\u{1F1E7}y";
+        $this->assertMatchesRegularExpression('/^[\x20-\x7E]+$/', SmartString::new($original)->jsonEncode());
         $this->assertSame($original, json_decode(SmartString::new($original)->jsonEncode()));
-
-        // visible non-ASCII text stays raw
-        $this->assertSame('"café 日"', SmartString::new("café 日")->jsonEncode());
     }
 
     public function testJsonEncodePreservesScalarTypes(): void
