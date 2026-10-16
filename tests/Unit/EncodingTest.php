@@ -52,6 +52,35 @@ class EncodingTest extends SmartStringTestCase
         $this->assertSame('Text with &lt;br&gt; and &lt;br/&gt; tags', SmartString::new('Text with <br> and <br/> tags')->htmlEncode());
     }
 
+    /**
+     * When a fast-path check's preg_match() returns false (PCRE gave up), the value still gets
+     * encoded. JIT off with pcre.backtrack_limit at 1 makes every check give up. Runs in its own
+     * process because PHP keeps each compiled regex with the JIT setting it was compiled under.
+     */
+    public function testEncodesWhenPcreGivesUp(): void
+    {
+        $autoload = var_export(dirname(__DIR__, 2) . '/vendor/autoload.php', true);
+        $script   = <<<__PHP__
+            require $autoload;
+            \$out = [];
+            foreach (['<b>x</b>', 'café <b>'] as \$input) {
+                \$value = \Itools\SmartString\SmartString::new(\$input);
+                \$out[] = [(string)\$value, \$value->htmlEncode(), \$value->appendHtml('<br>'), \$value->wrapHtml('<p>', '</p>')];
+            }
+            echo json_encode(['failed' => preg_match('/[<]/', '<') === false, 'out' => \$out]);
+            __PHP__;
+
+        [$stdout, $stderr, $exitCode] = $this->runCommand([PHP_BINARY, '-d', 'pcre.jit=0', '-d', 'pcre.backtrack_limit=1', '-r', $script]);
+        $this->assertSame(0, $exitCode, $stderr);
+        $result = json_decode($stdout, true);
+
+        $this->assertTrue($result['failed'], 'preg_match() should return false in the child process');
+        $this->assertSame([
+            ['&lt;b&gt;x&lt;/b&gt;', '&lt;b&gt;x&lt;/b&gt;', '&lt;b&gt;x&lt;/b&gt;<br>', '<p>&lt;b&gt;x&lt;/b&gt;</p>'],
+            ['café &lt;b&gt;', 'café &lt;b&gt;', 'café &lt;b&gt;<br>', '<p>café &lt;b&gt;</p>'],
+        ], $result['out']);
+    }
+
     //endregion
     //region Shared Encoder Menu
 

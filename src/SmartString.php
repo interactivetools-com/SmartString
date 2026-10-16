@@ -257,10 +257,10 @@ final class SmartString implements JsonSerializable, IteratorAggregate
             if (strspn($text, self::ENCODE_CLEAN_CHARS) === strlen($text)) {
                 return $text;
             }
-        } elseif (!preg_match(self::ENCODE_NEEDED_REGEX, $text)) {
+        } elseif (preg_match(self::ENCODE_NEEDED_REGEX, $text) === 0) { // false = PCRE gave up, falls through
             return $text;
         }
-        if (!preg_match(self::ENCODE_NON_ASCII_REGEX, $text)) {
+        if (preg_match(self::ENCODE_NON_ASCII_REGEX, $text) === 0) { // false = PCRE gave up, falls through
             return str_replace(self::ENCODE_SPECIALS_FROM, self::ENCODE_SPECIALS_TO, $text);
         }
         if (preg_match(self::ENCODE_DISALLOWED_UTF8_REGEX, $text) === 0) { // false = invalid UTF-8, falls through
@@ -292,10 +292,10 @@ final class SmartString implements JsonSerializable, IteratorAggregate
             if (strspn($text, self::ENCODE_CLEAN_CHARS) === strlen($text)) {
                 return $text;
             }
-        } elseif (!preg_match(self::ENCODE_NEEDED_REGEX, $text)) {
+        } elseif (preg_match(self::ENCODE_NEEDED_REGEX, $text) === 0) { // false = PCRE gave up, falls through
             return $text;
         }
-        if (!preg_match(self::ENCODE_NON_ASCII_REGEX, $text)) {
+        if (preg_match(self::ENCODE_NON_ASCII_REGEX, $text) === 0) { // false = PCRE gave up, falls through
             return str_replace(self::ENCODE_SPECIALS_FROM, self::ENCODE_SPECIALS_TO, $text);
         }
         if (preg_match(self::ENCODE_DISALLOWED_UTF8_REGEX, $text) === 0) { // false = invalid UTF-8, falls through
