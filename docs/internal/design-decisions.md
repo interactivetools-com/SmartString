@@ -50,3 +50,12 @@ in signatures, docblocks, the changelog, and tests.
   log), never for page output or PHP's default error log. Don't remove the `@`
   to make PHP log them. The rule is stated at the call site in
   `SharedHelpers.php`, a twin of SmartArray's copy, so any change goes to both.
+- **`setlocale()`: Turkish and Azeri locales aren't supported** (2026-10-16).
+  Under a Turkish or Azeri locale set with `setlocale()` (`LC_ALL` or
+  `LC_CTYPE`), PHP's regular expressions stop matching `I` to `i`, and on PHP
+  8.1 so do `strtolower()` and `stripos()`. Code that ignores case can then
+  miss a capital I. No other locale changes how ASCII is read (checked against
+  all 529 glibc locales), and Windows builds aren't affected. A site that wants
+  Turkish month and day names can set `LC_TIME` alone, which changes none of
+  this. Here it only touches `strtolower()`-style calls on PHP 8.1; there are
+  no `/i` patterns.
