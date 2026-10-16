@@ -17,7 +17,7 @@ use RuntimeException;
 
 // import built-ins so calls resolve at compile time instead of per-call lookups; NamespacedCallsTest keeps this list exact
 use function array_slice, basename, class_exists, count, date, error_clear_last, error_get_last, get_debug_type, header, headers_sent, html_entity_decode, htmlspecialchars, http_response_code, implode, in_array, is_array, is_bool, is_callable, is_finite, is_float, is_int, is_null, is_numeric, is_object, is_scalar, is_string, json_decode, json_encode, max, mb_strlen, mb_strrpos, mb_substr, method_exists, nl2br, number_format, ob_end_clean, preg_last_error, preg_last_error_msg, preg_match, preg_replace, preg_split, str_replace, strip_tags, strlen, strspn, strtolower, strtotime, strtr, substr, trigger_error, trim, urlencode;
-use const ENT_DISALLOWED, ENT_HTML5, ENT_QUOTES, ENT_SUBSTITUTE, E_USER_WARNING, JSON_HEX_AMP, JSON_HEX_APOS, JSON_HEX_QUOT, JSON_HEX_TAG, JSON_INVALID_UTF8_SUBSTITUTE, JSON_THROW_ON_ERROR, JSON_UNESCAPED_SLASHES, PHP_OS_FAMILY, PHP_VERSION_ID, PREG_INTERNAL_ERROR, PREG_SPLIT_NO_EMPTY;
+use const ENT_DISALLOWED, ENT_HTML5, ENT_QUOTES, ENT_SUBSTITUTE, E_USER_WARNING, JSON_HEX_AMP, JSON_HEX_APOS, JSON_HEX_QUOT, JSON_HEX_TAG, JSON_INVALID_UTF8_SUBSTITUTE, JSON_THROW_ON_ERROR, JSON_UNESCAPED_SLASHES, PHP_INT_MAX, PHP_INT_MIN, PHP_OS_FAMILY, PHP_VERSION_ID, PREG_INTERNAL_ERROR, PREG_SPLIT_NO_EMPTY;
 
 /**
  * SmartString class provides a fluent interface for various string and numeric manipulations.
@@ -164,13 +164,23 @@ final class SmartString implements JsonSerializable, IteratorAggregate
      * Returns value as integer
      *
      * PHP (int) cast rules apply: leading digits are kept and the rest is
-     * dropped ("123junk" returns 123), non-numeric text returns 0.
+     * dropped ("123junk" returns 123), and non-numeric text returns 0.
+     *
+     * A number outside int range returns PHP_INT_MAX or PHP_INT_MIN, the same
+     * cap PHP uses for numeric strings. INF and NAN return 0, as they do in PHP.
      *
      * Missing values (null or "") return 0.
      */
     public function int(): int
     {
-        return (int)$this->rawData;
+        $value = $this->rawData;
+
+        // A plain cast wraps floats outside int range (1e30 → 5076964154930102272) and PHP 8.5 warns
+        // about it, so cap them like numeric strings. INF and NAN skip this and cast to 0 with no warning
+        if (is_float($value) && is_finite($value) && ($value >= PHP_INT_MAX || $value < PHP_INT_MIN)) {
+            return $value > 0 ? PHP_INT_MAX : PHP_INT_MIN;
+        }
+        return (int)$value;
     }
 
     /**

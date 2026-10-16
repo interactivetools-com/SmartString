@@ -107,7 +107,9 @@ These still work, they're just no longer featured in the docs - no changes requi
 Also: `pregReplace()` returns null on PCRE runtime limits so `or()`
 fallbacks fire, throws clearly on broken patterns, and passes `""`
 through unchanged; `percent()` overflow and INF/NAN store as null instead
-of printing `inf`; `orRedirect()` throws on a blank URL so a
+of printing `inf`; `int()` caps a float outside int range at
+`PHP_INT_MAX` or `PHP_INT_MIN` instead of wrapping to an unrelated number
+(and warning on PHP 8.5); `orRedirect()` throws on a blank URL so a
 misconfigured redirect fails on the first request; `or404()` mid-page
 renders a clean 404 without header warnings; `foreach` over a SmartString
 throws instead of silently looping zero times; `print_r()` and

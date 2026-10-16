@@ -60,6 +60,32 @@ class TypeConversionTest extends SmartStringTestCase
         $this->assertSame('<b>&amp;</b>', SmartString::new('<b>&amp;</b>')->string());
     }
 
+    /**
+     * Floats outside int range cap like numeric strings do, instead of wrapping
+     * (and warning on PHP 8.5); INF and NAN return 0 like a PHP cast.
+     */
+    #[DataProvider('intRangeProvider')]
+    public function testIntCapsNumbersOutsideIntRange($input, int $expected): void
+    {
+        $this->assertSame($expected, SmartString::new($input)->int());
+    }
+
+    public static function intRangeProvider(): array
+    {
+        return [
+            'huge float'           => [1e30, PHP_INT_MAX],
+            'huge negative float'  => [-1e30, PHP_INT_MIN],
+            '2^63 float'           => [(float)PHP_INT_MAX, PHP_INT_MAX], // rounds up to 2^63, one past the max
+            '-2^63 float'          => [(float)PHP_INT_MIN, PHP_INT_MIN], // exactly PHP_INT_MIN, so it casts
+            'large float in range' => [9.2e18, 9200000000000000000],
+            'huge numeric string'  => ['1e30', PHP_INT_MAX],
+            'INF'                  => [INF, 0],
+            '-INF'                 => [-INF, 0],
+            'NAN'                  => [NAN, 0],
+            'infinite string'      => ['9e999', 0],
+        ];
+    }
+
     //endregion
     //region getRawValue()
 

@@ -84,6 +84,10 @@ Full lists of what changed per release: [CHANGELOG.md](CHANGELOG.md).
 > - `jsonEncode()` escapes every non-ASCII character as `\uXXXX` (`café`
 > becomes `"caf\u00e9"`) - JavaScript gets the same string, so only code that
 > compares the JSON text itself, like a test, sees a difference
+> - `int()` on a float outside int range returns `PHP_INT_MAX` or
+> `PHP_INT_MIN` (`1e30` returned 5076964154930102272) - the same cap PHP
+> uses for numeric strings, and no PHP 8.5 "not representable as an int"
+> warning
 
 ## v2.7.0
 
