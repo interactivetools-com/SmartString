@@ -96,5 +96,6 @@ codex-security scan . "${paths[@]}" \
     --model gpt-6-astra \
     --knowledge-base docs/ai-reference.md \
     --knowledge-base docs/encoding-and-html.md \
+    --knowledge-base docs/internal/design-decisions.md \
     --scan-prompt-file "$prompt_file" \
     "$@"
