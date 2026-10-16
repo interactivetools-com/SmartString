@@ -422,7 +422,7 @@ class StringManipulationTest extends SmartStringTestCase
     public function testMapRejectsUncallableName(): void
     {
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage("Function 'non_existent_function' is not callable");
+        $this->expectExceptionMessage("Function `non_existent_function` is not callable");
         SmartString::new('test')->map('non_existent_function');
     }
 
@@ -430,7 +430,7 @@ class StringManipulationTest extends SmartStringTestCase
     {
         // exception messages can end up in HTML error pages, so the name is encoded
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage("Function '&lt;b&gt;bad&lt;/b&gt;' is not callable");
+        $this->expectExceptionMessage("Function `&lt;b&gt;bad&lt;/b&gt;` is not callable");
         SmartString::new('test')->map('<b>bad</b>');
     }
 

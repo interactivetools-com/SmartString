@@ -1124,7 +1124,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
     {
         if (!is_callable($callback)) {
             $name = self::h($callback); // SECURITY: encode the caller-supplied name - handlers often echo exception messages into pages
-            throw new InvalidArgumentException("Function '$name' is not callable");
+            throw new InvalidArgumentException("Function `$name` is not callable");
         }
 
         $newValue = $callback($this->rawData, ...$args);
