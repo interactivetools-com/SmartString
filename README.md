@@ -15,21 +15,18 @@ Instead of writing code like this:
 
 ```php
 echo "<h1>" . htmlspecialchars($article['title'], ENT_QUOTES|ENT_SUBSTITUTE|ENT_HTML5, 'UTF-8') . "</h1>";
-$summary = strip_tags($article['content']);                                             // remove tags
-$summary = html_entity_decode($summary, ENT_QUOTES|ENT_SUBSTITUTE|ENT_HTML5, 'UTF-8');  // decode entities
-$summary = substr($summary, 0, 120);                                                    // limit to 120 characters
-echo "Summary: " . htmlspecialchars($summary, ENT_QUOTES|ENT_SUBSTITUTE|ENT_HTML5, 'UTF-8') . "...";
+$summary = strip_tags($article['content']);                                       // remove tags
+$summary = html_entity_decode($summary, ENT_QUOTES|ENT_HTML5, 'UTF-8');           // decode entities
+$summary = strlen($summary) > 120 ? substr($summary, 0, 120) . "..." : $summary;  // limit to 120 characters
+echo "Summary: " . htmlspecialchars($summary, ENT_QUOTES|ENT_SUBSTITUTE|ENT_HTML5, 'UTF-8');
 ```
 
 You can write code like this:
 
 ```php
 echo "<h1>$article->title</h1>";
-echo "Summary: {$article->content->textOnly()->maxChars(120, '...')}\n";
+echo "Summary: {$article->content->textOnly()->maxChars(120, '...')}";
 ```
-
-SmartString encodes HTML output automatically and includes utility functions for common template
-tasks.
 
 ## Documentation
 
