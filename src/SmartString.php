@@ -514,7 +514,9 @@ final class SmartString implements JsonSerializable, IteratorAggregate
         $words    = preg_split('/\s+/u', $text, -1, PREG_SPLIT_NO_EMPTY); // whitespace-only input = no words, no ellipsis
         $newValue = implode(' ', array_slice($words, 0, $max));
         if (count($words) > $max) {
-            $newValue = preg_replace('/\p{P}+$/u', '', $newValue); // Strip trailing Unicode punctuation before ellipsis
+            // Strip trailing Unicode punctuation before the ellipsis. A match can only start at the
+            // start of a punctuation run and never backs up, so a long run is checked once, not once per character
+            $newValue = preg_replace('/(?<!\p{P})\p{P}++$/u', '', $newValue) ?? $newValue;
             $newValue .= $ellipsis;
         }
 
@@ -549,7 +551,7 @@ final class SmartString implements JsonSerializable, IteratorAggregate
                 $lastSpace = mb_strrpos($slice, ' ', 0, 'UTF-8');
                 $slice     = $lastSpace === false ? $slice : mb_substr($slice, 0, $lastSpace, 'UTF-8');
             }
-            $newValue = preg_replace('/\p{P}+$/u', '', $slice); // Strip trailing Unicode punctuation before ellipsis
+            $newValue = preg_replace('/(?<!\p{P})\p{P}++$/u', '', $slice) ?? $slice; // Strip trailing Unicode punctuation before the ellipsis, same regex as maxWords()
             $newValue .= $ellipsis;
         } else {
             $newValue = $ellipsis; // $max is 0 and content exists: nothing shown, ellipsis marks it

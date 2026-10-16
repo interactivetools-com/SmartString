@@ -284,6 +284,36 @@ class StringManipulationTest extends SmartStringTestCase
         }
     }
 
+    /**
+     * A long punctuation run followed by a letter, with the PCRE JIT off. Hosts run without
+     * the JIT when PHP is built without it or pcre.jit=0 is set. A trailing-punctuation regex
+     * that retries from every character in the run takes about 30 seconds for these two calls,
+     * so the time limit only passes when each run is checked once. Runs in its own process because
+     * PHP keeps each compiled regex with the JIT setting it was compiled under.
+     */
+    public function testTruncationIsFastOnLongPunctuationRunWithoutJit(): void
+    {
+        $autoload = var_export(dirname(__DIR__, 2) . '/vendor/autoload.php', true);
+        $script   = <<<__PHP__
+            require $autoload;
+            \$text  = str_repeat('!', 64000) . 'A B';
+            \$start = hrtime(true);
+            \$words = \Itools\SmartString\SmartString::new(\$text)->maxWords(1)->value();
+            \$chars = \Itools\SmartString\SmartString::new(\$text)->maxChars(64002)->value();
+            echo json_encode(['jit' => ini_get('pcre.jit'), 'ms' => (hrtime(true) - \$start) / 1e6, 'words' => \$words, 'chars' => \$chars]);
+            __PHP__;
+
+        [$stdout, $stderr, $exitCode] = $this->runCommand([PHP_BINARY, '-d', 'pcre.jit=0', '-r', $script]);
+        $this->assertSame(0, $exitCode, $stderr);
+        $result = json_decode($stdout, true);
+
+        $expected = str_repeat('!', 64000) . 'A...';
+        $this->assertSame('0', $result['jit'], 'the child process should run with the PCRE JIT off');
+        $this->assertSame($expected, $result['words']);
+        $this->assertSame($expected, $result['chars']);
+        $this->assertLessThan(1000, $result['ms'], "maxWords() and maxChars() took {$result['ms']}ms; checking each punctuation run once should take a few ms");
+    }
+
     //endregion
     //region pregReplace()
 
