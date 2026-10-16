@@ -63,8 +63,8 @@ to its HTML-encoded value. That gives you two views of every value:
 ```php
 $str = SmartString::new("It's easy!<hr>");
 
-echo $str;           // It&​apos;s easy!&​lt;hr&​gt; (encoded, safe for HTML)
-echo $str->value();  // It's easy!<hr> (the original value)
+echo $str;             // It&​apos;s easy!&​lt;hr&​gt; (encoded, safe for HTML)
+$raw = $str->value();  // It's easy!<hr> (the original value)
 ```
 
 **The raw value is for logic (math, comparisons, MySQL); the encoded output

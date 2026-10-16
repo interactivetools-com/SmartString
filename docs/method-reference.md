@@ -28,8 +28,8 @@ Contents:
 ```php
 $str = SmartString::new("It's easy!<hr>");
 
-echo $str;           // It&​apos;s easy!&​lt;hr&​gt; (HTML-encoded automatically)
-echo $str->value();  // It's easy!<hr> (the original value)
+echo $str;             // It&​apos;s easy!&​lt;hr&​gt; (HTML-encoded automatically)
+$raw = $str->value();  // It's easy!<hr> (the original value)
 
 echo $str->trim()->maxChars(60)->or('None');  // methods chain left to right
 ```

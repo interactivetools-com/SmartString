@@ -249,7 +249,8 @@ How each guard differs:
 - **`orRedirect($url)`** checks `headers_sent()` and a blank `$url` (null or
   `""`) immediately and throws if either fails, even when the value is
   present, so a misplaced redirect fails on the first request instead of
-  only when a value goes missing.
+  only when a value goes missing. Pass a URL you control: a URL taken from
+  user input can send visitors to another site.
 
 ### Using Your Site's 404 Page
 

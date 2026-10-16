@@ -46,7 +46,7 @@ use Itools\SmartString\SmartString;
 
 $str = SmartString::new("It's easy!<hr>");
 echo $str;                                    // It&apos;s easy!&lt;hr&gt;
-echo $str->value();                           // It's easy!<hr>
+$raw = $str->value();                         // It's easy!<hr>
 echo $str->trim()->maxChars(60)->or('None');  // chains left to right
 ```
 
@@ -241,6 +241,9 @@ unencoded.
 $article->num->or404("Article not found");
 $row->orThrow("no row")->memberId->orThrow("row found but memberId empty")->int();  // two-stage guard ($row is a SmartArrayHtml row; its orThrow() works the same way)
 ```
+
+`orRedirect()` sends `$url` as given, with no check on where it points. Pass
+a URL you control, never one from user input (open redirect).
 
 `SmartString::set404Handler(?callable $callback): ?Closure` - static; sets the
 page `or404()` shows instead of the built-in one. Call once at startup.
