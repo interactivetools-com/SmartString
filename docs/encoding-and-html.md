@@ -128,6 +128,12 @@ result is always a valid JavaScript expression. Two hardening details:
   controls can't hide in page source. JavaScript reads each escape as the
   original character.
 
+PHP's own `json_encode()` also works on a SmartString, or an array of them,
+but it returns the raw value with PHP's default escaping. That's fine for an
+API or AJAX response. In a `<script>` block or an HTML attribute, use
+`jsonEncode()`: default `json_encode()` doesn't escape `'` or `<`, so a
+value can end a single-quoted attribute early.
+
 ## Newlines to `<br>` - `nl2br()`
 
 Encodes the value and then converts newlines to `<br>` tags, in that order,
