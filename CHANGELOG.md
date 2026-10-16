@@ -51,11 +51,13 @@ strikethrough and offer a one-click rename.
 
 ### Parameter renames (named arguments only)
 
-Only matters if you pass these by name; an old name throws an "Unknown
-named parameter" Error. See [UPGRADING.md](UPGRADING.md)
+Only matters if you pass these by name; an old name throws an Error. See
+[UPGRADING.md](UPGRADING.md)
 
 - `percent(ifZero:)` was `zeroFallback:`
-- `map(callback:)` was `func:`
+- `apply()` / `map()`: `callback:` was `func:`
+- `add()`, `subtract()`, `multiply()`, `divide()`: `value:` was `addend:`,
+  `subtrahend:`, `multiplier:`, `divisor:`
 
 ### Deprecated
 
@@ -80,8 +82,7 @@ These still work - no changes required.
 - **`orDie()` and `or404()` exit with status 1**, so CLI and cron scripts
   see the failure
 - **`jsonEncode()` escapes every non-ASCII character** - `café` comes out
-  as `"caf\u00e9"`. JavaScript gets the same string
-  as before
+  as `"caf\u00e9"`. JavaScript gets the same string as before
 
 ### Fixed
 

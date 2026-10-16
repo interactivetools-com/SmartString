@@ -39,23 +39,28 @@ Full lists of what changed per release: [CHANGELOG.md](CHANGELOG.md).
 ### Parameter renames (named arguments only)
 
 > Only calls that pass a parameter by name are affected. An old name throws
-> an "Unknown named parameter" Error:
+> an Error:
 >
 > ```php
 > ->percent(2, '-')                 // no parameter name - nothing changes
 > ->percent(2, zeroFallback: '-')   // before
 > ->percent(2, ifZero: '-')         // after (dropping the name works too)
 >
-> ->map(func: strtoupper(...))      // before
+> ->apply(func: strtoupper(...))    // before
 > ->map(callback: strtoupper(...))  // after - matches array_map() and SmartArray::map()
+>
+> ->add(addend: 5)                  // before (same for subtract, multiply, divide)
+> ->add(value: 5)                   // after
 > ```
 >
 > Fix:
 >
 > - Search `zeroFallback:` and replace with `ifZero:`
 > - Search `func:` and replace with `callback:` on map/apply calls
+> - Search `addend:`, `subtrahend:`, `multiplier:` and `divisor:` and
+>   replace each with `value:` on add/subtract/multiply/divide calls
 >
-> Regex: `zeroFallback:|->(map|apply)\(\s*func:`
+> Regex: `zeroFallback:|->(map|apply)\(\s*func:|->(add|subtract|multiply|divide)\(\s*(addend|subtrahend|multiplier|divisor):`
 
 ### Silent changes
 
