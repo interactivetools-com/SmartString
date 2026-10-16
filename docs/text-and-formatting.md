@@ -282,6 +282,11 @@ mid-chain and the calls after it run on the new value:
 echo SmartString::new("cat")->add(10)->ifNull(0)->add(5);  // 5 (recovered mid-chain)
 ```
 
+For a total you charge or save, end with `orThrow()` instead of `or()`. It
+throws when the result is null, so a bad value anywhere in the chain stops
+the page instead of totaling wrong:
+`$total->orThrow("Total couldn't be calculated")`.
+
 ### Decimal precision
 
 Results are floats, so they carry the usual binary floating-point

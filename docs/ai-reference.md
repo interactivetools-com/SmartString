@@ -181,7 +181,9 @@ null (echoes as `""`); add `or()` for a fallback. All formatting uses
 
 Null propagation: null carries through subsequent operations but is not
 permanent; a mid-chain `ifNull(0)` replaces it and later methods run on the
-new value. SmartString never coerces null to zero implicitly.
+new value. SmartString never coerces null to zero implicitly. For totals that
+get charged or saved, end with `orThrow($text)`, not `or()`, so a failed
+chain throws instead of reading as a fallback.
 
 ```php
 echo $price->multiply(1.13)->divide(2)->numberFormat(2);   // 56.50

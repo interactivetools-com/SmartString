@@ -302,6 +302,15 @@ class DocsExamplesTest extends SmartStringTestCase
         $this->assertSame('5', (string)SmartString::new("cat")->add(10)->ifNull(0)->add(5));
     }
 
+    public function testMathTotalsEndWithOrThrow(): void
+    {
+        $total = SmartString::new(0)->add(10)->add(SmartString::new('1,234')->multiply(2));  // comma makes it non-numeric
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Total couldn&apos;t be calculated');
+        $total->orThrow("Total couldn't be calculated");
+    }
+
     public function testMathDecimalPrecision(): void
     {
         $val = SmartString::new(0.1);
