@@ -108,15 +108,21 @@ echo "<a href='/uploads/{$file->map('rawurlencode')}'>Download</a>";
 
 ### JSON Encoding - `jsonEncode()`
 
-Returns the value as a JSON string safe to embed in a `<script>` block. The
-characters that could break out of a script or a JS string (`"` `'` `<` `>`
-`&`) are escaped as `\uXXXX`:
+Returns the value as a JSON string to use in a `<script>` block. Don't add
+quotes of your own: it adds them, and escapes the characters that could end a
+JS string or the script early (`"` `'` `<` `>` `&`) as `\uXXXX`. There are two
+ways to pass a value to JavaScript, as a value in your code or as a JSON block:
 
 ```php
 $title = SmartString::new("It's <b>easy</b> & fun!");
 
+// As a value in your code
 echo "<script>let title = {$title->jsonEncode()};</script>";
 // <script>let title = "It\u0027s \u003Cb\u003Eeasy\u003C/b\u003E \u0026 fun!";</script>
+
+// As a JSON block, read with JSON.parse()
+echo "<script type='application/json' id='title'>{$title->jsonEncode()}</script>";
+// in JavaScript: JSON.parse(document.getElementById('title').textContent)
 ```
 
 Types encode as themselves: null becomes `null`, `123` becomes `123`, so the
@@ -129,10 +135,9 @@ result is always a valid JavaScript expression. Two hardening details:
   original character.
 
 PHP's own `json_encode()` also works on a SmartString, or an array of them,
-but it returns the raw value with PHP's default escaping. That's fine for an
-API or AJAX response. In a `<script>` block or an HTML attribute, use
-`jsonEncode()`: default `json_encode()` doesn't escape `'` or `<`, so a
-value can end a single-quoted attribute early.
+but it uses PHP's default escaping, which leaves `'` `<` `>` `&` as they are.
+That's fine for an API or AJAX response. In a `<script>` block, use
+`jsonEncode()`.
 
 ## Newlines to `<br>` - `nl2br()`
 
