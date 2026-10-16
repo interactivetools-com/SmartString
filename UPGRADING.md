@@ -21,8 +21,7 @@ Full lists of what changed per release: [CHANGELOG.md](CHANGELOG.md).
 
 ### Chains after `->nl2br()`
 
-> `nl2br()` used to return a SmartString you could keep chaining. It now
-> returns a plain string, so any call chained after it is fatal
+> `nl2br()` now returns a plain string, so a call chained after it is fatal
 > ("Call to a member function ... on string"):
 >
 > ```php
@@ -39,10 +38,8 @@ Full lists of what changed per release: [CHANGELOG.md](CHANGELOG.md).
 
 ### Parameter renames (named arguments only)
 
-> PHP lets you write a parameter's name right in the call - the `ifZero:`
-> part in `->percent(2, ifZero: '-')`. If you never do this, skip this
-> check. If you do, a few parameter names changed, and calls using an old
-> name fail with a clear "Unknown named parameter" Error:
+> Only calls that pass a parameter by name are affected. An old name throws
+> an "Unknown named parameter" Error:
 >
 > ```php
 > ->percent(2, '-')                 // no parameter name - nothing changes
@@ -62,32 +59,21 @@ Full lists of what changed per release: [CHANGELOG.md](CHANGELOG.md).
 
 ### Silent changes
 
-> - `percent()` and `percentOf()` now use your `$numberFormatDecimal` and
-> `$numberFormatThousands` settings like `numberFormat()` does - if you
-> customize those, percentages change format too (previously hardcoded
-> '.' and ',')
-> - A fallback now recovers a failed math chain:
-> `SmartString::new(null)->add(5)->or(10)->add(5)` returns 15 (was null).
-> Only affects code that relied on null carrying past a mid-chain fallback.
-> - `dateFormat()` on a boolean returns null (was undefined behavior) - a
-> later `or()` fallback shows instead of a date
-> - `textOnly()` turns non-breaking and other Unicode spaces into plain spaces
-> (newlines and tabs untouched), so "empty" WYSIWYG values like `<p>&nbsp;</p>`
-> now count as missing and `or()` fallbacks fire on them
-> - `textOnly()` replaces invalid UTF-8 bytes with � (previously they passed
-> through unchanged), so its text is always valid UTF-8
-> - `pregReplace()` passes `""` through unchanged, like null - previously an
-> empty-matching pattern could turn a missing value into content, so a later
-> `or()` fallback can now show where it previously didn't
-> - `orDie()` and `or404()` exit with code 1 (was 0) - cron and CLI wrappers
-> that check exit codes now see the failure
+> - `percent()` and `percentOf()` use your `$numberFormatDecimal` and
+> `$numberFormatThousands` settings, like `numberFormat()`
+> - A fallback recovers a failed math chain:
+> `SmartString::new(null)->add(5)->or(10)->add(5)` returns 15 (was null)
+> - `dateFormat()` on a boolean returns null, so a later `or()` fallback shows
+> - `textOnly()` turns non-breaking and other Unicode spaces into plain
+> spaces, so `or()` fallbacks fire on "empty" WYSIWYG values like
+> `<p>&nbsp;</p>`
+> - `textOnly()` replaces invalid UTF-8 bytes with �
+> - `pregReplace()` passes `""` through unchanged, like null, so a later
+> `or()` fallback can show
+> - `orDie()` and `or404()` exit with code 1 (was 0)
 > - `jsonEncode()` escapes every non-ASCII character as `\uXXXX` (`café`
-> becomes `"caf\u00e9"`) - JavaScript gets the same string, so only code that
-> compares the JSON text itself, like a test, sees a difference
-> - `int()` on a float outside int range returns `PHP_INT_MAX` or
-> `PHP_INT_MIN` (`1e30` returned 5076964154930102272) - the same cap PHP
-> uses for numeric strings, and no PHP 8.5 "not representable as an int"
-> warning
+> becomes `"caf\u00e9"`) - JavaScript gets the same string
+> - `int()` caps a float outside int range at `PHP_INT_MAX` or `PHP_INT_MIN`
 
 ## v2.7.0
 

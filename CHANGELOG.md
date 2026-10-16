@@ -11,113 +11,99 @@
 The headlines: HTML-encoded output is ~4x faster than v2.7.0, method names now
 match SmartArray (old names keep working), and new `wrap()`/`wrapHtml()`
 replace the `if` statements around optional fields. Everything else is
-hardening and fixes.
+security and bug fixes.
+
+### Security
+
+- **`jsEncode()` output can't end a script block** - a crafted stored
+  value could close the `<script>` tag, so the rest of it ran as HTML.
+  `jsEncode()` is deprecated; use `jsonEncode()`
 
 ### Added
 
-| Method                        | Returns     | Description                                                                                                                                                               |
-|-------------------------------|-------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `appendHtml($html)`           | string      | Adds HTML after the value; missing values (null or "") return ""                                                                                                          |
-| `ifEquals($match, $newValue)` | SmartString | Replaces the value on a loose match (`==`), for placeholder values: `->ifEquals('0000-00-00', null)`, `->ifEquals(-1, 'Unlimited')`                                       |
-| `set404Handler($callback)`    | ?Closure    | Static. Shows your own page when `or404()` fires instead of the built-in one; SmartArray has its own, so set both                                                         |
-| `wrap($before, $after)`       | SmartString | Wraps the value only when present; missing (null or "") skips the wrapper. Both sides required; pass "" for a side you don't want                                         |
-| `wrapHtml($before, $after)`   | string      | Like `appendHtml()` but adds HTML on both sides: `->wrapHtml('<h2>', '</h2>')` prints nothing when the value is missing, so you don't need an `if` around optional fields |
+| Method                        | Returns     | Description                                                                                            |
+|-------------------------------|-------------|--------------------------------------------------------------------------------------------------------|
+| `appendHtml($html)`           | string      | Adds HTML after the value; returns "" when the value is missing (null or "")                           |
+| `ifEquals($match, $newValue)` | SmartString | Replaces the value on a loose match (`==`): `->ifEquals('0000-00-00', null)`                           |
+| `set404Handler($callback)`    | ?Closure    | Static. Shows your own page when `or404()` fires; SmartArray has its own, so set both                  |
+| `wrap($before, $after)`       | SmartString | Wraps the value only when it's present; pass "" for a side you don't want                              |
+| `wrapHtml($before, $after)`   | string      | Adds HTML on both sides, or prints nothing when the value is missing, so optional fields need no `if`  |
 
 ### Performance
 
-- **HTML-encoded output is ~4x faster** than v2.7.0 (six-field article
-  page: 38.2 → 9.3 microseconds), and at least 3x faster than calling
-  `htmlspecialchars()` yourself: values are scanned first and only encoded
-  when something needs encoding. Output stays byte-identical. Benchmarks
-  and verification: [docs/performance.md](docs/performance.md)
+- **HTML-encoded output is ~4x faster** than v2.7.0, and at least 3x
+  faster than calling `htmlspecialchars()` yourself. Output is unchanged.
+  Details: [docs/performance.md](docs/performance.md)
 
 ### Renamed
 
-These renames give the library one consistent naming pattern (matching
-SmartArray where methods overlap). Old names keep working - nothing to update.
-IDEs like PHPStorm show them in strikethrough and offer a one-click rename.
+Old names keep working - nothing to update. IDEs like PHPStorm show them in
+strikethrough and offer a one-click rename.
 
-| Old                        | New                        | Notes                                                                    |
-|----------------------------|----------------------------|--------------------------------------------------------------------------|
-| `and()`                    | `append()`                 |                                                                          |
-| `andPrefix()`              | `prepend()`                |                                                                          |
-| `apply()`                  | `map()`                    | matches `array_map()` and `SmartArray::map()`                            |
-| `if()`                     | `ifTrue()`                 | the parameter is `newValue:` on `ifTrue()`; `if()` keeps `valueIfTrue:`  |
-| `textToHtml()`             | `nl2br()`                  |                                                                          |
-| `textToHtml(keepBr: true)` | (no new name - keep as-is) | preserves `<br>` tags already in the value; `nl2br()` takes no arguments |
+| Old                        | New                        | Notes                                      |
+|----------------------------|----------------------------|--------------------------------------------|
+| `and()`                    | `append()`                 |                                            |
+| `andPrefix()`              | `prepend()`                |                                            |
+| `apply()`                  | `map()`                    | like `array_map()` and `SmartArray::map()` |
+| `if()`                     | `ifTrue()`                 | by name, the parameter is `newValue:`      |
+| `textToHtml()`             | `nl2br()`                  |                                            |
+| `textToHtml(keepBr: true)` | (no new name - keep as-is) | keeps `<br>` tags already in the value     |
 
 ### Parameter renames (named arguments only)
 
-These only matter if you write parameter names in calls, e.g.
-`->percent(2, ifZero: '-')` - calls using an old name fail with a clear
-"Unknown named parameter" Error:
+Only matters if you pass these by name; an old name throws an "Unknown
+named parameter" Error. See [UPGRADING.md](UPGRADING.md)
 
 - `percent(ifZero:)` was `zeroFallback:`
-- `map(callback:)` was `func:` - matches `array_map()` and `SmartArray::map()`
+- `map(callback:)` was `func:`
 
 ### Deprecated
 
-These still work, they're just no longer featured in the docs - no changes required.
+These still work - no changes required.
 
-- `dateTimeFormat()` - same as `dateFormat()` with a different default; pass the format instead
+- `dateTimeFormat()` - use `dateFormat()` and pass the format
 - `ifBlank()` - use `or()`, which also covers null
-- `phoneFormat()` - North-America formats by default; `pregReplace()` covers custom needs
-- `help()` - the online docs replaced the built-in cheat sheet; it now prints doc links instead
+- `phoneFormat()` - use `pregReplace()`
+- `help()` - prints links to the docs on GitHub
 
 ### Behavior changes
 
-- **`nl2br()` ends the chain** - it returns a string now, so echo it
-  directly and move other calls before it. See
-  [UPGRADING.md](UPGRADING.md)
+- **`nl2br()` ends the chain** - it returns a string, so it must be the
+  last call. See [UPGRADING.md](UPGRADING.md)
 - **Math chains recover after a fallback** -
-  `SmartString::new(null)->add(5)->or(10)->add(5)` returns 15 (was null);
-  null, bool, and SmartNull arguments no longer throw
-- **`percent()` and `percentOf()` use your number-format settings** - same
-  as `numberFormat()`; previously hardcoded `.` and `,`
-- **`textOnly()` output is always clean text** - Unicode spaces become
-  plain spaces, so an "empty" WYSIWYG value like `<p>&nbsp;</p>` trims to
-  `""` and `or()` fallbacks fire, and invalid UTF-8 bytes become �
-- **`orDie()` and `or404()` exit with status 1** - CLI and cron scripts
+  `SmartString::new(null)->add(5)->or(10)->add(5)` returns 15 (was null)
+- **`percent()` and `percentOf()` use your number-format settings**, like
+  `numberFormat()`
+- **`textOnly()` treats `<p>&nbsp;</p>` as empty** - non-breaking and
+  other Unicode spaces become plain spaces, so `or()` fallbacks fire on
+  blank WYSIWYG fields
+- **`orDie()` and `or404()` exit with status 1**, so CLI and cron scripts
   see the failure
 - **`jsonEncode()` escapes every non-ASCII character** - `café` comes out
-  as `"caf\u00e9"`, so no invisible character can hide in page source.
-  JavaScript gets the same string as before
+  as `"caf\u00e9"`. JavaScript gets the same string
+  as before
 
 ### Fixed
 
-- **No more double-encoded arguments** - SmartString arguments unwrap
-  everywhere (`new()`, the guard messages, `orRedirect()`,
-  `pregReplace()`, `appendHtml()`/`wrapHtml()`), so pages no longer show
-  `Bob &amp; Sons` as literal text; a SmartNull argument counts as null
-- **`textOnly()` keeps prose containing `<`** - "Kids <12 eat free"
-  survives; only `<` starting a real tag counts, the same rule browsers
-  use
-- **`maxChars()` and `maxWords()` are more robust** - they handle invalid
-  UTF-8, values over 65535 characters, and negative limits, and ignore
-  `mb_internal_encoding()` changes from other includes
-- **`dateFormat()` edge cases** - the exact Unix epoch formats as a date,
-  while booleans and timestamps outside years 1000-9999 return null, so
-  `or()` fallbacks fire instead of printing a nonsense year like 55338
-- **Errors name your file, not the library's** - including calls routed
-  through a missing SmartArray field, and error messages HTML-encode
-  caller-supplied names (dynamic names can carry request data)
+- **No more double-encoded arguments** - passing a SmartString as an
+  argument no longer shows `Bob &amp; Sons` on the page
+- **`textOnly()` keeps a `<` that isn't a tag** - "Kids <12 eat free"
+  stays intact
+- **Invalid UTF-8 doesn't break text methods** - `textOnly()` replaces bad
+  bytes with �, the same as `maxChars()` and `maxWords()`
+- **`dateFormat()` returns null for values that aren't dates** - booleans
+  and out-of-range timestamps no longer print a year like 55338, so `or()`
+  fallbacks fire
+- **Errors name your file and line**, not the library's
 
 ### Minor
 
-Also: `pregReplace()` returns null on PCRE runtime limits so `or()`
-fallbacks fire, throws clearly on broken patterns, and passes `""`
-through unchanged; `percent()` overflow and INF/NAN store as null instead
-of printing `inf`; `int()` caps a float outside int range at
-`PHP_INT_MAX` or `PHP_INT_MIN` instead of wrapping to an unrelated number
-(and warning on PHP 8.5); `orRedirect()` throws on a blank URL so a
-misconfigured redirect fails on the first request; `or404()` mid-page
-renders a clean 404 without header warnings; `foreach` over a SmartString
-throws instead of silently looping zero times; `print_r()` and
-`var_dump()` show just the stored value; the deprecated `jsEncode()` shim
-escapes `<` `>` `&` as `\uXXXX` so a stored `</script>` can't end the
-script block; the constructor no longer takes a `$properties` array; and
-a dozen more small fixes (static `help()`, CLI-friendly output,
-SmartString-typed arguments, clearer setup errors).
+Also: `pregReplace()` passes `""` through unchanged and returns null when
+PCRE hits a limit, `int()` caps out-of-range floats at `PHP_INT_MAX` or
+`PHP_INT_MIN`, `orRedirect()` throws on a blank URL, `or404()` works
+mid-page, `foreach` over a SmartString throws, `print_r()` and
+`var_dump()` show just the stored value, and error messages HTML-encode
+the names they print.
 
 ## [2.7.0] - 2026-07-07
 
