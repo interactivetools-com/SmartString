@@ -20,12 +20,12 @@ in signatures, docblocks, the changelog, and tests.
 - **`wrap()` requires both sides** - a one-sided `wrap($before)` default was
   rejected: every real case is two-sided, and a required `$after` catches
   forgotten closing tags in the IDE.
-- **The benchmark baseline is plain `htmlspecialchars()` without SmartString's
-  extra flags** (2026-07-20). Adding the flags to the baseline was rejected: it
-  would slow the baseline ~50% on long strings (ENT_DISALLOWED's per-char
-  check) and benchmark a call nobody writes. Dropping SmartString's extra
-  flags was also rejected: the tier scans check disallowed chars in the same
-  pass, so the hardening is nearly free.
+- **The benchmark baseline is `htmlspecialchars()` with SmartString's full
+  flags** (2026-08-15). Both timed sides produce byte-identical output, so the
+  race is work-for-work. The weaker call many projects write runs 10-60%
+  faster; `docs/performance.md` says so instead of timing against it.
+  Dropping SmartString's extra flags was rejected: the tier scans check
+  disallowed chars in the same pass, so the hardening is nearly free.
 - **The news-article page mix has no clean-body, numbers, or empty fields** -
   articles have apostrophes, so the 10 KB body is the quoted variant, and
   sub-microsecond fields would not move the page total. The main table still
@@ -57,5 +57,5 @@ in signatures, docblocks, the changelog, and tests.
   miss a capital I. No other locale changes how ASCII is read (checked against
   all 529 glibc locales), and Windows builds aren't affected. A site that wants
   Turkish month and day names can set `LC_TIME` alone, which changes none of
-  this. Here it only touches `strtolower()`-style calls on PHP 8.1; there are
-  no `/i` patterns.
+  this. Here it only touches `strtolower()`-style calls on PHP 8.1; the only
+  `/i` pattern matches `br`, which has no `i`.

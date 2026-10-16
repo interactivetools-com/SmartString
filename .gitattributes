@@ -17,8 +17,9 @@ tools            export-ignore
 # and this one file teaches them the whole API.
 docs/ai-reference.md -export-ignore
 
-# And the benchmark: the performance page invites everyone to run it, so it
-# ships in Composer installs too (the directory line un-prunes the path so the
-# file rule below can apply).
+# And the benchmark and the table helper it requires: the performance page
+# invites everyone to run it, so both ship in Composer installs too (the
+# directory line un-prunes the path so the file rules below can apply).
 .github/scripts -export-ignore
 .github/scripts/speed-page-table.php -export-ignore
+.github/scripts/shared-md-table.php  -export-ignore
